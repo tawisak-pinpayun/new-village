@@ -63,6 +63,9 @@ kbd { display: inline-block; padding: 1px 4px; min-width: 16px; border-radius: 4
 .room-panel button:hover { background: #b0d28d; }
 .overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #14201bb0; backdrop-filter: blur(4px); }
 .dialog { width: min(390px, calc(100vw - 30px)); background: #f4ead0; color: #354a35; border: 5px solid #8b643e; border-radius: 16px; box-shadow: 0 13px 0 #4c3327, 0 25px 55px #101c15c7; padding: 18px; }
+.market-dialog { max-height: calc(100vh - 36px); overflow-y: auto; }
+.market-divider { margin-top: 10px; color: #88704d; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+.market-dialog .trade { padding: 9px 12px; margin: 6px 0; }
 .dialog-top { display: flex; justify-content: space-between; align-items: center; color: #957044; font-size: 10px; font-weight: 900; letter-spacing: .16em; }
 .dialog-top button { border: 0; border-radius: 6px; width: 28px; height: 28px; background: #e2cfa5; color: #5e4531; }
 .dialog h2 { margin: 5px 0; font: bold 27px Georgia, serif; }.dialog p { font-size: 12px; margin: 3px 0 17px; }

@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import './style.css'
-import { add, canAdd, count, dayNumber, GROW_MS, initialState, isRaining, KEY, load, MAX_ENERGY, MAX_WATER, persist, refreshGrowth, remove, type ItemId } from './domain'
+import { add, canAdd, count, dayNumber, GROW_MS, initialState, isRaining, KEY, load, MAX_ENERGY, MAX_WATER, persist, refreshGrowth, remove, type CropId, type ItemId } from './domain'
 import { collisionTiles, FARM_PLOTS, MAPS, TILE, WORLD_HEIGHT, WORLD_WIDTH, visualTiles, type Interaction, type ResourceNode } from './maps'
 import { Multiplayer } from './multiplayer'
 
@@ -11,9 +11,10 @@ app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   <div class="inventory"><div class="section-label">กระเป๋า <small>ลากของไปช่อง 8–10</small></div><div id="inventory-items"></div></div>
   <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span></div></div>
   <div id="hotbar" class="hotbar" aria-label="แถบเครื่องมือ"></div>
-  <div class="map-guide"><span class="section-label">แผนที่ MVP</span><div id="map-steps"></div></div>
+  <div class="map-guide"><span class="section-label">แผนที่</span><div id="map-steps"></div></div>
   <div class="multiplayer"><button id="room-toggle" title="เล่นกับเพื่อน">👥 เล่นกับเพื่อน</button><div id="room-panel" class="room-panel hidden"><strong>เล่นกับเพื่อน</strong><p id="room-status">ยังไม่ได้เข้าห้อง</p><input id="player-name" maxlength="20" placeholder="ชื่อของคุณ" aria-label="ชื่อของคุณ"><input id="room-code" maxlength="16" placeholder="รหัสห้อง เช่น FARM123" aria-label="รหัสห้อง"><button id="join-room">เข้าห้อง / สร้างห้อง</button><button id="copy-room" class="hidden">คัดลอกลิงก์ชวนเพื่อน</button><button id="leave-room" class="hidden">ออกจากห้อง</button><small>เพื่อนที่ใช้รหัสเดียวกันจะเห็นกันบนแผนที่</small></div></div>
-  <div id="shop" class="overlay hidden"><div class="dialog"><div class="dialog-top"><span>GENERAL STORE</span><button id="close-shop">✕</button></div><h2>ร้านค้าหมู่บ้าน</h2><p>ซื้อเมล็ดไว้ปลูก หรือขายผลผลิตจากฟาร์ม</p><button id="buy" class="trade"><span>✿ เมล็ด Radish <small>ปลูกได้ 1 แปลง</small></span><strong>ซื้อ · 8 Coins</strong></button><button id="sell" class="trade"><span>❀ Radish <small>ผลผลิตจากสวน</small></span><strong>ขาย · 15 Coins</strong></button><div class="dialog-foot">กด <kbd>1</kbd> ซื้อ &nbsp; <kbd>2</kbd> ขาย &nbsp; <kbd>Esc</kbd> ปิด</div></div></div>`
+  <div id="shop" class="overlay hidden"><div class="dialog"><div class="dialog-top"><span>GENERAL STORE</span><button id="close-shop">✕</button></div><h2>ร้านค้าหมู่บ้าน</h2><p>ซื้อเมล็ดไว้ปลูก หรือขายผลผลิตจากฟาร์ม</p><button id="buy" class="trade"><span>✿ เมล็ด Radish <small>ปลูกได้ 1 แปลง</small></span><strong>ซื้อ · 8 Coins</strong></button><button id="sell" class="trade"><span>❀ Radish <small>ผลผลิตจากสวน</small></span><strong>ขาย · 15 Coins</strong></button><div class="dialog-foot">กด <kbd>1</kbd> ซื้อ &nbsp; <kbd>2</kbd> ขาย &nbsp; <kbd>Esc</kbd> ปิด</div></div></div>
+  <div id="market-shop" class="overlay hidden"><div class="dialog market-dialog"><div class="dialog-top"><span>FARMERS' MARKET</span><button id="close-market">✕</button></div><h2>ตลาดเมล็ดพันธุ์</h2><p>ซื้อเมล็ดไปปลูกที่ฟาร์ม หรือขายผลผลิตที่เก็บมา</p><button class="trade" data-buy="radish_seed"><span>✿ เมล็ด Radish <small>โตได้หลังรดน้ำ 60 วินาที</small></span><strong>8 Coins</strong></button><button class="trade" data-buy="carrot_seed"><span>🥕 เมล็ดแครอท <small>ขุดแปลง → ปลูก → รดน้ำ</small></span><strong>10 Coins</strong></button><button class="trade" data-buy="tomato_seed"><span>🍅 เมล็ดมะเขือเทศ <small>ขุดแปลง → ปลูก → รดน้ำ</small></span><strong>12 Coins</strong></button><div class="market-divider">รับซื้อผลผลิต</div><button class="trade" data-sell="carrot"><span>🥕 แครอท</span><strong>ขาย 18 Coins</strong></button><button class="trade" data-sell="tomato"><span>🍅 มะเขือเทศ</span><strong>ขาย 22 Coins</strong></button><div class="dialog-foot">ลากเมล็ดจากกระเป๋าไป Hotbar ช่อง 8–10 · กด <kbd>Esc</kbd> ปิด</div></div></div>`
 
 const ui = {
   map: document.querySelector<HTMLElement>('#map-name')!,
@@ -32,6 +33,7 @@ const characterLabel = document.querySelector<HTMLElement>('#character-label')!
 let { state, error } = load()
 let saveBlocked = !!error
 let shopOpen = false
+let marketOpen = false
 let scene: WorldScene | undefined
 let messageTimer: number | undefined
 const multiplayer = new Multiplayer()
@@ -68,7 +70,16 @@ const HOTBAR_FIXED = [
 ]
 const ITEMS: Record<ItemId, { icon: string; name: string }> = {
   radish_seed: { icon: '✿', name: 'เมล็ด Radish' }, radish: { icon: '❀', name: 'Radish' },
+  carrot_seed: { icon: '🥕', name: 'เมล็ดแครอท' }, carrot: { icon: '🥕', name: 'แครอท' },
+  tomato_seed: { icon: '🍅', name: 'เมล็ดมะเขือเทศ' }, tomato: { icon: '🍅', name: 'มะเขือเทศ' },
   wood: { icon: '🪵', name: 'ไม้' }, stone: { icon: '🪨', name: 'หิน' }, fiber: { icon: '🌿', name: 'เส้นใย' }
+}
+type SeedId = 'radish_seed' | 'carrot_seed' | 'tomato_seed'
+function selectedSeedId(): SeedId | null {
+  const slot = state.selectedSlot ?? 0
+  if (slot === 5) return 'radish_seed'
+  const item = slot >= 7 ? state.hotbarExtras?.[slot - 7] : null
+  return item === 'carrot_seed' || item === 'tomato_seed' || item === 'radish_seed' ? item : null
 }
 function activeActionSlot(): number {
   const slot = state.selectedSlot ?? 0
@@ -100,7 +111,7 @@ function hud() {
     const badge = i === 1 ? `${state.water ?? MAX_WATER}/${MAX_WATER}` : i === 5 ? String(count(state, 'radish_seed')) : i === 6 ? String(count(state, 'radish')) : extra ? String(count(state, extra)) : ''
     return `<button class="hotbar-slot ${i === (state.selectedSlot ?? 0) ? 'selected' : ''}" data-slot="${i}" title="${item.name}"><span class="slot-key">${i === 9 ? 0 : i + 1}</span><span class="slot-icon">${item.icon}</span><span class="slot-name">${item.name}</span>${badge ? `<span class="slot-count">${badge}</span>` : ''}</button>`
   }).join('')
-  ui.steps.innerHTML = `<div class="${state.player.mapId === 'village' ? 'active' : ''}">01 <span>หมู่บ้าน</span></div><div class="${state.player.mapId === 'farm' ? 'active' : ''}">02 <span>บ้านและฟาร์ม</span></div><div class="${state.player.mapId === 'home' ? 'active' : ''}">03 <span>ภายในบ้าน</span></div>`
+  ui.steps.innerHTML = `<div class="${state.player.mapId === 'village' ? 'active' : ''}">01 <span>หมู่บ้าน</span></div><div class="${state.player.mapId === 'farm' ? 'active' : ''}">02 <span>บ้านและฟาร์ม</span></div><div class="${state.player.mapId === 'home' ? 'active' : ''}">03 <span>ภายในบ้าน</span></div><div class="${state.player.mapId === 'market' ? 'active' : ''}">04 <span>ตลาด</span></div>`
 }
 function clock() {
   const day = dayNumber(state)
@@ -146,12 +157,33 @@ function sell() {
   if (!remove(state, 'radish')) return announce('ยังไม่มี Radish ให้ขาย')
   state.player.coins += 15; changed(); announce('ขาย Radish ได้ 15 Coins')
 }
-function closeShop() { shopOpen = false; ui.shop.classList.add('hidden') }
+function closeShop() { shopOpen = false; marketOpen = false; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden') }
 function openShop() { shopOpen = true; ui.shop.classList.remove('hidden'); announce('ยินดีต้อนรับสู่ร้านค้าหมู่บ้าน') }
+function openMarket() { marketOpen = true; document.querySelector('#market-shop')!.classList.remove('hidden'); announce('ยินดีต้อนรับสู่ตลาดเมล็ดพันธุ์') }
+const marketPrices: Record<SeedId, number> = { radish_seed: 8, carrot_seed: 10, tomato_seed: 12 }
+function marketBuy(itemId: SeedId) {
+  const price = marketPrices[itemId]
+  if (state.player.coins < price) return announce('Coins ไม่พอซื้อเมล็ด')
+  if (!canAdd(state, itemId)) return announce('กระเป๋าเต็ม')
+  state.player.coins -= price; add(state, itemId); changed(); announce(`ซื้อ${ITEMS[itemId].name}แล้ว`)
+}
+function marketSell(itemId: 'carrot' | 'tomato') {
+  if (!remove(state, itemId)) return announce(`ยังไม่มี${ITEMS[itemId].name}ให้ขาย`)
+  const price = itemId === 'carrot' ? 18 : 22
+  state.player.coins += price; changed(); announce(`ขาย${ITEMS[itemId].name}ได้ ${price} Coins`)
+}
 document.querySelector('#buy')!.addEventListener('click', buy)
 document.querySelector('#sell')!.addEventListener('click', sell)
 document.querySelector('#close-shop')!.addEventListener('click', closeShop)
 ui.shop.addEventListener('click', event => { if (event.target === ui.shop) closeShop() })
+const marketShop = document.querySelector<HTMLElement>('#market-shop')!
+marketShop.addEventListener('click', event => {
+  if (event.target === marketShop || (event.target as HTMLElement).closest('#close-market')) { closeShop(); return }
+  const buyId = (event.target as HTMLElement).closest<HTMLElement>('[data-buy]')?.dataset.buy as SeedId | undefined
+  const sellId = (event.target as HTMLElement).closest<HTMLElement>('[data-sell]')?.dataset.sell as 'carrot' | 'tomato' | undefined
+  if (buyId && buyId in marketPrices) marketBuy(buyId)
+  if (sellId === 'carrot' || sellId === 'tomato') marketSell(sellId)
+})
 document.querySelector('#new-game')!.addEventListener('click', () => {
   if (!window.confirm('เริ่มเกมใหม่และลบข้อมูลบันทึกเดิม?')) return
   try { localStorage.removeItem(KEY); localStorage.removeItem('new-village.save.v1') } catch { return announce('ลบข้อมูลบันทึกไม่ได้') }
@@ -234,6 +266,11 @@ class WorldScene extends Phaser.Scene {
       this.addNpc(0, 530, 418, 'Shopkeeper')
       this.addNpc(2, 565, 790, 'Village Guide')
     }
+    if (config.id === 'market') {
+      const labelStyle = { fontFamily: 'Nunito, sans-serif', fontSize: '18px', color: '#fff9dc', backgroundColor: '#243829', padding: { x: 9, y: 4 } }
+      this.add.text(460, 245, 'เมล็ดพันธุ์', labelStyle).setOrigin(.5).setDepth(12)
+      this.add.text(1090, 270, 'ของทำสวน', labelStyle).setOrigin(.5).setDepth(12)
+    }
     if (config.id === 'home') this.addNpc(1, 1090, 382, 'Cook')
     this.input.on('pointerdown', () => this.useSelected())
     this.syncRemotePlayers()
@@ -303,7 +340,7 @@ class WorldScene extends Phaser.Scene {
         for (const dx of [-20, 0, 20]) {
           g.fillStyle(0x4c9a3c).fillRect(dx - 9, -15, 18, 20)
           g.fillStyle(0x82ca5c).fillRect(dx - 4, -22, 9, 12)
-          if (ready) g.fillStyle(0xf2cad0).fillRect(dx - 7, 6, 14, 14)
+          if (ready) g.fillStyle(({ radish: 0xf2cad0, carrot: 0xf19a38, tomato: 0xe64c40 } as Record<CropId, number>)[plot.cropId ?? 'radish']).fillRect(dx - 7, 6, 14, 14)
         }
       }
       this.plotMarkers.push(this.add.container(x, y, [g]).setDepth(5))
@@ -354,7 +391,7 @@ class WorldScene extends Phaser.Scene {
     }
     const selected = activeActionSlot()
     const score = (target: typeof targets[number]) => target.distance - (
-      target.plot !== undefined && [0, 1, 4, 5].includes(selected) ? 25 :
+      target.plot !== undefined && ([0, 1, 4].includes(selected) || !!selectedSeedId()) ? 25 :
       target.resource && ((selected === 2 && target.resource.kind === 'tree') || (selected === 3 && target.resource.kind === 'rock') || (selected === 4 && target.resource.kind === 'grass')) ? 25 : 0)
     return targets.sort((a, b) => score(a) - score(b))[0] ?? null
   }
@@ -367,12 +404,13 @@ class WorldScene extends Phaser.Scene {
       if (state.player.energy < 2) return announce('Energy ไม่พอใช้จอบ')
       state.player.energy -= 2; plot.state = 'TILLED'; plot.cropId = null; plot.readyAt = null; plot.dryDays = 0
       this.showAction(4); announce('ขุดแปลงแล้ว เลือกเมล็ดช่อง 6 เพื่อปลูก')
-    } else if (selected === 5) {
+    } else if (selectedSeedId()) {
+      const seedId = selectedSeedId()!
       if (plot.state !== 'TILLED') return announce('ต้องใช้จอบขุดดินก่อนปลูก')
-      if (count(state, 'radish_seed') < 1) return announce('เมล็ดหมด ซื้อได้ที่ร้านในหมู่บ้าน')
+      if (count(state, seedId) < 1) return announce('เมล็ดหมด ซื้อเพิ่มได้ที่ตลาด')
       if (state.player.energy < 2) return announce('Energy ไม่พอปลูก')
-      remove(state, 'radish_seed'); state.player.energy -= 2
-      plot.state = 'PLANTED'; plot.cropId = 'radish'; plot.dryDays = 0; plot.wateredDay = null
+      remove(state, seedId); state.player.energy -= 2
+      plot.state = 'PLANTED'; plot.cropId = seedId.replace('_seed', '') as CropId; plot.dryDays = 0; plot.wateredDay = null
       this.showAction(4)
       if (isRaining(dayNumber(state))) { refreshGrowth(state); announce('ปลูกแล้ว ฝนรดน้ำให้อัตโนมัติ') }
       else announce('ปลูกแล้ว เลือกบัวรดน้ำช่อง 2')
@@ -384,12 +422,13 @@ class WorldScene extends Phaser.Scene {
       plot.state = 'GROWING'; plot.readyAt = Date.now() + GROW_MS; plot.wateredDay = dayNumber(state); plot.dryDays = 0
       this.showAction(3); announce('รดน้ำแล้ว อีก 60 วินาทีจะเก็บได้')
     } else if (selected === 4) {
-      if (plot.state !== 'READY') return announce('ยังเก็บไม่ได้ รอให้ Radish โตเต็มที่')
-      if (!canAdd(state, 'radish')) return announce('กระเป๋าเต็ม ต้นผักยังอยู่')
+      if (plot.state !== 'READY') return announce('ยังเก็บไม่ได้ รอให้พืชโตเต็มที่')
+      const cropId = plot.cropId as CropId
+      if (!canAdd(state, cropId)) return announce('กระเป๋าเต็ม ต้นผักยังอยู่')
       if (state.player.energy < 2) return announce('Energy ไม่พอเก็บเกี่ยว')
-      add(state, 'radish'); state.player.energy -= 2
+      add(state, cropId); state.player.energy -= 2
       plot.state = 'TILLED'; plot.cropId = null; plot.readyAt = null; plot.dryDays = 0; plot.wateredDay = null
-      this.showAction(4); announce('เก็บ Radish แล้ว แปลงพร้อมปลูกใหม่')
+      this.showAction(4); announce(`เก็บ${ITEMS[cropId].name}แล้ว แปลงพร้อมปลูกใหม่`)
     } else return announce('เลือกเครื่องมือให้ตรงงาน: จอบ → เมล็ด → บัวรดน้ำ → เคียว')
     this.drawPlots(); changed()
   }
@@ -413,7 +452,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   private useSelected() {
-    if (shopOpen || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
+    if (shopOpen || marketOpen || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
     const nearest = this.nearest()
     if (nearest?.interaction) { this.interactionCooldown = this.time.now + 250; this.interact(nearest.interaction); return }
     if (activeActionSlot() === 6) {
@@ -424,6 +463,7 @@ class WorldScene extends Phaser.Scene {
     }
     if (nearest?.plot !== undefined) { this.interactionCooldown = this.time.now + 250; this.usePlot(nearest.plot); return }
     if (nearest?.resource) { this.interactionCooldown = this.time.now + 250; this.useNode(nearest.resource); return }
+    if (selectedSeedId()) return announce('เดินเข้าใกล้แปลงที่ขุดแล้วในฟาร์มเพื่อปลูก')
     if (activeActionSlot() >= 7) return announce('ช่องนี้ใช้ถือวัตถุดิบสำหรับคราฟต์ในอนาคต')
     announce('เดินเข้าใกล้แปลงหรือวัตถุที่ใช้เครื่องมือนี้')
   }
@@ -445,6 +485,7 @@ class WorldScene extends Phaser.Scene {
   private interact(target: Interaction) {
     if (target.kind === 'future') return announce('เส้นทางนี้จะเปิดในอัปเดตถัดไป')
     if (target.kind === 'shop') return openShop()
+    if (target.kind === 'market_shop') return openMarket()
     if (target.kind === 'refill') {
       if ((state.water ?? MAX_WATER) === MAX_WATER) return announce('บัวรดน้ำเต็มแล้ว')
       state.water = MAX_WATER; changed(); announce('เติมน้ำเต็มบัวแล้ว')
@@ -485,13 +526,13 @@ class WorldScene extends Phaser.Scene {
     if (time - this.lastClock > 1000) { this.lastClock = time; clock() }
     if (time - this.lastGrowthCheck > 250) {
       this.lastGrowthCheck = time
-      if (refreshGrowth(state)) { if (state.player.mapId === 'farm') this.drawPlots(); changed(); announce('Radish โตพร้อมเก็บแล้ว!') }
+      if (refreshGrowth(state)) { if (state.player.mapId === 'farm') this.drawPlots(); changed(); announce('พืชโตพร้อมเก็บแล้ว!') }
     }
     if (Phaser.Input.Keyboard.JustDown(this.esc)) closeShop()
-    if (shopOpen) {
+    if (shopOpen || marketOpen) {
       this.player.setVelocity(0)
-      if (Phaser.Input.Keyboard.JustDown(this.one)) buy()
-      if (Phaser.Input.Keyboard.JustDown(this.two)) sell()
+      if (shopOpen && Phaser.Input.Keyboard.JustDown(this.one)) buy()
+      if (shopOpen && Phaser.Input.Keyboard.JustDown(this.two)) sell()
       return
     }
     this.hotbarKeys.forEach((key, index) => {

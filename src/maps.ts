@@ -9,7 +9,7 @@ export type Interaction = {
   x: number
   y: number
   label: string
-  kind: 'door' | 'shop' | 'quest' | 'rest' | 'cook' | 'storage' | 'future' | 'refill'
+  kind: 'door' | 'shop' | 'market_shop' | 'quest' | 'rest' | 'cook' | 'storage' | 'future' | 'refill'
   destination?: MapId
   arrival?: { x: number; y: number }
 }
@@ -41,7 +41,7 @@ export const MAPS: Record<MapId, MapConfig> = {
       { id: 'quest', x: 565, y: 790, label: 'คุยกับไกด์หมู่บ้าน', kind: 'quest' },
       { id: 'forest', x: 560, y: 145, label: 'ทางไปป่า', kind: 'future' },
       { id: 'river', x: 1390, y: 520, label: 'ทางไปริมน้ำ', kind: 'future' },
-      { id: 'market', x: 145, y: 520, label: 'ทางไปตลาด', kind: 'future' }
+      { id: 'market', x: 175, y: 520, label: 'ไปตลาด', kind: 'door', destination: 'market', arrival: { x: 1280, y: 520 } }
     ]
   },
   farm: {
@@ -64,6 +64,19 @@ export const MAPS: Record<MapId, MapConfig> = {
       { id: 'farm-rock-2', x: 1175, y: 840, kind: 'rock', hp: 2 },
       { id: 'farm-grass-1', x: 425, y: 845, kind: 'grass', hp: 1 },
       { id: 'farm-grass-2', x: 1075, y: 850, kind: 'grass', hp: 1 }
+    ]
+  },
+  market: {
+    id: 'market', name: 'ตลาด', image: '/assets/market.png', spawn: { x: 1280, y: 520 },
+    blocked: [
+      [0, 0, 1536, 110], [0, 0, 125, 1024], [1430, 0, 106, 410], [1430, 620, 106, 404],
+      [240, 130, 285, 215], [1000, 130, 305, 210], [190, 630, 310, 195], [980, 630, 315, 200],
+      [650, 365, 245, 225], [0, 855, 660, 169], [880, 855, 656, 169]
+    ],
+    interactions: [
+      { id: 'to-village', x: 1385, y: 520, label: 'กลับหมู่บ้าน', kind: 'door', destination: 'village', arrival: { x: 300, y: 520 } },
+      { id: 'seed-stall', x: 555, y: 285, label: 'ซื้อเมล็ดผัก', kind: 'market_shop' },
+      { id: 'garden-stall', x: 1050, y: 335, label: 'ดูอุปกรณ์ปลูกผัก', kind: 'market_shop' }
     ]
   },
   home: {

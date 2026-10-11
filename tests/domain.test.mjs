@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { add, canAdd, count, DAY_MS, initialState, isRaining, refreshGrowth, remove, validate } from '../src/domain.ts'
+import { collisionTiles, MAPS, TILE } from '../src/maps.ts'
 
 test('inventory never removes missing items or exceeds a full stack', () => {
   const save = initialState()
@@ -38,4 +39,36 @@ test('unwatered planted crop withers after three dry days', () => {
   assert.equal(save.plots[0].state, 'WITHERED')
   assert.equal(save.plots[0].cropId, null)
   assert.equal(validate(save), true)
+})
+
+test('market seeds and crops survive save validation and market has return route', () => {
+  const save = initialState()
+  save.player.mapId = 'market'
+  assert.equal(add(save, 'carrot_seed'), true)
+  assert.equal(add(save, 'tomato_seed'), true)
+  assert.equal(count(save, 'carrot_seed'), 1)
+  assert.equal(save.hotbarExtras.includes('carrot_seed'), true)
+  save.plots[0].state = 'READY'
+  save.plots[0].cropId = 'carrot'
+  assert.equal(validate(save), true)
+  assert.equal(MAPS.village.interactions.find(i => i.id === 'market').destination, 'market')
+  assert.equal(MAPS.market.interactions.find(i => i.id === 'to-village').destination, 'village')
+})
+
+test('market entrance, stalls and exit are reachable on walkable tiles', () => {
+  const grid = collisionTiles(MAPS.market)
+  const start = [Math.floor(1280 / TILE), Math.floor(520 / TILE)]
+  const queue = [start]
+  const seen = new Set([start.join(',')])
+  for (let index = 0; index < queue.length; index++) {
+    const [x, y] = queue[index]
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nextX = x + dx, nextY = y + dy, key = `${nextX},${nextY}`
+      if (grid[nextY]?.[nextX] !== 0 || seen.has(key)) continue
+      seen.add(key); queue.push([nextX, nextY])
+    }
+  }
+  for (const point of [[1385, 520], [555, 285], [1050, 380]]) {
+    assert.equal(seen.has(`${Math.floor(point[0] / TILE)},${Math.floor(point[1] / TILE)}`), true)
+  }
 })
