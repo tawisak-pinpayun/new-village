@@ -1,14 +1,15 @@
 import Phaser from 'phaser'
 import './style.css'
-import { add, canAdd, count, craftArcaneSword, dayNumber, eat, gainXp, GROW_MS, initialState, isRaining, KEY, load, maxHp, maxMana, MAX_ENERGY, MAX_WATER, persist, rareDrop, refreshGrowth, remove, xpNeeded, type CropId, type ItemId, type OutfitId } from './domain'
+import { add, canAdd, count, craftArcaneSword, dayNumber, eat, equipmentStats, gainXp, GEAR, GEAR_IDS, GROW_MS, initialState, isRaining, KEY, load, maxHp, maxMana, MAX_ENERGY, MAX_WATER, persist, rareDrop, refreshGrowth, remove, xpNeeded, type CropId, type GearId, type GearSlot, type ItemId, type OutfitId } from './domain'
 import { collisionTiles, FARM_PLOTS, MAPS, TILE, WORLD_HEIGHT, WORLD_WIDTH, type Interaction, type ResourceNode } from './maps'
 import { Multiplayer } from './multiplayer'
 import { WorldChat } from './world-chat'
 import { mineFloor, monstersFor, type Monster } from './monsters'
+import { drawAppearance } from './appearance'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `<div id="game"></div><div class="vignette"></div>
-  <div class="topbar"><div class="brand"><span class="flower">✿</span><span>NEW VILLAGE</span></div><div class="location"><span class="location-label">CURRENT LOCATION</span><strong id="map-name">หมู่บ้าน</strong></div><div id="day-display" class="day-display">☀ วันที่ 1 · 09:00</div><button id="switch-character" title="เปลี่ยนตัวละคร">☺ <span id="character-label">Player A</span></button><button id="new-game" title="เริ่มเกมใหม่">↻ <span>เกมใหม่</span></button></div>
+  <div class="topbar"><div class="brand"><span class="flower">✿</span><span>NEW VILLAGE</span></div><div class="location"><span class="location-label">CURRENT LOCATION</span><strong id="map-name">หมู่บ้าน</strong></div><div id="day-display" class="day-display">☀ วันที่ 1 · 09:00</div><button id="dress-toggle" title="แต่งตัวและดูสเตตัส">👗 แต่งตัว</button><button id="switch-character" title="เปลี่ยนตัวละคร">☺ <span id="character-label">Player A</span></button><button id="new-game" title="เริ่มเกมใหม่">↻ <span>เกมใหม่</span></button></div>
   <div class="status"><div class="coins"><span>✦</span><strong id="coins">50</strong></div><div class="energy"><span>⚡ ENERGY</span><strong id="energy-value">100 / 100</strong><div class="energy-track"><div id="energy-bar"></div></div></div><div class="vitals"><div><span>❤️ HP</span><b id="hp-value"></b></div><div class="vital-track"><i id="hp-bar"></i></div><div><span>✨ MANA</span><b id="mana-value"></b></div><div class="vital-track"><i id="mana-bar"></i></div><div><span id="level-value">LV 1</span><b id="xp-value"></b></div><div class="vital-track"><i id="xp-bar"></i></div></div></div>
   <div class="inventory"><div class="section-label">กระเป๋า <small>ลากของไปช่อง 8–10</small></div><div id="inventory-items"></div></div>
   <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span></div></div>
@@ -18,7 +19,8 @@ app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   <div class="world-chat"><button id="chat-toggle">🌍 แชทโลก</button><div id="chat-panel" class="chat-panel hidden"><strong>แชทโลก</strong><small id="chat-status">กำลังเชื่อมต่อ...</small><div id="chat-log" role="log" aria-live="polite"></div><form id="chat-form"><input id="chat-input" maxlength="200" placeholder="พิมพ์ข้อความ..." aria-label="ข้อความแชท"><button type="submit">ส่ง</button></form></div></div>
   <div id="shop" class="overlay hidden"><div class="dialog"><div class="dialog-top"><span>GENERAL STORE</span><button id="close-shop">✕</button></div><h2>ร้านค้าหมู่บ้าน</h2><p>ซื้อเมล็ดไว้ปลูก หรือขายผลผลิตจากฟาร์ม</p><button id="buy" class="trade"><span>✿ เมล็ด Radish <small>ปลูกได้ 1 แปลง</small></span><strong>ซื้อ · 8 Coins</strong></button><button id="sell" class="trade"><span>❀ Radish <small>ผลผลิตจากสวน</small></span><strong>ขาย · 15 Coins</strong></button><div class="dialog-foot">กด <kbd>1</kbd> ซื้อ &nbsp; <kbd>2</kbd> ขาย &nbsp; <kbd>Esc</kbd> ปิด</div></div></div>
   <div id="market-shop" class="overlay hidden"><div class="dialog market-dialog"><div class="dialog-top"><span>FARMERS' MARKET</span><button id="close-market">✕</button></div><h2>ตลาดเมล็ดพันธุ์และอุปกรณ์</h2><p>ซื้อเมล็ด อาหาร และอาวุธ หรือขายของที่หาได้</p><button class="trade" data-buy="radish_seed"><span>✿ เมล็ด Radish</span><strong>8 Coins</strong></button><button class="trade" data-buy="carrot_seed"><span>🥕 เมล็ดแครอท</span><strong>10 Coins</strong></button><button class="trade" data-buy="tomato_seed"><span>🍅 เมล็ดมะเขือเทศ</span><strong>12 Coins</strong></button><div class="market-divider">อาหารและอาวุธ</div><button class="trade" data-buy="rice_meal"><span>🍚 ข้าวกล่อง <small>ฟื้น HP และพลังงาน คลิกในกระเป๋าเพื่อกิน</small></span><strong>12 Coins</strong></button><button class="trade" data-buy="sword"><span>⚔️ ดาบ</span><strong>35 Coins</strong></button><button class="trade" data-buy="bow"><span>🏹 ธนู</span><strong>55 Coins</strong></button><div class="market-divider">รับซื้อ</div><button class="trade" data-sell="carrot"><span>🥕 แครอท</span><strong>18 Coins</strong></button><button class="trade" data-sell="tomato"><span>🍅 มะเขือเทศ</span><strong>22 Coins</strong></button><button class="trade" data-sell="meat"><span>🍖 เนื้อ</span><strong>16 Coins</strong></button><button class="trade" data-sell="hide"><span>🟤 หนังสัตว์</span><strong>12 Coins</strong></button><button class="trade" data-sell="copper"><span>🟠 แร่ทองแดง</span><strong>14 Coins</strong></button><button class="trade" data-sell="iron"><span>⚪ แร่เหล็ก</span><strong>22 Coins</strong></button><button class="trade" data-sell="moonstone"><span>💎 จันทราศิลา</span><strong>120 Coins</strong></button><div class="dialog-foot">ลากอาวุธไป Hotbar ช่อง 8–10 · กด <kbd>Esc</kbd> ปิด</div></div></div>
-  <div id="special-shop" class="overlay hidden"><div class="dialog market-dialog"><div class="dialog-top"><span id="special-label"></span><button id="close-special">✕</button></div><h2 id="special-title"></h2><p id="special-description"></p><div id="special-list"></div><div class="dialog-foot">กด <kbd>Esc</kbd> ปิด</div></div></div>`
+  <div id="special-shop" class="overlay hidden"><div class="dialog market-dialog"><div class="dialog-top"><span id="special-label"></span><button id="close-special">✕</button></div><h2 id="special-title"></h2><p id="special-description"></p><div id="special-list"></div><div class="dialog-foot">กด <kbd>Esc</kbd> ปิด</div></div></div>
+  <div id="wardrobe" class="overlay hidden"><div class="dialog wardrobe-dialog"><div class="dialog-top"><span>WARDROBE</span><button id="close-wardrobe">✕</button></div><h2>แต่งตัวและอุปกรณ์</h2><div id="wardrobe-content"></div><div class="dialog-foot">ซื้อชุดและเครื่องประดับจากร้านเสื้อผ้าในตลาดหรือเมืองเวทมนตร์ · กด <kbd>Esc</kbd> ปิด</div></div></div>`
 
 const ui = {
   map: document.querySelector<HTMLElement>('#map-name')!,
@@ -42,6 +44,7 @@ let saveBlocked = !!error
 let shopOpen = false
 let marketOpen = false
 let specialOpen = false
+let wardrobeOpen = false
 let specialKind: 'tailor' | 'magic_shop' | 'forge' | null = null
 let scene: WorldScene | undefined
 let messageTimer: number | undefined
@@ -109,7 +112,6 @@ const ITEMS: Record<ItemId, { icon: string; name: string }> = {
   sword: { icon: '⚔️', name: 'ดาบ' }, bow: { icon: '🏹', name: 'ธนู' }, meat: { icon: '🍖', name: 'เนื้อ' }, hide: { icon: '🟤', name: 'หนังสัตว์' }, copper: { icon: '🟠', name: 'แร่ทองแดง' }, iron: { icon: '⚪', name: 'แร่เหล็ก' },
   moonstone: { icon: '💎', name: 'จันทราศิลา' }, arcane_sword: { icon: '🗡️', name: 'ดาบจันทรา' }, wand: { icon: '🪄', name: 'คทาเวท' }, broom: { icon: '🧹', name: 'ไม้กวาดขี่' }, rice_meal: { icon: '🍚', name: 'ข้าวกล่อง' }, stew: { icon: '🍲', name: 'สตูว์' }, mana_potion: { icon: '🧪', name: 'ยามานา' }
 }
-const OUTFIT_TINT: Record<OutfitId, number> = { default: 0xffffff, forest: 0xb9de9c, royal: 0xa8c7f9, mage: 0xd3b4f5 }
 type SeedId = 'radish_seed' | 'carrot_seed' | 'tomato_seed'
 function selectedSeedId(): SeedId | null {
   const slot = state.selectedSlot ?? 0
@@ -207,7 +209,8 @@ function sell() {
   state.player.coins += 15; changed(); announce('ขาย Radish ได้ 15 Coins')
 }
 const specialShop = document.querySelector<HTMLElement>('#special-shop')!
-function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden') }
+const wardrobe = document.querySelector<HTMLElement>('#wardrobe')!
+function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden') }
 function openShop() { shopOpen = true; ui.shop.classList.remove('hidden'); announce('ยินดีต้อนรับสู่ร้านค้าหมู่บ้าน') }
 function openMarket() { marketOpen = true; document.querySelector('#market-shop')!.classList.remove('hidden'); announce('ยินดีต้อนรับสู่ตลาดเมล็ดพันธุ์') }
 const marketPrices: Partial<Record<ItemId, number>> = { radish_seed: 8, carrot_seed: 10, tomato_seed: 12, rice_meal: 12, sword: 35, bow: 55, wand: 65, broom: 110, mana_potion: 20 }
@@ -221,15 +224,43 @@ function marketBuy(itemId: ItemId) {
   state.player.coins -= price; add(state, itemId); changed(); announce(`ซื้อ${ITEMS[itemId].name}แล้ว`)
 }
 const outfitPrices: Partial<Record<OutfitId, number>> = { forest: 25, royal: 55, mage: 80 }
+const outfitNames: Record<OutfitId, string> = { default: 'ชุดชาวสวน', forest: 'ชุดนักผจญภัย', royal: 'ชุดราชสำนัก', mage: 'ชุดจอมเวท' }
+const outfitBonuses: Record<OutfitId, string> = { default: 'ไม่มีโบนัส', forest: 'HP +10', royal: 'ป้องกัน +1', mage: 'มานา +12' }
+function gearBonus(id: GearId) {
+  return (['hp', 'mana', 'attack', 'defense', 'speed'] as const).filter(key => GEAR[id][key]).map(key => `${{ hp: 'HP', mana: 'มานา', attack: 'โจมตี', defense: 'ป้องกัน', speed: 'ความเร็ว' }[key]} +${GEAR[id][key]}`).join(' · ')
+}
+function refreshAppearance() { scene?.setCharacter(); scene?.sendPresence(true); changed(); if (wardrobeOpen) renderWardrobe() }
+function renderWardrobe() {
+  const stats = equipmentStats(state)
+  const outfitRows = (['default', 'forest', 'royal', 'mage'] as OutfitId[]).filter(id => state.ownedOutfits?.includes(id)).map(id => `<button class="wardrobe-choice ${state.outfit === id ? 'equipped' : ''}" data-wear-outfit="${id}"><span>${outfitNames[id]}<small>${outfitBonuses[id]}</small></span><b>${state.outfit === id ? 'สวมอยู่' : 'สวม'}</b></button>`).join('')
+  const slots: { id: GearSlot; title: string }[] = [{ id: 'hat', title: 'หมวก' }, { id: 'necklace', title: 'เครื่องประดับ' }, { id: 'boots', title: 'รองเท้า' }]
+  const gearRows = slots.map(slot => `<section><h3>${slot.title}</h3><button class="wardrobe-choice ${!state.equipped?.[slot.id] ? 'equipped' : ''}" data-wear-gear="none" data-gear-slot="${slot.id}"><span>ถอดออก</span><b>${state.equipped?.[slot.id] ? 'ถอด' : 'เลือกอยู่'}</b></button>${(state.ownedGear ?? []).filter(id => GEAR[id].slot === slot.id).map(id => `<button class="wardrobe-choice ${state.equipped?.[slot.id] === id ? 'equipped' : ''}" data-wear-gear="${id}" data-gear-slot="${slot.id}"><span>${GEAR[id].icon} ${GEAR[id].name}<small>${gearBonus(id)}</small></span><b>${state.equipped?.[slot.id] === id ? 'สวมอยู่' : 'สวม'}</b></button>`).join('')}</section>`).join('')
+  document.querySelector<HTMLElement>('#wardrobe-content')!.innerHTML = `<div class="wardrobe-stats"><strong>สเตตัสรวม</strong><span>❤️ HP ${maxHp(state)}</span><span>✨ มานา ${maxMana(state)}</span><span>⚔️ โจมตี +${stats.attack}</span><span>🛡️ ป้องกัน +${stats.defense}</span><span>👟 ความเร็ว +${stats.speed}</span></div><h3>ชุด</h3>${outfitRows}${gearRows}`
+}
+function openWardrobe() { closeShop(); wardrobeOpen = true; renderWardrobe(); wardrobe.classList.remove('hidden') }
+document.querySelector('#dress-toggle')!.addEventListener('click', openWardrobe)
+wardrobe.addEventListener('click', event => {
+  const target = event.target as HTMLElement
+  if (target === wardrobe || target.closest('#close-wardrobe')) return closeShop()
+  const outfit = target.closest<HTMLElement>('[data-wear-outfit]')?.dataset.wearOutfit as OutfitId | undefined
+  if (outfit && state.ownedOutfits?.includes(outfit)) { state.outfit = outfit; state.player.hp = Math.min(state.player.hp ?? 100, maxHp(state)); state.player.mana = Math.min(state.player.mana ?? 50, maxMana(state)); refreshAppearance(); announce(`สวม${outfitNames[outfit]}แล้ว`); return }
+  const button = target.closest<HTMLElement>('[data-wear-gear]')
+  if (!button) return
+  const slot = button.dataset.gearSlot as GearSlot, id = button.dataset.wearGear as GearId | 'none'
+  if (id !== 'none' && (!state.ownedGear?.includes(id) || GEAR[id].slot !== slot)) return
+  state.equipped ??= {}; if (id === 'none') delete state.equipped[slot]; else state.equipped[slot] = id
+  state.player.hp = Math.min(state.player.hp ?? 100, maxHp(state)); state.player.mana = Math.min(state.player.mana ?? 50, maxMana(state))
+  refreshAppearance(); announce(id === 'none' ? 'ถอดอุปกรณ์แล้ว' : `สวม${GEAR[id].name}แล้ว`)
+})
 function openSpecial(kind: 'tailor' | 'magic_shop' | 'forge') {
   specialKind = kind; specialOpen = true
   const title = kind === 'tailor' ? 'ร้านเสื้อผ้า' : kind === 'magic_shop' ? 'ร้านเวทมนตร์' : 'เตาหลอมอาวุธ'
   document.querySelector('#special-label')!.textContent = kind === 'tailor' ? 'TAILOR' : kind === 'magic_shop' ? 'MAGIC SHOP' : 'FORGE'
   document.querySelector('#special-title')!.textContent = title
-  document.querySelector('#special-description')!.textContent = kind === 'tailor' ? 'ซื้อและสวมชุดใหม่ได้ทันที' : kind === 'magic_shop' ? 'คทาใช้มานาโจมตี ไม้กวาดเพิ่มความเร็ว และยาฟื้นมานา' : 'ใช้เหล็ก 2 ชิ้น กับจันทราศิลา 1 ชิ้น ทำดาบจันทรา'
+  document.querySelector('#special-description')!.textContent = kind === 'tailor' ? 'ซื้อชุด หมวก เครื่องประดับ และรองเท้า แล้วกด แต่งตัว เพื่อเลือกสวม' : kind === 'magic_shop' ? 'คทาใช้มานาโจมตี ไม้กวาดบินได้ และยาฟื้นมานา' : 'ใช้เหล็ก 2 ชิ้น กับจันทราศิลา 1 ชิ้น ทำดาบจันทรา'
   const list = document.querySelector<HTMLElement>('#special-list')!
   list.innerHTML = kind === 'tailor'
-    ? (['forest', 'royal', 'mage'] as OutfitId[]).map(id => `<button class="trade" data-outfit="${id}"><span>${({ default: 'ชุดเดิม', forest: '🌿 ชุดนักผจญภัย', royal: '💙 ชุดราชสำนัก', mage: '🔮 ชุดจอมเวท' } as Record<OutfitId, string>)[id]}</span><strong>${state.ownedOutfits?.includes(id) ? 'สวมใส่' : `${outfitPrices[id]} Coins`}</strong></button>`).join('')
+    ? `<div class="market-divider">ชุด</div>${(['forest', 'royal', 'mage'] as OutfitId[]).map(id => `<button class="trade" data-outfit="${id}"><span>${outfitNames[id]} <small>${outfitBonuses[id]}</small></span><strong>${state.ownedOutfits?.includes(id) ? state.outfit === id ? 'สวมอยู่' : 'สวมใส่' : `${outfitPrices[id]} Coins`}</strong></button>`).join('')}<div class="market-divider">หมวก · เครื่องประดับ · รองเท้า</div>${GEAR_IDS.map(id => `<button class="trade" data-gear-buy="${id}"><span>${GEAR[id].icon} ${GEAR[id].name} <small>${gearBonus(id)}</small></span><strong>${state.ownedGear?.includes(id) ? state.equipped?.[GEAR[id].slot] === id ? 'สวมอยู่' : 'สวมใส่' : `${GEAR[id].price} Coins`}</strong></button>`).join('')}<button class="trade" data-open-wardrobe="1"><span>👗 เปิดหน้าแต่งตัว</span><strong>ดูสเตตัส</strong></button>`
     : kind === 'magic_shop'
       ? `<button class="trade" data-special-buy="wand"><span>🪄 คทาเวท <small>โจมตีมอนสเตอร์ ใช้ 8 มานา</small></span><strong>65 Coins</strong></button><button class="trade" data-special-buy="broom"><span>🧹 ไม้กวาดขี่ <small>เลือกใน Hotbar แล้วกด E เพื่อขึ้น/ลง</small></span><strong>110 Coins</strong></button><button class="trade" data-special-buy="mana_potion"><span>🧪 ยามานา <small>ฟื้น 30 มานา</small></span><strong>20 Coins</strong></button>`
       : `<button class="trade" data-craft="arcane_sword"><span>🗡️ ดาบจันทรา <small>เหล็ก 2 + จันทราศิลา 1</small></span><strong>หลอม</strong></button>`
@@ -240,14 +271,24 @@ specialShop.addEventListener('click', event => {
   const target = event.target as HTMLElement
   if (target === specialShop || target.closest('#close-special')) return closeShop()
   const outfit = target.closest<HTMLElement>('[data-outfit]')?.dataset.outfit as OutfitId | undefined
+  const gear = target.closest<HTMLElement>('[data-gear-buy]')?.dataset.gearBuy as GearId | undefined
   const buyId = target.closest<HTMLElement>('[data-special-buy]')?.dataset.specialBuy as ItemId | undefined
+  if (target.closest('[data-open-wardrobe]')) return openWardrobe()
   if (outfit && outfitPrices[outfit]) {
     if (!state.ownedOutfits?.includes(outfit)) {
       const price = outfitPrices[outfit]!
       if (state.player.coins < price) return announce('Coins ไม่พอซื้อชุดนี้')
       state.player.coins -= price; state.ownedOutfits ??= ['default']; state.ownedOutfits.push(outfit)
     }
-    state.outfit = outfit; scene?.setCharacter(); scene?.sendPresence(true); changed(); openSpecial('tailor'); announce('เปลี่ยนชุดแล้ว')
+    state.outfit = outfit; state.player.hp = Math.min(state.player.hp ?? 100, maxHp(state)); state.player.mana = Math.min(state.player.mana ?? 50, maxMana(state)); refreshAppearance(); openSpecial('tailor'); announce(`สวม${outfitNames[outfit]}แล้ว`)
+  }
+  if (gear && GEAR[gear]) {
+    if (!state.ownedGear?.includes(gear)) {
+      if (state.player.coins < GEAR[gear].price) return announce('Coins ไม่พอซื้ออุปกรณ์นี้')
+      state.player.coins -= GEAR[gear].price; state.ownedGear ??= []; state.ownedGear.push(gear)
+    }
+    state.equipped ??= {}; state.equipped[GEAR[gear].slot] = gear
+    refreshAppearance(); openSpecial('tailor'); announce(`สวม${GEAR[gear].name}แล้ว`)
   }
   if (buyId && marketPrices[buyId]) marketBuy(buyId)
   if (target.closest('[data-craft]')) {
@@ -305,6 +346,7 @@ class WorldScene extends Phaser.Scene {
   private broomMarker?: Phaser.GameObjects.Text
   private flyingSprite?: Phaser.GameObjects.Sprite
   private flyingShadow?: Phaser.GameObjects.Ellipse
+  private clothing?: Phaser.GameObjects.Graphics
   private terrainCollider?: Phaser.Physics.Arcade.Collider
   private monsterWander = new Map<string, { homeX: number; homeY: number; targetX: number; targetY: number; nextTurn: number; phase: number }>()
   private handlePointer = () => this.useSelected()
@@ -316,7 +358,7 @@ class WorldScene extends Phaser.Scene {
   private actionUntil = 0
   private actionRow = 0
   private lastClock = 0
-  private remoteSprites = new Map<string, { sprite: Phaser.GameObjects.Sprite; label: Phaser.GameObjects.Text }>()
+  private remoteSprites = new Map<string, { sprite: Phaser.GameObjects.Sprite; label: Phaser.GameObjects.Text; clothing: Phaser.GameObjects.Graphics; look: string }>()
 
   constructor() { super('World') }
   preload() {
@@ -352,10 +394,11 @@ class WorldScene extends Phaser.Scene {
     if (!blockers) throw new Error('Tilemap collision layer unavailable')
     blockers.setCollision(1).setVisible(false)
     this.player = this.physics.add.sprite(state.player.x, state.player.y, `player-${state.character ?? 'a'}`, 0).setDepth(20).setScale(.23)
-    this.player.setTint(OUTFIT_TINT[state.outfit ?? 'default'])
     this.broomMarker = this.add.text(state.player.x, state.player.y + 10, '🧹', { fontSize: '29px' }).setOrigin(.5).setDepth(19).setVisible(!!state.mounted)
     this.flyingShadow = this.add.ellipse(state.player.x, state.player.y + 20, 42, 13, 0x142218, .35).setDepth(18).setVisible(!!state.mounted)
-    this.flyingSprite = this.add.sprite(state.player.x, state.player.y - 27, `player-${state.character ?? 'a'}`, 0).setScale(.23).setDepth(22).setTint(OUTFIT_TINT[state.outfit ?? 'default']).setVisible(!!state.mounted)
+    this.flyingSprite = this.add.sprite(state.player.x, state.player.y - 27, `player-${state.character ?? 'a'}`, 0).setScale(.23).setDepth(22).setVisible(!!state.mounted)
+    this.clothing = this.add.graphics().setDepth(23)
+    drawAppearance(this.clothing, { outfit: state.outfit ?? 'default', equipped: state.equipped ?? {} }, 0)
     this.player.setVisible(!state.mounted)
     this.player.body!.setSize(104, 78).setOffset(88, 194)
     this.player.setCollideWorldBounds(true)
@@ -410,17 +453,18 @@ class WorldScene extends Phaser.Scene {
   }
 
   setCharacter() {
-    if (this.player?.active) this.player.setTexture(`player-${state.character ?? 'a'}`, this.facing).setTint(OUTFIT_TINT[state.outfit ?? 'default'])
-    if (this.flyingSprite?.active) this.flyingSprite.setTexture(`player-${state.character ?? 'a'}`, this.facing).setTint(OUTFIT_TINT[state.outfit ?? 'default'])
+    if (this.player?.active) this.player.setTexture(`player-${state.character ?? 'a'}`, this.facing)
+    if (this.flyingSprite?.active) this.flyingSprite.setTexture(`player-${state.character ?? 'a'}`, this.facing)
+    if (this.clothing?.active) drawAppearance(this.clothing, { outfit: state.outfit ?? 'default', equipped: state.equipped ?? {} }, this.facing)
   }
 
   sendPresence(force = false) {
-    if (this.player?.active) multiplayer.send(this.player.x, this.player.y, state.player.mapId, state.character ?? 'a', this.facing, this.player.body?.velocity.length() !== 0, force, state.outfit ?? 'default', !!state.mounted)
+    if (this.player?.active) multiplayer.send(this.player.x, this.player.y, state.player.mapId, state.character ?? 'a', this.facing, this.player.body?.velocity.length() !== 0, force, state.outfit ?? 'default', !!state.mounted, state.equipped ?? {})
   }
 
   syncRemotePlayers() {
     for (const [id, objects] of this.remoteSprites) if (!multiplayer.players.has(id) || multiplayer.players.get(id)?.mapId !== state.player.mapId) {
-      objects.sprite.destroy(); objects.label.destroy(); this.remoteSprites.delete(id)
+      objects.sprite.destroy(); objects.label.destroy(); objects.clothing.destroy(); this.remoteSprites.delete(id)
     }
     for (const peer of multiplayer.players.values()) {
       if (peer.mapId !== state.player.mapId) continue
@@ -428,10 +472,12 @@ class WorldScene extends Phaser.Scene {
       if (!objects) {
         const sprite = this.add.sprite(peer.x, peer.y, `player-${peer.character}`, 0).setDepth(19).setScale(.23).setAlpha(.9)
         const label = this.add.text(peer.x, peer.y - 49, peer.name, { fontFamily: 'Nunito, sans-serif', fontSize: '15px', color: '#ffffff', backgroundColor: '#244b46', padding: { x: 6, y: 2 } }).setOrigin(.5).setDepth(21)
-        objects = { sprite, label }; this.remoteSprites.set(peer.id, objects)
+        const clothing = this.add.graphics().setDepth(20)
+        objects = { sprite, label, clothing, look: '' }; this.remoteSprites.set(peer.id, objects)
       }
       if (objects.sprite.texture.key !== `player-${peer.character}`) objects.sprite.setTexture(`player-${peer.character}`)
-      objects.sprite.setTint(OUTFIT_TINT[peer.outfit ?? 'default'])
+      const look = `${peer.outfit ?? 'default'}:${peer.facing}:${JSON.stringify(peer.equipped ?? {})}`
+      if (look !== objects.look) { drawAppearance(objects.clothing, { outfit: peer.outfit ?? 'default', equipped: peer.equipped ?? {} }, peer.facing); objects.look = look }
       objects.sprite.setData('targetX', peer.x).setData('targetY', peer.y)
       objects.sprite.setFrame((peer.moving ? 1 + Math.floor(this.time.now / 180) % 2 : 0) * 4 + peer.facing)
       const label = `${peer.mounted ? '🧹 ' : ''}${peer.name}`
@@ -672,7 +718,7 @@ class WorldScene extends Phaser.Scene {
     if (state.player.energy < cost) return announce('Energy ไม่พอใช้เครื่องมือ')
     if (animal && weapon === 'wand' && (state.player.mana ?? 0) < 8) return announce('มานาไม่พอ ใช้ยามานาหรือพัก')
     const remaining = state.nodeHp?.[node.id] ?? node.hp
-    const damage = animal && weapon === 'arcane_sword' ? 3 : animal && weapon === 'wand' ? 2 : 1
+    const damage = (animal && weapon === 'arcane_sword' ? 3 : animal && weapon === 'wand' ? 2 : 1) + (animal ? equipmentStats(state).attack : 0)
     const lastHit = remaining <= damage
     const drop: ItemId = ({ tree: 'wood', rock: 'stone', grass: 'fiber', rabbit: 'hide', boar: 'meat', copper: 'copper', iron: 'iron' } as Record<ResourceNode['kind'], ItemId>)[node.kind]
     if (lastHit && !canAdd(state, drop)) return announce('กระเป๋าเต็ม วัตถุดิบยังอยู่')
@@ -700,7 +746,7 @@ class WorldScene extends Phaser.Scene {
     if (weapon === 'wand' && (state.player.mana ?? 0) < 8) return announce('มานาไม่พอ ใช้ยามานาหรือพัก')
     state.player.energy -= 3
     if (weapon === 'wand') state.player.mana = (state.player.mana ?? 0) - 8
-    const damage = weapon === 'arcane_sword' ? 3 : weapon === 'wand' ? 2 : 1
+    const damage = (weapon === 'arcane_sword' ? 3 : weapon === 'wand' ? 2 : 1) + equipmentStats(state).attack
     const hp = Math.max(0, (state.nodeHp?.[monster.id] ?? monster.hp) - damage)
     state.nodeHp ??= {}
     state.nodeHp[monster.id] = hp
@@ -800,6 +846,7 @@ class WorldScene extends Phaser.Scene {
       objects.sprite.x = Phaser.Math.Linear(objects.sprite.x, x, .35)
       objects.sprite.y = Phaser.Math.Linear(objects.sprite.y, y, .35)
       objects.label.setPosition(objects.sprite.x, objects.sprite.y - 49)
+      objects.clothing.setPosition(objects.sprite.x, objects.sprite.y)
     }
     if (time - this.lastClock > 1000) { this.lastClock = time; clock() }
     if (mineFloor(state.player.mapId)) this.moveMonsters(time, delta)
@@ -807,13 +854,15 @@ class WorldScene extends Phaser.Scene {
     this.broomMarker?.setPosition(this.player.x, this.player.y + 4 + hover)
     this.flyingSprite?.setPosition(this.player.x, this.player.y - 28 + hover).setFrame(this.player.frame.name).setVisible(!!state.mounted)
     this.flyingShadow?.setPosition(this.player.x, this.player.y + 25).setScale(1 - hover * .008).setVisible(!!state.mounted)
+    this.clothing?.setPosition(this.player.x, this.player.y + (state.mounted ? -28 + hover : 0))
     if (mineFloor(state.player.mapId) && time - this.lastMonsterAttack > 1800) {
       this.lastMonsterAttack = time
       for (const monster of this.monsters) {
         if ((state.nodeHp?.[monster.id] ?? monster.hp) <= 0 || Math.hypot(this.player.x - monster.x, this.player.y - monster.y) > 62) continue
-        state.player.hp = Math.max(0, (state.player.hp ?? maxHp(state)) - monster.damage)
+        const taken = Math.max(1, monster.damage - equipmentStats(state).defense)
+        state.player.hp = Math.max(0, (state.player.hp ?? maxHp(state)) - taken)
         this.cameras.main.shake(100, .004)
-        changed(); announce(`โดน${{ slime: 'สไลม์', bat: 'ค้างคาว', golem: 'โกเลม' }[monster.kind]}โจมตี! HP -${monster.damage}`)
+        changed(); announce(`โดน${{ slime: 'สไลม์', bat: 'ค้างคาว', golem: 'โกเลม' }[monster.kind]}โจมตี! HP -${taken}`)
         if (state.player.hp === 0) {
           state.player.hp = Math.ceil(maxHp(state) / 2)
           state.player.mana = Math.ceil(maxMana(state) / 2)
@@ -834,7 +883,7 @@ class WorldScene extends Phaser.Scene {
       if (refreshGrowth(state)) { if (state.player.mapId === 'farm') this.drawPlots(); if (MAPS[state.player.mapId].resources) this.drawResources(); changed() }
     }
     if (Phaser.Input.Keyboard.JustDown(this.esc)) closeShop()
-    if (shopOpen || marketOpen || specialOpen || [chatInput, playerName, roomCode].includes(document.activeElement as HTMLInputElement)) {
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || [chatInput, playerName, roomCode].includes(document.activeElement as HTMLInputElement)) {
       this.player.setVelocity(0)
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.one)) buy()
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.two)) sell()
@@ -852,11 +901,12 @@ class WorldScene extends Phaser.Scene {
     if (this.restingUntil) { x = 0; y = 0 }
     if (this.actionUntil > time) { x = 0; y = 0 }
     const length = Math.hypot(x, y) || 1
-    const speed = state.mounted ? 345 : 220
+    const speed = (state.mounted ? 345 : 220) + equipmentStats(state).speed
     this.player.setVelocity(x / length * speed, y / length * speed)
     if (x || y) this.facing = y > 0 ? 0 : y < 0 ? 1 : x < 0 ? 2 : 3
     if (this.actionUntil > time) this.player.setFrame(this.actionRow * 4 + this.facing)
     else this.player.setFrame((x || y ? 1 + Math.floor(time / 180) % 2 : 0) * 4 + this.facing)
+    if (this.clothing && this.clothing.getData('facing') !== this.facing) { drawAppearance(this.clothing, { outfit: state.outfit ?? 'default', equipped: state.equipped ?? {} }, this.facing); this.clothing.setData('facing', this.facing) }
     state.player.x = this.player.x; state.player.y = this.player.y
     this.sendPresence()
     if (time > this.interactionCooldown) {

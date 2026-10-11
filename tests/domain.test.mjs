@@ -1,6 +1,19 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { add, canAdd, count, craftArcaneSword, DAY_MS, eat, gainXp, initialState, isRaining, maxHp, maxMana, rareDrop, refreshGrowth, remove, validate } from '../src/domain.ts'
+import { add, canAdd, count, craftArcaneSword, DAY_MS, eat, equipmentStats, gainXp, initialState, isRaining, maxHp, maxMana, rareDrop, refreshGrowth, remove, validate } from '../src/domain.ts'
+
+test('owned clothing and accessories change stats and survive save validation', () => {
+  const save = initialState()
+  save.ownedOutfits.push('mage')
+  save.outfit = 'mage'
+  save.ownedGear.push('wizard_hat', 'moon_amulet', 'cloud_boots')
+  save.equipped = { hat: 'wizard_hat', necklace: 'moon_amulet', boots: 'cloud_boots' }
+  assert.deepEqual(equipmentStats(save), { hp: 0, mana: 37, attack: 1, defense: 0, speed: 35 })
+  assert.equal(maxMana(save), 87)
+  assert.equal(validate(save), true)
+  save.equipped.hat = 'flower_hat'
+  assert.equal(validate(save), false)
+})
 import { collisionTiles, MAPS, TILE } from '../src/maps.ts'
 import { monstersFor } from '../src/monsters.ts'
 

@@ -1,6 +1,6 @@
-import type { MapId, OutfitId } from './domain'
+import type { GearId, GearSlot, MapId, OutfitId } from './domain'
 
-export type RemotePlayer = { id: string; name: string; x: number; y: number; mapId: MapId; character: 'a' | 'b'; facing: number; moving: boolean; outfit?: OutfitId; mounted?: boolean }
+export type RemotePlayer = { id: string; name: string; x: number; y: number; mapId: MapId; character: 'a' | 'b'; facing: number; moving: boolean; outfit?: OutfitId; equipped?: Partial<Record<GearSlot, GearId>>; mounted?: boolean }
 export class Multiplayer {
   socket?: WebSocket
   id = ''
@@ -59,14 +59,14 @@ export class Multiplayer {
     }
     socket.onerror = () => this.onStatus('เชื่อมต่อไม่ได้ ตรวจว่าเซิร์ฟเวอร์ออนไลน์อยู่')
   }
-  send(x: number, y: number, mapId: MapId, character: 'a' | 'b', facing: number, moving: boolean, force = false, outfit: OutfitId = 'default', mounted = false) {
+  send(x: number, y: number, mapId: MapId, character: 'a' | 'b', facing: number, moving: boolean, force = false, outfit: OutfitId = 'default', mounted = false, equipped: Partial<Record<GearSlot, GearId>> = {}) {
     if (!this.room || this.socket?.readyState !== WebSocket.OPEN) return
     const now = Date.now()
-    const position = `${Math.round(x)},${Math.round(y)},${mapId},${character},${facing},${moving},${outfit},${mounted}`
+    const position = `${Math.round(x)},${Math.round(y)},${mapId},${character},${facing},${moving},${outfit},${mounted},${JSON.stringify(equipped)}`
     if (!force && (now - this.lastSent < 250 || (position === this.lastPosition && now - this.lastSent < 15000))) return
     this.lastSent = now
     this.lastPosition = position
-    this.socket.send(JSON.stringify({ type: 'move', x, y, mapId, character, facing, moving, outfit, mounted }))
+    this.socket.send(JSON.stringify({ type: 'move', x, y, mapId, character, facing, moving, outfit, mounted, equipped }))
   }
   disconnect() {
     this.socket?.close()

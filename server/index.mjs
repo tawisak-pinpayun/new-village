@@ -70,7 +70,7 @@ wss.on('connection', ws => {
       const room = rooms.get(ws.roomCode)
       const player = room?.get(ws.playerId)
       if (!player) return
-      if (!Number.isFinite(data.x) || !Number.isFinite(data.y) || !['village', 'farm', 'home', 'market', 'riverside', 'mine', 'mine2', 'mine3'].includes(data.mapId)) return
+      if (!Number.isFinite(data.x) || !Number.isFinite(data.y) || !['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'mine', 'mine2', 'mine3'].includes(data.mapId)) return
       const previousMap = player.mapId
       if (Date.now() - (ws.lastMove ?? 0) < 150 && previousMap === data.mapId) return
       ws.lastMove = Date.now()
@@ -81,6 +81,8 @@ wss.on('connection', ws => {
       player.facing = [0, 1, 2, 3].includes(data.facing) ? data.facing : 0
       player.moving = !!data.moving
       player.outfit = ['default', 'forest', 'royal', 'mage'].includes(data.outfit) ? data.outfit : 'default'
+      const allowedGear = { hat: ['flower_hat', 'wizard_hat'], necklace: ['silver_necklace', 'moon_amulet'], boots: ['leather_boots', 'cloud_boots'] }
+      player.equipped = Object.fromEntries(Object.entries(allowedGear).filter(([slot, ids]) => ids.includes(data.equipped?.[slot])).map(([slot]) => [slot, data.equipped[slot]]))
       player.mounted = !!data.mounted
       if (previousMap !== player.mapId) send(ws, { type: 'peers', players: [...room.values()].filter(p => p !== player).map(({ ws: _, ...p }) => p) })
       for (const peer of room.values()) if (peer.ws !== ws && (peer.mapId === player.mapId || peer.mapId === previousMap)) send(peer.ws, { type: 'player', player: { ...player, ws: undefined } })

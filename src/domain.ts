@@ -3,6 +3,17 @@ export type CropId = 'radish' | 'carrot' | 'tomato'
 export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion'
 export type MapId = 'village' | 'farm' | 'home' | 'market' | 'magic_city' | 'riverside' | 'mine' | 'mine2' | 'mine3'
 export type OutfitId = 'default' | 'forest' | 'royal' | 'mage'
+export type GearId = 'flower_hat' | 'wizard_hat' | 'silver_necklace' | 'moon_amulet' | 'leather_boots' | 'cloud_boots'
+export type GearSlot = 'hat' | 'necklace' | 'boots'
+export const GEAR: Record<GearId, { name: string; icon: string; slot: GearSlot; price: number; hp?: number; mana?: number; attack?: number; defense?: number; speed?: number }> = {
+  flower_hat: { name: 'หมวกดอกไม้', icon: '🌸', slot: 'hat', price: 20, hp: 5 },
+  wizard_hat: { name: 'หมวกจอมเวท', icon: '🧙', slot: 'hat', price: 65, mana: 15 },
+  silver_necklace: { name: 'สร้อยเงิน', icon: '📿', slot: 'necklace', price: 30, defense: 1 },
+  moon_amulet: { name: 'จี้จันทรา', icon: '🌙', slot: 'necklace', price: 90, attack: 1, mana: 10 },
+  leather_boots: { name: 'รองเท้าหนัง', icon: '🥾', slot: 'boots', price: 35, defense: 1 },
+  cloud_boots: { name: 'รองเท้าเมฆ', icon: '☁️', slot: 'boots', price: 80, speed: 35 }
+}
+export const GEAR_IDS = Object.keys(GEAR) as GearId[]
 export const ITEM_IDS: ItemId[] = ['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber', 'sword', 'bow', 'meat', 'hide', 'copper', 'iron', 'moonstone', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion']
 export type Slot = { slot: number; itemId: ItemId; quantity: number }
 export type Plot = { id: string; state: PlotState; cropId: CropId | null; readyAt: number | null; dryDays?: number; wateredDay?: number | null }
@@ -23,6 +34,8 @@ export type Save = {
   nodeHp?: Record<string, number>
   outfit?: OutfitId
   ownedOutfits?: OutfitId[]
+  ownedGear?: GearId[]
+  equipped?: Partial<Record<GearSlot, GearId>>
   mounted?: boolean
 }
 
@@ -49,11 +62,23 @@ export const initialState = (): Save => ({
   nodeHp: {},
   outfit: 'default',
   ownedOutfits: ['default'],
+  ownedGear: [],
+  equipped: {},
   mounted: false
 })
 
-export const maxHp = (save: Save) => 100 + ((save.player.level ?? 1) - 1) * 15
-export const maxMana = (save: Save) => 50 + ((save.player.level ?? 1) - 1) * 8
+export function equipmentStats(save: Save) {
+  const stats = { hp: 0, mana: 0, attack: 0, defense: 0, speed: 0 }
+  const outfit: Partial<typeof stats> = { default: {}, forest: { hp: 10 }, royal: { defense: 1 }, mage: { mana: 12 } }[save.outfit ?? 'default']
+  for (const key of Object.keys(stats) as (keyof typeof stats)[]) stats[key] += outfit[key] ?? 0
+  for (const id of Object.values(save.equipped ?? {})) {
+    if (!id || !GEAR[id]) continue
+    for (const key of Object.keys(stats) as (keyof typeof stats)[]) stats[key] += GEAR[id][key] ?? 0
+  }
+  return stats
+}
+export const maxHp = (save: Save) => 100 + ((save.player.level ?? 1) - 1) * 15 + equipmentStats(save).hp
+export const maxMana = (save: Save) => 50 + ((save.player.level ?? 1) - 1) * 8 + equipmentStats(save).mana
 export const xpNeeded = (level: number) => 40 + level * 20
 export function gainXp(save: Save, amount: number): boolean {
   save.player.xp = (save.player.xp ?? 0) + amount
@@ -173,6 +198,8 @@ export function validate(value: unknown): value is Save {
     (p.xp !== undefined && (!Number.isInteger(p.xp) || p.xp < 0 || p.xp > 10000)) ||
     (s.outfit !== undefined && !['default', 'forest', 'royal', 'mage'].includes(s.outfit)) ||
     (s.ownedOutfits !== undefined && (!Array.isArray(s.ownedOutfits) || s.ownedOutfits.some(v => !['default', 'forest', 'royal', 'mage'].includes(v)))) ||
+    (s.ownedGear !== undefined && (!Array.isArray(s.ownedGear) || s.ownedGear.some(v => !GEAR_IDS.includes(v)))) ||
+    (s.equipped !== undefined && (typeof s.equipped !== 'object' || s.equipped === null || Object.entries(s.equipped).some(([slot, id]) => !['hat', 'necklace', 'boots'].includes(slot) || !GEAR_IDS.includes(id as GearId) || GEAR[id as GearId].slot !== slot || !s.ownedGear?.includes(id as GearId)))) ||
     (s.mounted !== undefined && typeof s.mounted !== 'boolean') ||
     (s.character !== undefined && !['a', 'b'].includes(s.character)) ||
     (s.recipeUnlocked !== undefined && typeof s.recipeUnlocked !== 'boolean') ||
@@ -238,6 +265,8 @@ export function load(): { state: Save; error?: string } {
     parsed.player.mana ??= maxMana(parsed)
     parsed.outfit ??= 'default'
     parsed.ownedOutfits ??= ['default']
+    parsed.ownedGear ??= []
+    parsed.equipped ??= {}
     parsed.mounted ??= false
     for (const plot of parsed.plots) { plot.dryDays ??= 0; plot.wateredDay ??= null; if (plot.state === 'READY') plot.readyAt = null }
     refreshGrowth(parsed)
