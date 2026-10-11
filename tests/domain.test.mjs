@@ -29,6 +29,17 @@ test('bracelet and charm occupy separate slots and add their bonuses', () => {
 import { collisionTiles, MAPS, TILE } from '../src/maps.ts'
 import { monstersFor } from '../src/monsters.ts'
 
+test('save from a player touching the world edge remains recoverable', () => {
+  const save = initialState()
+  save.player.mapId = 'riverside'
+  save.player.x = 11.96
+  save.player.level = 3
+  save.player.coins = 307
+  assert.equal(validate(save), true)
+  save.player.x = -1
+  assert.equal(validate(save), false)
+})
+
 test('inventory never removes missing items or exceeds a full stack', () => {
   const save = initialState()
   assert.equal(remove(save, 'radish'), false)

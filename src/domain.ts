@@ -196,7 +196,7 @@ export function validate(value: unknown): value is Save {
   const s = value as Partial<Save>
   const p = s.player
   if (s.schemaVersion !== 2 || !p || !Number.isFinite(s.savedAt) ||
-    !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x! < 16 || p.x! > 1520 || p.y! < 16 || p.y! > 1008 ||
+    !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x! < 0 || p.x! > 1536 || p.y! < 0 || p.y! > 1024 ||
     !['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'mine', 'mine2', 'mine3'].includes(p.mapId) || typeof s.questDone !== 'boolean' ||
     (p.hp !== undefined && (!Number.isInteger(p.hp) || p.hp < 0 || p.hp > maxHp(s as Save))) ||
     (p.mana !== undefined && (!Number.isInteger(p.mana) || p.mana < 0 || p.mana > maxMana(s as Save))) ||
@@ -260,6 +260,8 @@ export function load(): { state: Save; error?: string } {
     }
     const parsed: unknown = JSON.parse(raw)
     if (!validate(parsed)) throw new Error('invalid save')
+    parsed.player.x = Math.max(16, Math.min(1520, parsed.player.x))
+    parsed.player.y = Math.max(16, Math.min(1008, parsed.player.y))
     parsed.water ??= MAX_WATER
     parsed.dayStartedAt ??= Date.now()
     parsed.lastProcessedDay ??= dayNumber(parsed)
