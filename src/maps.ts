@@ -13,7 +13,7 @@ export type Interaction = {
   destination?: MapId
   arrival?: { x: number; y: number }
 }
-export type ResourceNode = { id: string; x: number; y: number; kind: 'tree' | 'rock' | 'grass'; hp: number }
+export type ResourceNode = { id: string; x: number; y: number; kind: 'tree' | 'rock' | 'grass' | 'rabbit' | 'boar' | 'copper' | 'iron'; hp: number }
 
 type Rect = [number, number, number, number]
 export type MapConfig = {
@@ -40,7 +40,7 @@ export const MAPS: Record<MapId, MapConfig> = {
       { id: 'shop', x: 530, y: 420, label: 'คุยกับเจ้าของร้าน', kind: 'shop' },
       { id: 'quest', x: 565, y: 790, label: 'คุยกับไกด์หมู่บ้าน', kind: 'quest' },
       { id: 'forest', x: 560, y: 145, label: 'ทางไปป่า', kind: 'future' },
-      { id: 'river', x: 1390, y: 520, label: 'ทางไปริมน้ำ', kind: 'future' },
+      { id: 'river', x: 1375, y: 520, label: 'ไปริมน้ำ', kind: 'door', destination: 'riverside', arrival: { x: 235, y: 520 } },
       { id: 'market', x: 175, y: 520, label: 'ไปตลาด', kind: 'door', destination: 'market', arrival: { x: 1280, y: 520 } }
     ]
   },
@@ -77,6 +77,40 @@ export const MAPS: Record<MapId, MapConfig> = {
       { id: 'to-village', x: 1385, y: 520, label: 'กลับหมู่บ้าน', kind: 'door', destination: 'village', arrival: { x: 300, y: 520 } },
       { id: 'seed-stall', x: 555, y: 285, label: 'ซื้อเมล็ดผัก', kind: 'market_shop' },
       { id: 'garden-stall', x: 1050, y: 335, label: 'ดูอุปกรณ์ปลูกผัก', kind: 'market_shop' }
+    ]
+  },
+  riverside: {
+    id: 'riverside', name: 'ริมแม่น้ำ', image: '/assets/riverside.png', spawn: { x: 235, y: 520 },
+    blocked: [
+      [0, 0, 1536, 100], [0, 0, 100, 405], [0, 635, 100, 389], [1400, 0, 136, 1024],
+      [0, 925, 1536, 99], [790, 100, 300, 365], [790, 605, 610, 320], [980, 365, 200, 105]
+    ],
+    interactions: [
+      { id: 'to-village', x: 140, y: 520, label: 'กลับหมู่บ้าน', kind: 'door', destination: 'village', arrival: { x: 1280, y: 520 } },
+      { id: 'to-mine', x: 1320, y: 155, label: 'เข้าเหมือง', kind: 'door', destination: 'mine', arrival: { x: 770, y: 810 } }
+    ],
+    resources: [
+      { id: 'river-rabbit-1', x: 355, y: 530, kind: 'rabbit', hp: 1 },
+      { id: 'river-rabbit-2', x: 675, y: 740, kind: 'rabbit', hp: 1 },
+      { id: 'river-boar-1', x: 535, y: 250, kind: 'boar', hp: 3 },
+      { id: 'river-boar-2', x: 390, y: 755, kind: 'boar', hp: 3 }
+    ]
+  },
+  mine: {
+    id: 'mine', name: 'เหมือง', image: '/assets/mine.png', spawn: { x: 770, y: 820 },
+    blocked: [
+      [0, 0, 1536, 110], [0, 0, 140, 1024], [1390, 0, 146, 1024], [0, 925, 620, 99], [900, 925, 636, 99],
+      [185, 125, 245, 165], [1050, 125, 260, 165]
+    ],
+    interactions: [
+      { id: 'to-riverside', x: 770, y: 895, label: 'ออกสู่ริมน้ำ', kind: 'door', destination: 'riverside', arrival: { x: 1260, y: 245 } }
+    ],
+    resources: [
+      { id: 'mine-copper-1', x: 390, y: 410, kind: 'copper', hp: 2 },
+      { id: 'mine-copper-2', x: 1140, y: 690, kind: 'copper', hp: 2 },
+      { id: 'mine-copper-3', x: 625, y: 580, kind: 'copper', hp: 2 },
+      { id: 'mine-iron-1', x: 1125, y: 370, kind: 'iron', hp: 3 },
+      { id: 'mine-iron-2', x: 360, y: 715, kind: 'iron', hp: 3 }
     ]
   },
   home: {

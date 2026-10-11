@@ -72,3 +72,42 @@ test('market entrance, stalls and exit are reachable on walkable tiles', () => {
     assert.equal(seen.has(`${Math.floor(point[0] / TILE)},${Math.floor(point[1] / TILE)}`), true)
   }
 })
+
+test('riverside and mine doors connect, equipment and loot survive saves', () => {
+  const save = initialState()
+  for (const item of ['sword', 'bow', 'meat', 'copper']) assert.equal(add(save, item), true)
+  save.player.mapId = 'mine'
+  assert.equal(validate(save), true)
+  assert.equal(MAPS.village.interactions.find(i => i.id === 'river').destination, 'riverside')
+  assert.equal(MAPS.riverside.interactions.find(i => i.id === 'to-mine').destination, 'mine')
+  assert.equal(MAPS.mine.interactions.find(i => i.id === 'to-riverside').destination, 'riverside')
+  save.nodeHp['river-rabbit-1'] = 0
+  save.dayStartedAt = 1_000; save.lastProcessedDay = 1
+  refreshGrowth(save, 1_000 + DAY_MS)
+  assert.equal(save.nodeHp['river-rabbit-1'], undefined)
+})
+
+test('riverside cave and mine ores can be reached by walking', () => {
+  for (const [mapId, points] of [
+    ['riverside', [[1320, 155], [355, 530], [535, 250], [675, 740]]],
+    ['mine', [[770, 895], [390, 410], [1140, 690], [625, 580], [1125, 370], [360, 715]]]
+  ]) {
+    const map = MAPS[mapId], grid = collisionTiles(map)
+    const start = [Math.floor(map.spawn.x / TILE), Math.floor(map.spawn.y / TILE)]
+    const queue = [start], seen = new Set([start.join(',')])
+    for (let i = 0; i < queue.length; i++) {
+      const [x, y] = queue[i]
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy, key = `${nx},${ny}`
+        if (grid[ny]?.[nx] !== 0 || seen.has(key)) continue
+        seen.add(key); queue.push([nx, ny])
+      }
+    }
+    for (const [x, y] of points) {
+      const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE)
+      let reachable = false
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (seen.has(`${tx + dx},${ty + dy}`)) reachable = true
+      assert.equal(reachable, true, `${mapId} ${x},${y}`)
+    }
+  }
+})

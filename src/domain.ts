@@ -1,7 +1,8 @@
 export type PlotState = 'EMPTY' | 'TILLED' | 'PLANTED' | 'GROWING' | 'READY' | 'WITHERED'
 export type CropId = 'radish' | 'carrot' | 'tomato'
-export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber'
-export type MapId = 'village' | 'farm' | 'home' | 'market'
+export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron'
+export type MapId = 'village' | 'farm' | 'home' | 'market' | 'riverside' | 'mine'
+export const ITEM_IDS: ItemId[] = ['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber', 'sword', 'bow', 'meat', 'hide', 'copper', 'iron']
 export type Slot = { slot: number; itemId: ItemId; quantity: number }
 export type Plot = { id: string; state: PlotState; cropId: CropId | null; readyAt: number | null; dryDays?: number; wateredDay?: number | null }
 export type Save = {
@@ -61,7 +62,7 @@ export function add(save: Save, itemId: ItemId): boolean {
     const slot = Array.from({ length: 8 }, (_, i) => i).find(i => !save.inventory.some(s => s.slot === i))!
     save.inventory.push({ slot, itemId, quantity: 1 })
   }
-  if (['wood', 'stone', 'fiber', 'carrot_seed', 'tomato_seed'].includes(itemId) && save.hotbarExtras && !save.hotbarExtras.includes(itemId)) {
+  if (['sword', 'bow', 'carrot_seed', 'tomato_seed'].includes(itemId) && save.hotbarExtras && !save.hotbarExtras.includes(itemId)) {
     const empty = save.hotbarExtras.indexOf(null)
     if (empty >= 0) save.hotbarExtras[empty] = itemId
   }
@@ -86,6 +87,7 @@ export function refreshGrowth(save: Save, now = Date.now()): boolean {
   const day = dayNumber(save, now)
   const lastDay = save.lastProcessedDay ?? day
   if (day > lastDay) {
+    for (const id of Object.keys(save.nodeHp ?? {})) if (id.startsWith('river-') || id.startsWith('mine-')) delete save.nodeHp![id]
     for (const plot of save.plots) {
       if (plot.state !== 'PLANTED') continue
       const firstRain = lastDay + ((5 - lastDay % 5) % 5 || 5)
@@ -124,21 +126,21 @@ export function validate(value: unknown): value is Save {
   const p = s.player
   if (s.schemaVersion !== 2 || !p || !Number.isFinite(s.savedAt) ||
     !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x! < 16 || p.x! > 1520 || p.y! < 16 || p.y! > 1008 ||
-    !['village', 'farm', 'home', 'market'].includes(p.mapId) || typeof s.questDone !== 'boolean' ||
+    !['village', 'farm', 'home', 'market', 'riverside', 'mine'].includes(p.mapId) || typeof s.questDone !== 'boolean' ||
     (s.character !== undefined && !['a', 'b'].includes(s.character)) ||
     (s.recipeUnlocked !== undefined && typeof s.recipeUnlocked !== 'boolean') ||
     (s.water !== undefined && (!Number.isInteger(s.water) || s.water < 0 || s.water > MAX_WATER)) ||
     (s.dayStartedAt !== undefined && !Number.isFinite(s.dayStartedAt)) ||
     (s.lastProcessedDay !== undefined && (!Number.isInteger(s.lastProcessedDay) || s.lastProcessedDay < 1)) ||
     (s.selectedSlot !== undefined && (!Number.isInteger(s.selectedSlot) || s.selectedSlot < 0 || s.selectedSlot > 9)) ||
-    (s.hotbarExtras !== undefined && (!Array.isArray(s.hotbarExtras) || s.hotbarExtras.length !== 3 || s.hotbarExtras.some(item => item !== null && !['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber'].includes(item)))) ||
+    (s.hotbarExtras !== undefined && (!Array.isArray(s.hotbarExtras) || s.hotbarExtras.length !== 3 || s.hotbarExtras.some(item => item !== null && !ITEM_IDS.includes(item)))) ||
     (s.nodeHp !== undefined && (typeof s.nodeHp !== 'object' || s.nodeHp === null || Object.values(s.nodeHp).some(hp => !Number.isInteger(hp) || hp < 0 || hp > 9))) ||
     !Number.isInteger(p.coins) || p.coins! < 0 || !Number.isInteger(p.energy) || p.energy! < 0 || p.energy! > 100) return false
   if (!Array.isArray(s.inventory) || s.inventory.length > 8 || !Array.isArray(s.plots) || s.plots.length !== PLOT_COUNT) return false
   const slots = new Set<number>(), items = new Set<string>()
   for (const item of s.inventory) {
     if (!item || !Number.isInteger(item.slot) || item.slot < 0 || item.slot >= 8 || slots.has(item.slot) ||
-      !['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber'].includes(item.itemId) || items.has(item.itemId) ||
+      !ITEM_IDS.includes(item.itemId) || items.has(item.itemId) ||
       !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) return false
     slots.add(item.slot); items.add(item.itemId)
   }

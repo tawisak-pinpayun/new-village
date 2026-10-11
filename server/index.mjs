@@ -51,7 +51,7 @@ wss.on('connection', ws => {
     } else if (data.type === 'move' && ws.roomCode) {
       const player = rooms.get(ws.roomCode)?.get(ws.playerId)
       if (!player) return
-      if (!Number.isFinite(data.x) || !Number.isFinite(data.y) || !['village', 'farm', 'home', 'market'].includes(data.mapId)) return
+      if (!Number.isFinite(data.x) || !Number.isFinite(data.y) || !['village', 'farm', 'home', 'market', 'riverside', 'mine'].includes(data.mapId)) return
       player.x = Math.max(16, Math.min(1520, data.x))
       player.y = Math.max(16, Math.min(1008, data.y))
       player.mapId = data.mapId
