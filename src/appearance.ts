@@ -31,6 +31,12 @@ export function drawAppearance(graphics: Phaser.GameObjects.Graphics, look: Appe
     graphics.lineStyle(2, 0xe7d19b).lineBetween(side ? -2 : -6, -1, side ? 3 : 0, 6).lineBetween(side ? 3 : 0, 6, side ? 5 : 6, -1)
     graphics.fillStyle(look.equipped.necklace === 'moon_amulet' ? 0x93dfff : 0xf3e3ad).fillCircle(side ? 3 : 0, 6, 3)
   }
+  if (look.equipped.bracelet && !back) {
+    graphics.fillStyle(look.equipped.bracelet === 'star_bracelet' ? 0xb7a5ff : 0xf4ca54).fillRoundedRect(side ? 12 : 17, 10, 7, 4, 1)
+  }
+  if (look.equipped.charm) {
+    graphics.fillStyle(look.equipped.charm === 'crystal_charm' ? 0xa8c9ff : 0xaee277).fillCircle(side ? -14 : -19, 13, 4)
+  }
   if (look.equipped.hat === 'wizard_hat') {
     graphics.fillStyle(0x593a91).fillTriangle(-15, -22, 1, -51, 13, -22)
     graphics.fillStyle(0x7652b3).fillEllipse(0, -21, 37, 8)

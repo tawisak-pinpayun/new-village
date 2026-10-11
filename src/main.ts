@@ -226,22 +226,41 @@ function marketBuy(itemId: ItemId) {
 const outfitPrices: Partial<Record<OutfitId, number>> = { forest: 25, royal: 55, mage: 80 }
 const outfitNames: Record<OutfitId, string> = { default: 'ชุดชาวสวน', forest: 'ชุดนักผจญภัย', royal: 'ชุดราชสำนัก', mage: 'ชุดจอมเวท' }
 const outfitBonuses: Record<OutfitId, string> = { default: 'ไม่มีโบนัส', forest: 'HP +10', royal: 'ป้องกัน +1', mage: 'มานา +12' }
+type WardrobeSlot = GearSlot | 'outfit'
+const wardrobeSlots: { id: WardrobeSlot; title: string; icon: string }[] = [
+  { id: 'hat', title: 'หมวก', icon: '👒' }, { id: 'outfit', title: 'เสื้อ / ชุด', icon: '👗' },
+  { id: 'necklace', title: 'สร้อย', icon: '📿' }, { id: 'bracelet', title: 'กำไล', icon: '🟡' },
+  { id: 'boots', title: 'รองเท้า', icon: '🥾' }, { id: 'charm', title: 'เครื่องประดับ', icon: '🍀' }
+]
+let wardrobeSelection: WardrobeSlot = 'outfit'
 function gearBonus(id: GearId) {
   return (['hp', 'mana', 'attack', 'defense', 'speed'] as const).filter(key => GEAR[id][key]).map(key => `${{ hp: 'HP', mana: 'มานา', attack: 'โจมตี', defense: 'ป้องกัน', speed: 'ความเร็ว' }[key]} +${GEAR[id][key]}`).join(' · ')
 }
 function refreshAppearance() { scene?.setCharacter(); scene?.sendPresence(true); changed(); if (wardrobeOpen) renderWardrobe() }
 function renderWardrobe() {
   const stats = equipmentStats(state)
-  const outfitRows = (['default', 'forest', 'royal', 'mage'] as OutfitId[]).filter(id => state.ownedOutfits?.includes(id)).map(id => `<button class="wardrobe-choice ${state.outfit === id ? 'equipped' : ''}" data-wear-outfit="${id}"><span>${outfitNames[id]}<small>${outfitBonuses[id]}</small></span><b>${state.outfit === id ? 'สวมอยู่' : 'สวม'}</b></button>`).join('')
-  const slots: { id: GearSlot; title: string }[] = [{ id: 'hat', title: 'หมวก' }, { id: 'necklace', title: 'เครื่องประดับ' }, { id: 'boots', title: 'รองเท้า' }]
-  const gearRows = slots.map(slot => `<section><h3>${slot.title}</h3><button class="wardrobe-choice ${!state.equipped?.[slot.id] ? 'equipped' : ''}" data-wear-gear="none" data-gear-slot="${slot.id}"><span>ถอดออก</span><b>${state.equipped?.[slot.id] ? 'ถอด' : 'เลือกอยู่'}</b></button>${(state.ownedGear ?? []).filter(id => GEAR[id].slot === slot.id).map(id => `<button class="wardrobe-choice ${state.equipped?.[slot.id] === id ? 'equipped' : ''}" data-wear-gear="${id}" data-gear-slot="${slot.id}"><span>${GEAR[id].icon} ${GEAR[id].name}<small>${gearBonus(id)}</small></span><b>${state.equipped?.[slot.id] === id ? 'สวมอยู่' : 'สวม'}</b></button>`).join('')}</section>`).join('')
-  document.querySelector<HTMLElement>('#wardrobe-content')!.innerHTML = `<div class="wardrobe-stats"><strong>สเตตัสรวม</strong><span>❤️ HP ${maxHp(state)}</span><span>✨ มานา ${maxMana(state)}</span><span>⚔️ โจมตี +${stats.attack}</span><span>🛡️ ป้องกัน +${stats.defense}</span><span>👟 ความเร็ว +${stats.speed}</span></div><h3>ชุด</h3>${outfitRows}${gearRows}`
+  const cards = wardrobeSlots.map(slot => {
+    const id = slot.id === 'outfit' ? null : state.equipped?.[slot.id]
+    const name = slot.id === 'outfit' ? outfitNames[state.outfit ?? 'default'] : id ? GEAR[id].name : slot.id === 'hat' ? 'หมวกฟาง' : 'ยังไม่สวม'
+    const icon = id ? GEAR[id].icon : slot.icon
+    return `<button class="wardrobe-slot ${wardrobeSelection === slot.id ? 'active' : ''}" data-wardrobe-slot="${slot.id}"><span class="wardrobe-slot-icon">${icon}</span><span><strong>${slot.title}</strong><small>${name}</small></span><b>${wardrobeSelection === slot.id ? 'เลือกอยู่' : 'เปลี่ยน'}</b></button>`
+  }).join('')
+  const selectedGearSlot = wardrobeSelection as GearSlot
+  const choices = wardrobeSelection === 'outfit'
+    ? (['default', 'forest', 'royal', 'mage'] as OutfitId[]).filter(id => state.ownedOutfits?.includes(id)).map(id => `<button class="wardrobe-choice ${state.outfit === id ? 'equipped' : ''}" data-wear-outfit="${id}"><span>👗 ${outfitNames[id]}<small>${outfitBonuses[id]}</small></span><b>${state.outfit === id ? 'สวมอยู่' : 'สวม'}</b></button>`).join('')
+    : `<button class="wardrobe-choice ${!state.equipped?.[selectedGearSlot] ? 'equipped' : ''}" data-wear-gear="none" data-gear-slot="${selectedGearSlot}"><span>${selectedGearSlot === 'hat' ? '👒 หมวกฟางเดิม' : selectedGearSlot === 'boots' ? '🥾 รองเท้าชาวสวนเดิม' : 'ไม่สวม'}</span><b>${state.equipped?.[selectedGearSlot] ? 'เลือก' : 'เลือกอยู่'}</b></button>${(state.ownedGear ?? []).filter(id => GEAR[id].slot === selectedGearSlot).map(id => `<button class="wardrobe-choice ${state.equipped?.[selectedGearSlot] === id ? 'equipped' : ''}" data-wear-gear="${id}" data-gear-slot="${selectedGearSlot}"><span>${GEAR[id].icon} ${GEAR[id].name}<small>${gearBonus(id)}</small></span><b>${state.equipped?.[selectedGearSlot] === id ? 'สวมอยู่' : 'สวม'}</b></button>`).join('')}`
+  const selectedName = wardrobeSlots.find(slot => slot.id === wardrobeSelection)?.title ?? 'ชุด'
+  document.querySelector<HTMLElement>('#wardrobe-content')!.innerHTML = `<div class="wardrobe-layout"><div class="wardrobe-slots">${cards}</div><div class="wardrobe-preview"><div class="avatar-stage"><div class="avatar-sprite avatar-${state.character ?? 'a'} outfit-${state.outfit ?? 'default'}"><i class="avatar-coat"></i><i class="avatar-hat hat-${state.equipped?.hat ?? 'default'}"></i><i class="avatar-necklace necklace-${state.equipped?.necklace ?? 'none'}"></i><i class="avatar-bracelet bracelet-${state.equipped?.bracelet ?? 'none'}"></i><i class="avatar-boots boots-${state.equipped?.boots ?? 'none'}"></i><i class="avatar-charm charm-${state.equipped?.charm ?? 'none'}"></i></div></div><span>Player ${(state.character ?? 'a').toUpperCase()} · ${outfitNames[state.outfit ?? 'default']}</span><div class="avatar-character-switch"><button data-preview-character="a" class="${state.character !== 'b' ? 'active' : ''}">Player A</button><button data-preview-character="b" class="${state.character === 'b' ? 'active' : ''}">Player B</button></div></div><div class="wardrobe-stats"><strong>รายละเอียด</strong><span>❤️ HP <b>${maxHp(state)}</b></span><span>✨ มานา <b>${maxMana(state)}</b></span><span>⚔️ โจมตี <b>+${stats.attack}</b></span><span>🛡️ ป้องกัน <b>+${stats.defense}</b></span><span>👟 ความเร็ว <b>+${stats.speed}</b></span></div></div><div class="wardrobe-picker"><h3>เลือก${selectedName}</h3><div class="wardrobe-choices">${choices}</div><p>ซื้อเพิ่มเติมได้ที่ร้านเสื้อผ้าในตลาดและเมืองเวทมนตร์</p></div>`
 }
 function openWardrobe() { closeShop(); wardrobeOpen = true; renderWardrobe(); wardrobe.classList.remove('hidden') }
 document.querySelector('#dress-toggle')!.addEventListener('click', openWardrobe)
 wardrobe.addEventListener('click', event => {
   const target = event.target as HTMLElement
   if (target === wardrobe || target.closest('#close-wardrobe')) return closeShop()
+  const character = target.closest<HTMLElement>('[data-preview-character]')?.dataset.previewCharacter as 'a' | 'b' | undefined
+  if (character) { state.character = character; refreshAppearance(); announce(`เลือก Player ${character.toUpperCase()} แล้ว`); return }
+  const slotButton = target.closest<HTMLElement>('[data-wardrobe-slot]')
+  if (slotButton) { wardrobeSelection = slotButton.dataset.wardrobeSlot as WardrobeSlot; renderWardrobe(); return }
   const outfit = target.closest<HTMLElement>('[data-wear-outfit]')?.dataset.wearOutfit as OutfitId | undefined
   if (outfit && state.ownedOutfits?.includes(outfit)) { state.outfit = outfit; state.player.hp = Math.min(state.player.hp ?? 100, maxHp(state)); state.player.mana = Math.min(state.player.mana ?? 50, maxMana(state)); refreshAppearance(); announce(`สวม${outfitNames[outfit]}แล้ว`); return }
   const button = target.closest<HTMLElement>('[data-wear-gear]')
@@ -257,10 +276,10 @@ function openSpecial(kind: 'tailor' | 'magic_shop' | 'forge') {
   const title = kind === 'tailor' ? 'ร้านเสื้อผ้า' : kind === 'magic_shop' ? 'ร้านเวทมนตร์' : 'เตาหลอมอาวุธ'
   document.querySelector('#special-label')!.textContent = kind === 'tailor' ? 'TAILOR' : kind === 'magic_shop' ? 'MAGIC SHOP' : 'FORGE'
   document.querySelector('#special-title')!.textContent = title
-  document.querySelector('#special-description')!.textContent = kind === 'tailor' ? 'ซื้อชุด หมวก เครื่องประดับ และรองเท้า แล้วกด แต่งตัว เพื่อเลือกสวม' : kind === 'magic_shop' ? 'คทาใช้มานาโจมตี ไม้กวาดบินได้ และยาฟื้นมานา' : 'ใช้เหล็ก 2 ชิ้น กับจันทราศิลา 1 ชิ้น ทำดาบจันทรา'
+  document.querySelector('#special-description')!.textContent = kind === 'tailor' ? 'ซื้อชุด หมวก สร้อย กำไล รองเท้า และเครื่องราง แล้วกด แต่งตัว เพื่อเลือกสวม' : kind === 'magic_shop' ? 'คทาใช้มานาโจมตี ไม้กวาดบินได้ และยาฟื้นมานา' : 'ใช้เหล็ก 2 ชิ้น กับจันทราศิลา 1 ชิ้น ทำดาบจันทรา'
   const list = document.querySelector<HTMLElement>('#special-list')!
   list.innerHTML = kind === 'tailor'
-    ? `<div class="market-divider">ชุด</div>${(['forest', 'royal', 'mage'] as OutfitId[]).map(id => `<button class="trade" data-outfit="${id}"><span>${outfitNames[id]} <small>${outfitBonuses[id]}</small></span><strong>${state.ownedOutfits?.includes(id) ? state.outfit === id ? 'สวมอยู่' : 'สวมใส่' : `${outfitPrices[id]} Coins`}</strong></button>`).join('')}<div class="market-divider">หมวก · เครื่องประดับ · รองเท้า</div>${GEAR_IDS.map(id => `<button class="trade" data-gear-buy="${id}"><span>${GEAR[id].icon} ${GEAR[id].name} <small>${gearBonus(id)}</small></span><strong>${state.ownedGear?.includes(id) ? state.equipped?.[GEAR[id].slot] === id ? 'สวมอยู่' : 'สวมใส่' : `${GEAR[id].price} Coins`}</strong></button>`).join('')}<button class="trade" data-open-wardrobe="1"><span>👗 เปิดหน้าแต่งตัว</span><strong>ดูสเตตัส</strong></button>`
+    ? `<div class="market-divider">ชุด</div>${(['forest', 'royal', 'mage'] as OutfitId[]).map(id => `<button class="trade" data-outfit="${id}"><span>${outfitNames[id]} <small>${outfitBonuses[id]}</small></span><strong>${state.ownedOutfits?.includes(id) ? state.outfit === id ? 'สวมอยู่' : 'สวมใส่' : `${outfitPrices[id]} Coins`}</strong></button>`).join('')}<div class="market-divider">หมวก · สร้อย · กำไล · รองเท้า · เครื่องราง</div>${GEAR_IDS.map(id => `<button class="trade" data-gear-buy="${id}"><span>${GEAR[id].icon} ${GEAR[id].name} <small>${gearBonus(id)}</small></span><strong>${state.ownedGear?.includes(id) ? state.equipped?.[GEAR[id].slot] === id ? 'สวมอยู่' : 'สวมใส่' : `${GEAR[id].price} Coins`}</strong></button>`).join('')}<button class="trade" data-open-wardrobe="1"><span>👗 เปิดหน้าแต่งตัว</span><strong>ดูสเตตัส</strong></button>`
     : kind === 'magic_shop'
       ? `<button class="trade" data-special-buy="wand"><span>🪄 คทาเวท <small>โจมตีมอนสเตอร์ ใช้ 8 มานา</small></span><strong>65 Coins</strong></button><button class="trade" data-special-buy="broom"><span>🧹 ไม้กวาดขี่ <small>เลือกใน Hotbar แล้วกด E เพื่อขึ้น/ลง</small></span><strong>110 Coins</strong></button><button class="trade" data-special-buy="mana_potion"><span>🧪 ยามานา <small>ฟื้น 30 มานา</small></span><strong>20 Coins</strong></button>`
       : `<button class="trade" data-craft="arcane_sword"><span>🗡️ ดาบจันทรา <small>เหล็ก 2 + จันทราศิลา 1</small></span><strong>หลอม</strong></button>`

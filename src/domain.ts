@@ -3,15 +3,19 @@ export type CropId = 'radish' | 'carrot' | 'tomato'
 export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion'
 export type MapId = 'village' | 'farm' | 'home' | 'market' | 'magic_city' | 'riverside' | 'mine' | 'mine2' | 'mine3'
 export type OutfitId = 'default' | 'forest' | 'royal' | 'mage'
-export type GearId = 'flower_hat' | 'wizard_hat' | 'silver_necklace' | 'moon_amulet' | 'leather_boots' | 'cloud_boots'
-export type GearSlot = 'hat' | 'necklace' | 'boots'
+export type GearId = 'flower_hat' | 'wizard_hat' | 'silver_necklace' | 'moon_amulet' | 'leather_boots' | 'cloud_boots' | 'gold_bracelet' | 'star_bracelet' | 'lucky_charm' | 'crystal_charm'
+export type GearSlot = 'hat' | 'necklace' | 'bracelet' | 'boots' | 'charm'
 export const GEAR: Record<GearId, { name: string; icon: string; slot: GearSlot; price: number; hp?: number; mana?: number; attack?: number; defense?: number; speed?: number }> = {
   flower_hat: { name: 'หมวกดอกไม้', icon: '🌸', slot: 'hat', price: 20, hp: 5 },
   wizard_hat: { name: 'หมวกจอมเวท', icon: '🧙', slot: 'hat', price: 65, mana: 15 },
   silver_necklace: { name: 'สร้อยเงิน', icon: '📿', slot: 'necklace', price: 30, defense: 1 },
   moon_amulet: { name: 'จี้จันทรา', icon: '🌙', slot: 'necklace', price: 90, attack: 1, mana: 10 },
   leather_boots: { name: 'รองเท้าหนัง', icon: '🥾', slot: 'boots', price: 35, defense: 1 },
-  cloud_boots: { name: 'รองเท้าเมฆ', icon: '☁️', slot: 'boots', price: 80, speed: 35 }
+  cloud_boots: { name: 'รองเท้าเมฆ', icon: '☁️', slot: 'boots', price: 80, speed: 35 },
+  gold_bracelet: { name: 'กำไลทอง', icon: '🟡', slot: 'bracelet', price: 38, hp: 8 },
+  star_bracelet: { name: 'กำไลดาว', icon: '✨', slot: 'bracelet', price: 75, mana: 8, attack: 1 },
+  lucky_charm: { name: 'เครื่องรางโชคดี', icon: '🍀', slot: 'charm', price: 45, hp: 5, defense: 1 },
+  crystal_charm: { name: 'เครื่องรางคริสตัล', icon: '🔮', slot: 'charm', price: 95, mana: 15, speed: 15 }
 }
 export const GEAR_IDS = Object.keys(GEAR) as GearId[]
 export const ITEM_IDS: ItemId[] = ['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber', 'sword', 'bow', 'meat', 'hide', 'copper', 'iron', 'moonstone', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion']
@@ -199,7 +203,7 @@ export function validate(value: unknown): value is Save {
     (s.outfit !== undefined && !['default', 'forest', 'royal', 'mage'].includes(s.outfit)) ||
     (s.ownedOutfits !== undefined && (!Array.isArray(s.ownedOutfits) || s.ownedOutfits.some(v => !['default', 'forest', 'royal', 'mage'].includes(v)))) ||
     (s.ownedGear !== undefined && (!Array.isArray(s.ownedGear) || s.ownedGear.some(v => !GEAR_IDS.includes(v)))) ||
-    (s.equipped !== undefined && (typeof s.equipped !== 'object' || s.equipped === null || Object.entries(s.equipped).some(([slot, id]) => !['hat', 'necklace', 'boots'].includes(slot) || !GEAR_IDS.includes(id as GearId) || GEAR[id as GearId].slot !== slot || !s.ownedGear?.includes(id as GearId)))) ||
+    (s.equipped !== undefined && (typeof s.equipped !== 'object' || s.equipped === null || Object.entries(s.equipped).some(([slot, id]) => !['hat', 'necklace', 'bracelet', 'boots', 'charm'].includes(slot) || !GEAR_IDS.includes(id as GearId) || GEAR[id as GearId].slot !== slot || !s.ownedGear?.includes(id as GearId)))) ||
     (s.mounted !== undefined && typeof s.mounted !== 'boolean') ||
     (s.character !== undefined && !['a', 'b'].includes(s.character)) ||
     (s.recipeUnlocked !== undefined && typeof s.recipeUnlocked !== 'boolean') ||

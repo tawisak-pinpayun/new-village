@@ -14,6 +14,18 @@ test('owned clothing and accessories change stats and survive save validation', 
   save.equipped.hat = 'flower_hat'
   assert.equal(validate(save), false)
 })
+
+test('bracelet and charm occupy separate slots and add their bonuses', () => {
+  const save = initialState()
+  save.ownedGear.push('gold_bracelet', 'crystal_charm')
+  save.equipped = { bracelet: 'gold_bracelet', charm: 'crystal_charm' }
+  assert.equal(maxHp(save), 108)
+  assert.equal(maxMana(save), 65)
+  assert.equal(equipmentStats(save).speed, 15)
+  assert.equal(validate(save), true)
+  save.equipped.bracelet = 'crystal_charm'
+  assert.equal(validate(save), false)
+})
 import { collisionTiles, MAPS, TILE } from '../src/maps.ts'
 import { monstersFor } from '../src/monsters.ts'
 

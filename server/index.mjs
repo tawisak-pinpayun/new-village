@@ -81,7 +81,7 @@ wss.on('connection', ws => {
       player.facing = [0, 1, 2, 3].includes(data.facing) ? data.facing : 0
       player.moving = !!data.moving
       player.outfit = ['default', 'forest', 'royal', 'mage'].includes(data.outfit) ? data.outfit : 'default'
-      const allowedGear = { hat: ['flower_hat', 'wizard_hat'], necklace: ['silver_necklace', 'moon_amulet'], boots: ['leather_boots', 'cloud_boots'] }
+      const allowedGear = { hat: ['flower_hat', 'wizard_hat'], necklace: ['silver_necklace', 'moon_amulet'], bracelet: ['gold_bracelet', 'star_bracelet'], boots: ['leather_boots', 'cloud_boots'], charm: ['lucky_charm', 'crystal_charm'] }
       player.equipped = Object.fromEntries(Object.entries(allowedGear).filter(([slot, ids]) => ids.includes(data.equipped?.[slot])).map(([slot]) => [slot, data.equipped[slot]]))
       player.mounted = !!data.mounted
       if (previousMap !== player.mapId) send(ws, { type: 'peers', players: [...room.values()].filter(p => p !== player).map(({ ws: _, ...p }) => p) })
