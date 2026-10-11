@@ -82,10 +82,25 @@ export const MAPS: Record<MapId, MapConfig> = {
     ],
     interactions: [
       { id: 'to-village', x: 1385, y: 520, label: 'กลับหมู่บ้าน', kind: 'door', destination: 'village', arrival: { x: 300, y: 520 } },
+      { id: 'to-magic-city', x: 770, y: 925, label: 'ไปเมืองเวทมนตร์', kind: 'door', destination: 'magic_city', arrival: { x: 770, y: 165 } },
       { id: 'seed-stall', x: 555, y: 285, label: 'ซื้อเมล็ดผัก', kind: 'market_shop' },
       { id: 'garden-stall', x: 1050, y: 335, label: 'ดูอุปกรณ์ปลูกผัก', kind: 'market_shop' },
       { id: 'tailor-stall', x: 545, y: 690, label: 'ร้านเสื้อผ้า', kind: 'tailor' },
       { id: 'magic-stall', x: 925, y: 690, label: 'ร้านเวทมนตร์', kind: 'magic_shop' }
+    ]
+  },
+  magic_city: {
+    id: 'magic_city', name: 'เมืองเวทมนตร์', image: '/assets/magic-city.png', spawn: { x: 770, y: 165 },
+    blocked: [
+      [0, 0, 575, 350], [960, 0, 576, 350],
+      [0, 625, 490, 399], [1040, 625, 496, 399],
+      [650, 370, 235, 200], [0, 0, 1536, 60],
+      [0, 950, 620, 74], [915, 950, 621, 74]
+    ],
+    interactions: [
+      { id: 'to-market', x: 770, y: 105, label: 'กลับตลาด', kind: 'door', destination: 'market', arrival: { x: 770, y: 810 } },
+      { id: 'arcane-shop', x: 635, y: 290, label: 'ร้านเวทมนตร์', kind: 'magic_shop' },
+      { id: 'mage-tailor', x: 905, y: 290, label: 'ร้านชุดจอมเวท', kind: 'tailor' }
     ]
   },
   riverside: {

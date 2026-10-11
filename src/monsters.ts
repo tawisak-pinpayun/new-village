@@ -16,7 +16,9 @@ export function monstersFor(mapId: MapId, worldDay: number): Monster[] {
   const count = floor + 2
   return Array.from({ length: count }, (_, i) => {
     const index = Math.floor(random() * points.length)
-    const [x, y] = points.splice(index, 1)[0]
+    const [baseX, baseY] = points.splice(index, 1)[0]
+    const x = baseX + Math.round((random() - .5) * 32)
+    const y = baseY + Math.round((random() - .5) * 32)
     const kind: Monster['kind'] = floor === 3 && i === count - 1 ? 'golem' : random() < (floor === 1 ? .7 : .4) ? 'slime' : 'bat'
     return { id: `monster-${floor}-${worldDay}-${i}`, x, y, kind, hp: kind === 'golem' ? 7 : kind === 'bat' ? 2 : 3, damage: kind === 'golem' ? 13 : kind === 'bat' ? 7 : 5, xp: kind === 'golem' ? 40 : kind === 'bat' ? 12 : 9 }
   })

@@ -74,6 +74,25 @@ test('market entrance, stalls and exit are reachable on walkable tiles', () => {
   }
 })
 
+test('magic city connects below the market and its shops are walkable', () => {
+  assert.equal(MAPS.market.interactions.find(i => i.id === 'to-magic-city').destination, 'magic_city')
+  assert.equal(MAPS.magic_city.interactions.find(i => i.id === 'to-market').destination, 'market')
+  const map = MAPS.magic_city, grid = collisionTiles(map)
+  const start = [Math.floor(map.spawn.x / TILE), Math.floor(map.spawn.y / TILE)]
+  const queue = [start], seen = new Set([start.join(',')])
+  for (let i = 0; i < queue.length; i++) {
+    const [x, y] = queue[i]
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy, key = `${nx},${ny}`
+      if (grid[ny]?.[nx] !== 0 || seen.has(key)) continue
+      seen.add(key); queue.push([nx, ny])
+    }
+  }
+  for (const [x, y] of [[635, 290], [905, 290], [770, 850]]) {
+    assert.equal(seen.has(`${Math.floor(x / TILE)},${Math.floor(y / TILE)}`), true)
+  }
+})
+
 test('riverside and mine doors connect, equipment and loot survive saves', () => {
   const save = initialState()
   for (const item of ['sword', 'bow', 'meat', 'copper']) assert.equal(add(save, item), true)

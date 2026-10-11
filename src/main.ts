@@ -154,7 +154,7 @@ function hud() {
     const badge = i === 1 ? `${state.water ?? MAX_WATER}/${MAX_WATER}` : i === 5 ? String(count(state, 'radish_seed')) : i === 6 ? String(count(state, 'radish')) : extra ? String(count(state, extra)) : ''
     return `<button class="hotbar-slot ${i === (state.selectedSlot ?? 0) ? 'selected' : ''}" data-slot="${i}" title="${item.name}"><span class="slot-key">${i === 9 ? 0 : i + 1}</span><span class="slot-icon">${item.icon}</span><span class="slot-name">${item.name}</span>${badge ? `<span class="slot-count">${badge}</span>` : ''}</button>`
   }).join('')
-  ui.steps.innerHTML = `<div class="${state.player.mapId === 'village' ? 'active' : ''}">01 <span>หมู่บ้าน</span></div><div class="${state.player.mapId === 'farm' ? 'active' : ''}">02 <span>บ้านและฟาร์ม</span></div><div class="${state.player.mapId === 'home' ? 'active' : ''}">03 <span>ภายในบ้าน</span></div><div class="${state.player.mapId === 'market' ? 'active' : ''}">04 <span>ตลาด</span></div><div class="${state.player.mapId === 'riverside' ? 'active' : ''}">05 <span>ริมน้ำ</span></div><div class="${state.player.mapId.startsWith('mine') ? 'active' : ''}">06 <span>เหมือง 1–3</span></div>`
+  ui.steps.innerHTML = `<div class="${state.player.mapId === 'village' ? 'active' : ''}">01 <span>หมู่บ้าน</span></div><div class="${state.player.mapId === 'farm' ? 'active' : ''}">02 <span>บ้านและฟาร์ม</span></div><div class="${state.player.mapId === 'home' ? 'active' : ''}">03 <span>ภายในบ้าน</span></div><div class="${state.player.mapId === 'market' ? 'active' : ''}">04 <span>ตลาด</span></div><div class="${state.player.mapId === 'magic_city' ? 'active' : ''}">05 <span>เมืองเวทมนตร์</span></div><div class="${state.player.mapId === 'riverside' ? 'active' : ''}">06 <span>ริมน้ำ</span></div><div class="${state.player.mapId.startsWith('mine') ? 'active' : ''}">07 <span>เหมือง 1–3</span></div>`
 }
 function clock() {
   const day = dayNumber(state)
@@ -303,6 +303,10 @@ class WorldScene extends Phaser.Scene {
   private lastMonsterAttack = 0
   private lastMonsterDay = 0
   private broomMarker?: Phaser.GameObjects.Text
+  private flyingSprite?: Phaser.GameObjects.Sprite
+  private flyingShadow?: Phaser.GameObjects.Ellipse
+  private terrainCollider?: Phaser.Physics.Arcade.Collider
+  private monsterWander = new Map<string, { homeX: number; homeY: number; targetX: number; targetY: number; nextTurn: number; phase: number }>()
   private handlePointer = () => this.useSelected()
   private restingUntil = 0
   private lastSave = 0
@@ -331,6 +335,7 @@ class WorldScene extends Phaser.Scene {
     this.resourceMarkers = []
     this.monsterMarkers = []
     this.monsters = []
+    this.monsterWander.clear()
     this.lastMonsterAttack = 0
     const imageKey = config.id.startsWith('mine') ? 'mine' : config.id
     this.add.image(0, 0, imageKey).setOrigin(0).setDepth(0).setTint(config.id === 'mine2' ? 0xdbe6ff : config.id === 'mine3' ? 0xdac4f6 : 0xffffff)
@@ -349,9 +354,13 @@ class WorldScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(state.player.x, state.player.y, `player-${state.character ?? 'a'}`, 0).setDepth(20).setScale(.23)
     this.player.setTint(OUTFIT_TINT[state.outfit ?? 'default'])
     this.broomMarker = this.add.text(state.player.x, state.player.y + 10, '🧹', { fontSize: '29px' }).setOrigin(.5).setDepth(19).setVisible(!!state.mounted)
+    this.flyingShadow = this.add.ellipse(state.player.x, state.player.y + 20, 42, 13, 0x142218, .35).setDepth(18).setVisible(!!state.mounted)
+    this.flyingSprite = this.add.sprite(state.player.x, state.player.y - 27, `player-${state.character ?? 'a'}`, 0).setScale(.23).setDepth(22).setTint(OUTFIT_TINT[state.outfit ?? 'default']).setVisible(!!state.mounted)
+    this.player.setVisible(!state.mounted)
     this.player.body!.setSize(104, 78).setOffset(88, 194)
     this.player.setCollideWorldBounds(true)
-    this.physics.add.collider(this.player, blockers)
+    this.terrainCollider = this.physics.add.collider(this.player, blockers)
+    this.terrainCollider.active = !state.mounted
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT).startFollow(this.player, true, .12, .12)
     this.resizeCamera()
@@ -383,6 +392,13 @@ class WorldScene extends Phaser.Scene {
       const labelStyle = { fontFamily: 'Nunito, sans-serif', fontSize: '18px', color: '#fff9dc', backgroundColor: '#243829', padding: { x: 9, y: 4 } }
       this.add.text(460, 245, 'เมล็ดพันธุ์', labelStyle).setOrigin(.5).setDepth(12)
       this.add.text(1090, 270, 'ของทำสวน', labelStyle).setOrigin(.5).setDepth(12)
+      this.add.text(770, 875, '⬇ เมืองเวทมนตร์', labelStyle).setOrigin(.5).setDepth(12)
+    }
+    if (config.id === 'magic_city') {
+      const labelStyle = { fontFamily: 'Nunito, sans-serif', fontSize: '18px', color: '#fff4ff', backgroundColor: '#34234d', padding: { x: 9, y: 4 } }
+      this.add.text(635, 255, '🪄 ร้านเวทมนตร์', labelStyle).setOrigin(.5).setDepth(12)
+      this.add.text(905, 255, '🧙 ร้านชุดจอมเวท', labelStyle).setOrigin(.5).setDepth(12)
+      this.add.text(770, 145, '⬆ กลับตลาด', labelStyle).setOrigin(.5).setDepth(12)
     }
     if (config.id === 'home') this.addNpc(1, 1090, 382, 'Cook')
     this.input.off('pointerdown', this.handlePointer)
@@ -395,6 +411,7 @@ class WorldScene extends Phaser.Scene {
 
   setCharacter() {
     if (this.player?.active) this.player.setTexture(`player-${state.character ?? 'a'}`, this.facing).setTint(OUTFIT_TINT[state.outfit ?? 'default'])
+    if (this.flyingSprite?.active) this.flyingSprite.setTexture(`player-${state.character ?? 'a'}`, this.facing).setTint(OUTFIT_TINT[state.outfit ?? 'default'])
   }
 
   sendPresence(force = false) {
@@ -534,7 +551,45 @@ class WorldScene extends Phaser.Scene {
       }
       g.fillStyle(0x251b26).fillRect(-27, -54, 54, 8)
       g.fillStyle(0xe76372).fillRect(-25, -52, 50 * hp / monster.hp, 4)
-      this.monsterMarkers.push(this.add.container(monster.x, monster.y, [g]).setDepth(11))
+      this.monsterMarkers.push(this.add.container(monster.x, monster.y, [g]).setDepth(11).setData('monsterId', monster.id))
+    }
+  }
+
+  private moveMonsters(time: number, delta: number) {
+    const map = MAPS[state.player.mapId]
+    const step = Math.min(delta, 50) / 1000
+    for (const monster of this.monsters) {
+      if ((state.nodeHp?.[monster.id] ?? monster.hp) <= 0) continue
+      let motion = this.monsterWander.get(monster.id)
+      if (!motion) {
+        motion = { homeX: monster.x, homeY: monster.y, targetX: monster.x, targetY: monster.y, nextTurn: 0, phase: Math.random() * 6.28 }
+        this.monsterWander.set(monster.id, motion)
+      }
+      const playerDistance = Math.hypot(this.player.x - monster.x, this.player.y - monster.y)
+      const chasing = playerDistance < (monster.kind === 'bat' ? 200 : 155) && !state.mounted
+      if (chasing) {
+        motion.targetX = this.player.x; motion.targetY = this.player.y
+      } else if (time > motion.nextTurn || Math.hypot(motion.targetX - monster.x, motion.targetY - monster.y) < 12) {
+        motion.nextTurn = time + 1200 + Math.random() * 2300
+        const angle = Math.random() * Math.PI * 2, radius = 40 + Math.random() * 100
+        const tx = motion.homeX + Math.cos(angle) * radius, ty = motion.homeY + Math.sin(angle) * radius
+        if (tx > 170 && tx < WORLD_WIDTH - 170 && ty > 125 && ty < WORLD_HEIGHT - 115 && !map.blocked.some(([x, y, w, h]) => tx > x - 24 && tx < x + w + 24 && ty > y - 24 && ty < y + h + 24)) {
+          motion.targetX = tx; motion.targetY = ty
+        } else { motion.targetX = monster.x; motion.targetY = monster.y }
+      }
+      const dx = motion.targetX - monster.x, dy = motion.targetY - monster.y, distance = Math.hypot(dx, dy)
+      if (distance > 3) {
+        const speed = (monster.kind === 'bat' ? 70 : monster.kind === 'golem' ? 32 : 48) * (chasing ? 1.25 : 1)
+        const travel = Math.min(distance, speed * step)
+        const nx = monster.x + dx / distance * travel, ny = monster.y + dy / distance * travel
+        if (!map.blocked.some(([x, y, w, h]) => nx > x - 18 && nx < x + w + 18 && ny > y - 18 && ny < y + h + 18)) { monster.x = nx; monster.y = ny }
+        else motion.nextTurn = 0
+      }
+      const marker = this.monsterMarkers.find(item => item.getData('monsterId') === monster.id)
+      if (marker) {
+        marker.setPosition(monster.x, monster.y + (monster.kind === 'bat' ? Math.sin(time / 220 + motion.phase) * 7 : Math.sin(time / 300 + motion.phase) * 2))
+        marker.setScale(monster.kind === 'slime' ? 1 + Math.sin(time / 290 + motion.phase) * .055 : 1)
+      }
     }
   }
 
@@ -665,8 +720,14 @@ class WorldScene extends Phaser.Scene {
     if (nearest?.interaction) { this.interactionCooldown = this.time.now + 250; this.interact(nearest.interaction); return }
     const held = state.hotbarExtras?.[(state.selectedSlot ?? 0) - 7]
     if (held === 'broom' && count(state, 'broom')) {
-      state.mounted = !state.mounted; this.broomMarker?.setVisible(!!state.mounted)
-      changed(); announce(state.mounted ? 'ขึ้นไม้กวาดแล้ว เดินได้เร็วขึ้น' : 'ลงจากไม้กวาดแล้ว'); return
+      if (state.mounted && MAPS[state.player.mapId].blocked.some(([x, y, w, h]) => this.player.x > x - 24 && this.player.x < x + w + 24 && this.player.y > y - 24 && this.player.y < y + h + 24)) return announce('บินออกจากสิ่งกีดขวางก่อนลงจากไม้กวาด')
+      state.mounted = !state.mounted
+      if (this.terrainCollider) this.terrainCollider.active = !state.mounted
+      this.broomMarker?.setVisible(!!state.mounted)
+      this.flyingSprite?.setVisible(!!state.mounted)
+      this.flyingShadow?.setVisible(!!state.mounted)
+      this.player.setVisible(!state.mounted)
+      changed(); announce(state.mounted ? 'ขึ้นไม้กวาดแล้ว! ใช้ปุ่มเดินเพื่อบินเหนือพื้น' : 'ลงจากไม้กวาดแล้ว'); return
     }
     if (held && ['rice_meal', 'stew', 'mana_potion'].includes(held)) {
       if (!eat(state, held)) return announce('ตอนนี้ยังไม่ต้องใช้ของชิ้นนี้')
@@ -733,7 +794,7 @@ class WorldScene extends Phaser.Scene {
     if (target.kind === 'storage') announce('ที่เก็บของและคราฟต์จะเพิ่มในอัปเดตถัดไป')
   }
 
-  update(time: number) {
+  update(time: number, delta: number) {
     for (const objects of this.remoteSprites.values()) {
       const x = objects.sprite.getData('targetX'), y = objects.sprite.getData('targetY')
       objects.sprite.x = Phaser.Math.Linear(objects.sprite.x, x, .35)
@@ -741,7 +802,11 @@ class WorldScene extends Phaser.Scene {
       objects.label.setPosition(objects.sprite.x, objects.sprite.y - 49)
     }
     if (time - this.lastClock > 1000) { this.lastClock = time; clock() }
-    this.broomMarker?.setPosition(this.player.x, this.player.y + 10)
+    if (mineFloor(state.player.mapId)) this.moveMonsters(time, delta)
+    const hover = Math.sin(time / 210) * 4
+    this.broomMarker?.setPosition(this.player.x, this.player.y + 4 + hover)
+    this.flyingSprite?.setPosition(this.player.x, this.player.y - 28 + hover).setFrame(this.player.frame.name).setVisible(!!state.mounted)
+    this.flyingShadow?.setPosition(this.player.x, this.player.y + 25).setScale(1 - hover * .008).setVisible(!!state.mounted)
     if (mineFloor(state.player.mapId) && time - this.lastMonsterAttack > 1800) {
       this.lastMonsterAttack = time
       for (const monster of this.monsters) {
@@ -761,6 +826,7 @@ class WorldScene extends Phaser.Scene {
     if (mineFloor(state.player.mapId) && Math.floor(Date.now() / 120000) !== this.lastMonsterDay) {
       this.lastMonsterDay = Math.floor(Date.now() / 120000)
       this.monsters = monstersFor(state.player.mapId, this.lastMonsterDay)
+      this.monsterWander.clear()
       this.drawMonsters()
     }
     if (time - this.lastGrowthCheck > 250) {
