@@ -1,14 +1,15 @@
 export type PlotState = 'EMPTY' | 'TILLED' | 'PLANTED' | 'GROWING' | 'READY' | 'WITHERED'
 export type CropId = 'radish' | 'carrot' | 'tomato'
-export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron'
-export type MapId = 'village' | 'farm' | 'home' | 'market' | 'riverside' | 'mine'
-export const ITEM_IDS: ItemId[] = ['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber', 'sword', 'bow', 'meat', 'hide', 'copper', 'iron']
+export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion'
+export type MapId = 'village' | 'farm' | 'home' | 'market' | 'riverside' | 'mine' | 'mine2' | 'mine3'
+export type OutfitId = 'default' | 'forest' | 'royal' | 'mage'
+export const ITEM_IDS: ItemId[] = ['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber', 'sword', 'bow', 'meat', 'hide', 'copper', 'iron', 'moonstone', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion']
 export type Slot = { slot: number; itemId: ItemId; quantity: number }
 export type Plot = { id: string; state: PlotState; cropId: CropId | null; readyAt: number | null; dryDays?: number; wateredDay?: number | null }
 export type Save = {
   schemaVersion: 2
   savedAt: number
-  player: { x: number; y: number; mapId: MapId; coins: number; energy: number }
+  player: { x: number; y: number; mapId: MapId; coins: number; energy: number; hp?: number; mana?: number; xp?: number; level?: number }
   inventory: Slot[]
   plots: Plot[]
   questDone: boolean
@@ -20,6 +21,9 @@ export type Save = {
   selectedSlot?: number
   hotbarExtras?: (ItemId | null)[]
   nodeHp?: Record<string, number>
+  outfit?: OutfitId
+  ownedOutfits?: OutfitId[]
+  mounted?: boolean
 }
 
 export const KEY = 'new-village.save.v2'
@@ -31,7 +35,7 @@ export const PLOT_COUNT = 6
 export const initialState = (): Save => ({
   schemaVersion: 2,
   savedAt: Date.now(),
-  player: { x: 768, y: 800, mapId: 'village', coins: 50, energy: 100 },
+  player: { x: 768, y: 800, mapId: 'village', coins: 50, energy: 100, hp: 100, mana: 50, xp: 0, level: 1 },
   inventory: [{ slot: 0, itemId: 'radish_seed', quantity: 3 }],
   plots: Array.from({ length: PLOT_COUNT }, (_, i) => ({ id: `plot-${i + 1}`, state: 'EMPTY', cropId: null, readyAt: null, dryDays: 0, wateredDay: null })),
   questDone: false,
@@ -42,8 +46,44 @@ export const initialState = (): Save => ({
   lastProcessedDay: 1,
   selectedSlot: 0,
   hotbarExtras: [null, null, null],
-  nodeHp: {}
+  nodeHp: {},
+  outfit: 'default',
+  ownedOutfits: ['default'],
+  mounted: false
 })
+
+export const maxHp = (save: Save) => 100 + ((save.player.level ?? 1) - 1) * 15
+export const maxMana = (save: Save) => 50 + ((save.player.level ?? 1) - 1) * 8
+export const xpNeeded = (level: number) => 40 + level * 20
+export function gainXp(save: Save, amount: number): boolean {
+  save.player.xp = (save.player.xp ?? 0) + amount
+  let leveled = false
+  while (save.player.xp >= xpNeeded(save.player.level ?? 1)) {
+    save.player.xp -= xpNeeded(save.player.level ?? 1)
+    save.player.level = (save.player.level ?? 1) + 1
+    save.player.hp = maxHp(save)
+    save.player.mana = maxMana(save)
+    leveled = true
+  }
+  return leveled
+}
+export function eat(save: Save, item: ItemId): boolean {
+  const effects: Partial<Record<ItemId, [number, number, number]>> = { radish: [8, 0, 10], rice_meal: [28, 0, 30], stew: [45, 5, 40], mana_potion: [0, 30, 0] }
+  const effect = effects[item]
+  if (!effect || !count(save, item)) return false
+  if ((effect[0] === 0 || (save.player.hp ?? 100) >= maxHp(save)) && (effect[1] === 0 || (save.player.mana ?? 50) >= maxMana(save)) && (effect[2] === 0 || save.player.energy >= MAX_ENERGY)) return false
+  remove(save, item)
+  save.player.hp = Math.min(maxHp(save), (save.player.hp ?? 100) + effect[0])
+  save.player.mana = Math.min(maxMana(save), (save.player.mana ?? 50) + effect[1])
+  save.player.energy = Math.min(MAX_ENERGY, save.player.energy + effect[2])
+  return true
+}
+export function craftArcaneSword(save: Save): boolean {
+  if (count(save, 'iron') < 2 || count(save, 'moonstone') < 1 || !canAdd(save, 'arcane_sword')) return false
+  remove(save, 'iron'); remove(save, 'iron'); remove(save, 'moonstone'); add(save, 'arcane_sword')
+  return true
+}
+export function rareDrop(floor: number, roll: number): boolean { return roll < [0, .07, .16, .3][Math.max(1, Math.min(3, floor))] }
 
 export function count(save: Save, itemId: ItemId): number {
   return save.inventory.find(s => s.itemId === itemId)?.quantity ?? 0
@@ -51,7 +91,7 @@ export function count(save: Save, itemId: ItemId): number {
 
 export function canAdd(save: Save, itemId: ItemId): boolean {
   const stack = save.inventory.find(s => s.itemId === itemId)
-  return stack ? stack.quantity < 99 : save.inventory.length < 8
+  return stack ? stack.quantity < 99 : save.inventory.length < 24
 }
 
 export function add(save: Save, itemId: ItemId): boolean {
@@ -59,10 +99,10 @@ export function add(save: Save, itemId: ItemId): boolean {
   const stack = save.inventory.find(s => s.itemId === itemId)
   if (stack) stack.quantity++
   else {
-    const slot = Array.from({ length: 8 }, (_, i) => i).find(i => !save.inventory.some(s => s.slot === i))!
+    const slot = Array.from({ length: 24 }, (_, i) => i).find(i => !save.inventory.some(s => s.slot === i))!
     save.inventory.push({ slot, itemId, quantity: 1 })
   }
-  if (['sword', 'bow', 'carrot_seed', 'tomato_seed'].includes(itemId) && save.hotbarExtras && !save.hotbarExtras.includes(itemId)) {
+  if (['sword', 'bow', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion', 'carrot_seed', 'tomato_seed'].includes(itemId) && save.hotbarExtras && !save.hotbarExtras.includes(itemId)) {
     const empty = save.hotbarExtras.indexOf(null)
     if (empty >= 0) save.hotbarExtras[empty] = itemId
   }
@@ -87,7 +127,7 @@ export function refreshGrowth(save: Save, now = Date.now()): boolean {
   const day = dayNumber(save, now)
   const lastDay = save.lastProcessedDay ?? day
   if (day > lastDay) {
-    for (const id of Object.keys(save.nodeHp ?? {})) if (id.startsWith('river-') || id.startsWith('mine-')) delete save.nodeHp![id]
+    for (const id of Object.keys(save.nodeHp ?? {})) if (id.startsWith('river-') || id.startsWith('mine-') || id.startsWith('monster-')) delete save.nodeHp![id]
     for (const plot of save.plots) {
       if (plot.state !== 'PLANTED') continue
       const firstRain = lastDay + ((5 - lastDay % 5) % 5 || 5)
@@ -126,7 +166,14 @@ export function validate(value: unknown): value is Save {
   const p = s.player
   if (s.schemaVersion !== 2 || !p || !Number.isFinite(s.savedAt) ||
     !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x! < 16 || p.x! > 1520 || p.y! < 16 || p.y! > 1008 ||
-    !['village', 'farm', 'home', 'market', 'riverside', 'mine'].includes(p.mapId) || typeof s.questDone !== 'boolean' ||
+    !['village', 'farm', 'home', 'market', 'riverside', 'mine', 'mine2', 'mine3'].includes(p.mapId) || typeof s.questDone !== 'boolean' ||
+    (p.hp !== undefined && (!Number.isInteger(p.hp) || p.hp < 0 || p.hp > maxHp(s as Save))) ||
+    (p.mana !== undefined && (!Number.isInteger(p.mana) || p.mana < 0 || p.mana > maxMana(s as Save))) ||
+    (p.level !== undefined && (!Number.isInteger(p.level) || p.level < 1 || p.level > 100)) ||
+    (p.xp !== undefined && (!Number.isInteger(p.xp) || p.xp < 0 || p.xp > 10000)) ||
+    (s.outfit !== undefined && !['default', 'forest', 'royal', 'mage'].includes(s.outfit)) ||
+    (s.ownedOutfits !== undefined && (!Array.isArray(s.ownedOutfits) || s.ownedOutfits.some(v => !['default', 'forest', 'royal', 'mage'].includes(v)))) ||
+    (s.mounted !== undefined && typeof s.mounted !== 'boolean') ||
     (s.character !== undefined && !['a', 'b'].includes(s.character)) ||
     (s.recipeUnlocked !== undefined && typeof s.recipeUnlocked !== 'boolean') ||
     (s.water !== undefined && (!Number.isInteger(s.water) || s.water < 0 || s.water > MAX_WATER)) ||
@@ -136,10 +183,10 @@ export function validate(value: unknown): value is Save {
     (s.hotbarExtras !== undefined && (!Array.isArray(s.hotbarExtras) || s.hotbarExtras.length !== 3 || s.hotbarExtras.some(item => item !== null && !ITEM_IDS.includes(item)))) ||
     (s.nodeHp !== undefined && (typeof s.nodeHp !== 'object' || s.nodeHp === null || Object.values(s.nodeHp).some(hp => !Number.isInteger(hp) || hp < 0 || hp > 9))) ||
     !Number.isInteger(p.coins) || p.coins! < 0 || !Number.isInteger(p.energy) || p.energy! < 0 || p.energy! > 100) return false
-  if (!Array.isArray(s.inventory) || s.inventory.length > 8 || !Array.isArray(s.plots) || s.plots.length !== PLOT_COUNT) return false
+  if (!Array.isArray(s.inventory) || s.inventory.length > 24 || !Array.isArray(s.plots) || s.plots.length !== PLOT_COUNT) return false
   const slots = new Set<number>(), items = new Set<string>()
   for (const item of s.inventory) {
-    if (!item || !Number.isInteger(item.slot) || item.slot < 0 || item.slot >= 8 || slots.has(item.slot) ||
+    if (!item || !Number.isInteger(item.slot) || item.slot < 0 || item.slot >= 24 || slots.has(item.slot) ||
       !ITEM_IDS.includes(item.itemId) || items.has(item.itemId) ||
       !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) return false
     slots.add(item.slot); items.add(item.itemId)
@@ -185,6 +232,13 @@ export function load(): { state: Save; error?: string } {
     parsed.selectedSlot ??= 0
     parsed.hotbarExtras ??= [null, null, null]
     parsed.nodeHp ??= {}
+    parsed.player.level ??= 1
+    parsed.player.xp ??= 0
+    parsed.player.hp ??= maxHp(parsed)
+    parsed.player.mana ??= maxMana(parsed)
+    parsed.outfit ??= 'default'
+    parsed.ownedOutfits ??= ['default']
+    parsed.mounted ??= false
     for (const plot of parsed.plots) { plot.dryDays ??= 0; plot.wateredDay ??= null; if (plot.state === 'READY') plot.readyAt = null }
     refreshGrowth(parsed)
     return { state: parsed }

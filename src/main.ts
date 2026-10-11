@@ -1,20 +1,24 @@
 import Phaser from 'phaser'
 import './style.css'
-import { add, canAdd, count, dayNumber, GROW_MS, initialState, isRaining, KEY, load, MAX_ENERGY, MAX_WATER, persist, refreshGrowth, remove, type CropId, type ItemId } from './domain'
-import { collisionTiles, FARM_PLOTS, MAPS, TILE, WORLD_HEIGHT, WORLD_WIDTH, visualTiles, type Interaction, type ResourceNode } from './maps'
+import { add, canAdd, count, craftArcaneSword, dayNumber, eat, gainXp, GROW_MS, initialState, isRaining, KEY, load, maxHp, maxMana, MAX_ENERGY, MAX_WATER, persist, rareDrop, refreshGrowth, remove, xpNeeded, type CropId, type ItemId, type OutfitId } from './domain'
+import { collisionTiles, FARM_PLOTS, MAPS, TILE, WORLD_HEIGHT, WORLD_WIDTH, type Interaction, type ResourceNode } from './maps'
 import { Multiplayer } from './multiplayer'
+import { WorldChat } from './world-chat'
+import { mineFloor, monstersFor, type Monster } from './monsters'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   <div class="topbar"><div class="brand"><span class="flower">✿</span><span>NEW VILLAGE</span></div><div class="location"><span class="location-label">CURRENT LOCATION</span><strong id="map-name">หมู่บ้าน</strong></div><div id="day-display" class="day-display">☀ วันที่ 1 · 09:00</div><button id="switch-character" title="เปลี่ยนตัวละคร">☺ <span id="character-label">Player A</span></button><button id="new-game" title="เริ่มเกมใหม่">↻ <span>เกมใหม่</span></button></div>
-  <div class="status"><div class="coins"><span>✦</span><strong id="coins">50</strong></div><div class="energy"><span>⚡ ENERGY</span><strong id="energy-value">100 / 100</strong><div class="energy-track"><div id="energy-bar"></div></div></div></div>
+  <div class="status"><div class="coins"><span>✦</span><strong id="coins">50</strong></div><div class="energy"><span>⚡ ENERGY</span><strong id="energy-value">100 / 100</strong><div class="energy-track"><div id="energy-bar"></div></div></div><div class="vitals"><div><span>❤️ HP</span><b id="hp-value"></b></div><div class="vital-track"><i id="hp-bar"></i></div><div><span>✨ MANA</span><b id="mana-value"></b></div><div class="vital-track"><i id="mana-bar"></i></div><div><span id="level-value">LV 1</span><b id="xp-value"></b></div><div class="vital-track"><i id="xp-bar"></i></div></div></div>
   <div class="inventory"><div class="section-label">กระเป๋า <small>ลากของไปช่อง 8–10</small></div><div id="inventory-items"></div></div>
   <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span></div></div>
   <div id="hotbar" class="hotbar" aria-label="แถบเครื่องมือ"></div>
   <div class="map-guide"><span class="section-label">แผนที่</span><div id="map-steps"></div></div>
   <div class="multiplayer"><button id="room-toggle" title="เล่นกับเพื่อน">👥 เล่นกับเพื่อน</button><div id="room-panel" class="room-panel hidden"><strong>เล่นกับเพื่อน</strong><p id="room-status">ยังไม่ได้เข้าห้อง</p><input id="player-name" maxlength="20" placeholder="ชื่อของคุณ" aria-label="ชื่อของคุณ"><input id="room-code" maxlength="16" placeholder="รหัสห้อง เช่น FARM123" aria-label="รหัสห้อง"><button id="join-room">เข้าห้อง / สร้างห้อง</button><button id="copy-room" class="hidden">คัดลอกลิงก์ชวนเพื่อน</button><button id="leave-room" class="hidden">ออกจากห้อง</button><small>เพื่อนที่ใช้รหัสเดียวกันจะเห็นกันบนแผนที่</small></div></div>
+  <div class="world-chat"><button id="chat-toggle">🌍 แชทโลก</button><div id="chat-panel" class="chat-panel hidden"><strong>แชทโลก</strong><small id="chat-status">กำลังเชื่อมต่อ...</small><div id="chat-log" role="log" aria-live="polite"></div><form id="chat-form"><input id="chat-input" maxlength="200" placeholder="พิมพ์ข้อความ..." aria-label="ข้อความแชท"><button type="submit">ส่ง</button></form></div></div>
   <div id="shop" class="overlay hidden"><div class="dialog"><div class="dialog-top"><span>GENERAL STORE</span><button id="close-shop">✕</button></div><h2>ร้านค้าหมู่บ้าน</h2><p>ซื้อเมล็ดไว้ปลูก หรือขายผลผลิตจากฟาร์ม</p><button id="buy" class="trade"><span>✿ เมล็ด Radish <small>ปลูกได้ 1 แปลง</small></span><strong>ซื้อ · 8 Coins</strong></button><button id="sell" class="trade"><span>❀ Radish <small>ผลผลิตจากสวน</small></span><strong>ขาย · 15 Coins</strong></button><div class="dialog-foot">กด <kbd>1</kbd> ซื้อ &nbsp; <kbd>2</kbd> ขาย &nbsp; <kbd>Esc</kbd> ปิด</div></div></div>
-  <div id="market-shop" class="overlay hidden"><div class="dialog market-dialog"><div class="dialog-top"><span>FARMERS' MARKET</span><button id="close-market">✕</button></div><h2>ตลาดเมล็ดพันธุ์และอุปกรณ์</h2><p>ซื้อเมล็ดและอาวุธ หรือขายผลผลิตกับของที่หาได้</p><button class="trade" data-buy="radish_seed"><span>✿ เมล็ด Radish <small>โตได้หลังรดน้ำ 60 วินาที</small></span><strong>8 Coins</strong></button><button class="trade" data-buy="carrot_seed"><span>🥕 เมล็ดแครอท <small>ขุดแปลง → ปลูก → รดน้ำ</small></span><strong>10 Coins</strong></button><button class="trade" data-buy="tomato_seed"><span>🍅 เมล็ดมะเขือเทศ <small>ขุดแปลง → ปลูก → รดน้ำ</small></span><strong>12 Coins</strong></button><div class="market-divider">อุปกรณ์ล่าสัตว์</div><button class="trade" data-buy="sword"><span>⚔️ ดาบ <small>ใส่ช่อง 8–10 ใช้ล่าสัตว์ริมแม่น้ำ</small></span><strong>35 Coins</strong></button><button class="trade" data-buy="bow"><span>🏹 ธนู <small>ใส่ช่อง 8–10 ใช้ล่าสัตว์ริมแม่น้ำ</small></span><strong>55 Coins</strong></button><p>ขุดแร่ในเหมืองด้วยอีเต้อช่อง 4 ที่มีอยู่แล้ว</p><div class="market-divider">รับซื้อผลผลิตและวัตถุดิบ</div><button class="trade" data-sell="carrot"><span>🥕 แครอท</span><strong>ขาย 18 Coins</strong></button><button class="trade" data-sell="tomato"><span>🍅 มะเขือเทศ</span><strong>ขาย 22 Coins</strong></button><button class="trade" data-sell="meat"><span>🍖 เนื้อ</span><strong>ขาย 16 Coins</strong></button><button class="trade" data-sell="hide"><span>🟤 หนังสัตว์</span><strong>ขาย 12 Coins</strong></button><button class="trade" data-sell="copper"><span>🟠 แร่ทองแดง</span><strong>ขาย 14 Coins</strong></button><button class="trade" data-sell="iron"><span>⚪ แร่เหล็ก</span><strong>ขาย 22 Coins</strong></button><div class="dialog-foot">ลากอาวุธจากกระเป๋าไป Hotbar ช่อง 8–10 · กด <kbd>Esc</kbd> ปิด</div></div></div>`
+  <div id="market-shop" class="overlay hidden"><div class="dialog market-dialog"><div class="dialog-top"><span>FARMERS' MARKET</span><button id="close-market">✕</button></div><h2>ตลาดเมล็ดพันธุ์และอุปกรณ์</h2><p>ซื้อเมล็ด อาหาร และอาวุธ หรือขายของที่หาได้</p><button class="trade" data-buy="radish_seed"><span>✿ เมล็ด Radish</span><strong>8 Coins</strong></button><button class="trade" data-buy="carrot_seed"><span>🥕 เมล็ดแครอท</span><strong>10 Coins</strong></button><button class="trade" data-buy="tomato_seed"><span>🍅 เมล็ดมะเขือเทศ</span><strong>12 Coins</strong></button><div class="market-divider">อาหารและอาวุธ</div><button class="trade" data-buy="rice_meal"><span>🍚 ข้าวกล่อง <small>ฟื้น HP และพลังงาน คลิกในกระเป๋าเพื่อกิน</small></span><strong>12 Coins</strong></button><button class="trade" data-buy="sword"><span>⚔️ ดาบ</span><strong>35 Coins</strong></button><button class="trade" data-buy="bow"><span>🏹 ธนู</span><strong>55 Coins</strong></button><div class="market-divider">รับซื้อ</div><button class="trade" data-sell="carrot"><span>🥕 แครอท</span><strong>18 Coins</strong></button><button class="trade" data-sell="tomato"><span>🍅 มะเขือเทศ</span><strong>22 Coins</strong></button><button class="trade" data-sell="meat"><span>🍖 เนื้อ</span><strong>16 Coins</strong></button><button class="trade" data-sell="hide"><span>🟤 หนังสัตว์</span><strong>12 Coins</strong></button><button class="trade" data-sell="copper"><span>🟠 แร่ทองแดง</span><strong>14 Coins</strong></button><button class="trade" data-sell="iron"><span>⚪ แร่เหล็ก</span><strong>22 Coins</strong></button><button class="trade" data-sell="moonstone"><span>💎 จันทราศิลา</span><strong>120 Coins</strong></button><div class="dialog-foot">ลากอาวุธไป Hotbar ช่อง 8–10 · กด <kbd>Esc</kbd> ปิด</div></div></div>
+  <div id="special-shop" class="overlay hidden"><div class="dialog market-dialog"><div class="dialog-top"><span id="special-label"></span><button id="close-special">✕</button></div><h2 id="special-title"></h2><p id="special-description"></p><div id="special-list"></div><div class="dialog-foot">กด <kbd>Esc</kbd> ปิด</div></div></div>`
 
 const ui = {
   map: document.querySelector<HTMLElement>('#map-name')!,
@@ -22,6 +26,9 @@ const ui = {
   coins: document.querySelector<HTMLElement>('#coins')!,
   energy: document.querySelector<HTMLElement>('#energy-value')!,
   energyBar: document.querySelector<HTMLElement>('#energy-bar')!,
+  hp: document.querySelector<HTMLElement>('#hp-value')!, hpBar: document.querySelector<HTMLElement>('#hp-bar')!,
+  mana: document.querySelector<HTMLElement>('#mana-value')!, manaBar: document.querySelector<HTMLElement>('#mana-bar')!,
+  level: document.querySelector<HTMLElement>('#level-value')!, xp: document.querySelector<HTMLElement>('#xp-value')!, xpBar: document.querySelector<HTMLElement>('#xp-bar')!,
   inventory: document.querySelector<HTMLElement>('#inventory-items')!,
   hotbar: document.querySelector<HTMLElement>('#hotbar')!,
   prompt: document.querySelector<HTMLElement>('#prompt')!,
@@ -34,9 +41,12 @@ let { state, error } = load()
 let saveBlocked = !!error
 let shopOpen = false
 let marketOpen = false
+let specialOpen = false
+let specialKind: 'tailor' | 'magic_shop' | 'forge' | null = null
 let scene: WorldScene | undefined
 let messageTimer: number | undefined
 const multiplayer = new Multiplayer()
+const worldChat = new WorldChat()
 const roomPanel = document.querySelector<HTMLElement>('#room-panel')!
 const roomStatus = document.querySelector<HTMLElement>('#room-status')!
 const playerName = document.querySelector<HTMLInputElement>('#player-name')!
@@ -52,6 +62,7 @@ document.querySelector('#join-room')!.addEventListener('click', () => {
   const name = playerName.value.trim() || `ชาวสวน${Math.floor(100 + Math.random() * 900)}`
   playerName.value = name
   localStorage.setItem('new-village.player-name', name)
+  worldChat.setName(name)
   multiplayer.connect(code, name, state.character ?? 'a')
 })
 copyRoom.addEventListener('click', async () => {
@@ -61,7 +72,29 @@ copyRoom.addEventListener('click', async () => {
 })
 leaveRoom.addEventListener('click', () => { multiplayer.disconnect(); roomStatus.textContent = 'ออกจากห้องแล้ว' })
 multiplayer.onStatus = text => { roomStatus.textContent = text; copyRoom.classList.toggle('hidden', !multiplayer.room); leaveRoom.classList.toggle('hidden', !multiplayer.room) }
-multiplayer.onChange = () => { scene?.syncRemotePlayers(); if (multiplayer.room) scene?.sendPresence(true) }
+multiplayer.onChange = () => scene?.syncRemotePlayers()
+multiplayer.onJoined = () => scene?.sendPresence(true)
+const chatPanel = document.querySelector<HTMLElement>('#chat-panel')!
+const chatLog = document.querySelector<HTMLElement>('#chat-log')!
+const chatInput = document.querySelector<HTMLInputElement>('#chat-input')!
+document.querySelector('#chat-toggle')!.addEventListener('click', () => chatPanel.classList.toggle('hidden'))
+document.querySelector<HTMLFormElement>('#chat-form')!.addEventListener('submit', event => {
+  event.preventDefault()
+  if (worldChat.send(chatInput.value)) chatInput.value = ''
+  else announce('แชทโลกยังไม่พร้อม ลองอีกครั้ง')
+})
+worldChat.onStatus = text => { document.querySelector('#chat-status')!.textContent = text }
+worldChat.onMessages = messages => {
+  chatLog.replaceChildren(...messages.map(message => {
+    const row = document.createElement('div')
+    const name = document.createElement('b')
+    name.textContent = `${message.name}: `
+    row.append(name, document.createTextNode(message.text))
+    return row
+  }))
+  chatLog.scrollTop = chatLog.scrollHeight
+}
+worldChat.connect()
 const HOTBAR_FIXED = [
   { icon: '⚒', name: 'จอบ' }, { icon: '💧', name: 'บัวรดน้ำ' },
   { icon: '🪓', name: 'ขวาน' }, { icon: '⛏', name: 'อีเต้อ' },
@@ -73,8 +106,10 @@ const ITEMS: Record<ItemId, { icon: string; name: string }> = {
   carrot_seed: { icon: '🥕', name: 'เมล็ดแครอท' }, carrot: { icon: '🥕', name: 'แครอท' },
   tomato_seed: { icon: '🍅', name: 'เมล็ดมะเขือเทศ' }, tomato: { icon: '🍅', name: 'มะเขือเทศ' },
   wood: { icon: '🪵', name: 'ไม้' }, stone: { icon: '🪨', name: 'หิน' }, fiber: { icon: '🌿', name: 'เส้นใย' },
-  sword: { icon: '⚔️', name: 'ดาบ' }, bow: { icon: '🏹', name: 'ธนู' }, meat: { icon: '🍖', name: 'เนื้อ' }, hide: { icon: '🟤', name: 'หนังสัตว์' }, copper: { icon: '🟠', name: 'แร่ทองแดง' }, iron: { icon: '⚪', name: 'แร่เหล็ก' }
+  sword: { icon: '⚔️', name: 'ดาบ' }, bow: { icon: '🏹', name: 'ธนู' }, meat: { icon: '🍖', name: 'เนื้อ' }, hide: { icon: '🟤', name: 'หนังสัตว์' }, copper: { icon: '🟠', name: 'แร่ทองแดง' }, iron: { icon: '⚪', name: 'แร่เหล็ก' },
+  moonstone: { icon: '💎', name: 'จันทราศิลา' }, arcane_sword: { icon: '🗡️', name: 'ดาบจันทรา' }, wand: { icon: '🪄', name: 'คทาเวท' }, broom: { icon: '🧹', name: 'ไม้กวาดขี่' }, rice_meal: { icon: '🍚', name: 'ข้าวกล่อง' }, stew: { icon: '🍲', name: 'สตูว์' }, mana_potion: { icon: '🧪', name: 'ยามานา' }
 }
+const OUTFIT_TINT: Record<OutfitId, number> = { default: 0xffffff, forest: 0xb9de9c, royal: 0xa8c7f9, mage: 0xd3b4f5 }
 type SeedId = 'radish_seed' | 'carrot_seed' | 'tomato_seed'
 function selectedSeedId(): SeedId | null {
   const slot = state.selectedSlot ?? 0
@@ -102,9 +137,16 @@ function hud() {
   ui.coins.textContent = String(state.player.coins)
   ui.energy.textContent = `${state.player.energy} / ${MAX_ENERGY}`
   ui.energyBar.style.width = `${state.player.energy}%`
+  ui.hp.textContent = `${state.player.hp ?? 100}/${maxHp(state)}`
+  ui.hpBar.style.width = `${(state.player.hp ?? 100) / maxHp(state) * 100}%`
+  ui.mana.textContent = `${state.player.mana ?? 50}/${maxMana(state)}`
+  ui.manaBar.style.width = `${(state.player.mana ?? 50) / maxMana(state) * 100}%`
+  ui.level.textContent = `LV ${state.player.level ?? 1}`
+  ui.xp.textContent = `${state.player.xp ?? 0}/${xpNeeded(state.player.level ?? 1)} XP`
+  ui.xpBar.style.width = `${(state.player.xp ?? 0) / xpNeeded(state.player.level ?? 1) * 100}%`
   clock()
   ui.inventory.innerHTML = state.inventory.length
-    ? state.inventory.map(item => `<div class="item" draggable="true" data-item="${item.itemId}"><span class="item-icon">${ITEMS[item.itemId].icon}</span><div><strong>${ITEMS[item.itemId].name}</strong><small>ลากไปช่องว่างได้</small></div><b>×${item.quantity}</b></div>`).join('')
+    ? state.inventory.map(item => `<div class="item" draggable="true" data-item="${item.itemId}"><span class="item-icon">${ITEMS[item.itemId].icon}</span><div><strong>${ITEMS[item.itemId].name}</strong><small>${['radish', 'rice_meal', 'stew', 'mana_potion'].includes(item.itemId) ? 'คลิกเพื่อกิน/ใช้' : 'ลากไป Hotbar ได้'}</small></div><b>×${item.quantity}</b></div>`).join('')
     : '<div class="empty-bag">กระเป๋าว่าง</div>'
   ui.hotbar.innerHTML = Array.from({ length: 10 }, (_, i) => {
     const extra = state.hotbarExtras?.[i - 7] ?? null
@@ -112,7 +154,7 @@ function hud() {
     const badge = i === 1 ? `${state.water ?? MAX_WATER}/${MAX_WATER}` : i === 5 ? String(count(state, 'radish_seed')) : i === 6 ? String(count(state, 'radish')) : extra ? String(count(state, extra)) : ''
     return `<button class="hotbar-slot ${i === (state.selectedSlot ?? 0) ? 'selected' : ''}" data-slot="${i}" title="${item.name}"><span class="slot-key">${i === 9 ? 0 : i + 1}</span><span class="slot-icon">${item.icon}</span><span class="slot-name">${item.name}</span>${badge ? `<span class="slot-count">${badge}</span>` : ''}</button>`
   }).join('')
-  ui.steps.innerHTML = `<div class="${state.player.mapId === 'village' ? 'active' : ''}">01 <span>หมู่บ้าน</span></div><div class="${state.player.mapId === 'farm' ? 'active' : ''}">02 <span>บ้านและฟาร์ม</span></div><div class="${state.player.mapId === 'home' ? 'active' : ''}">03 <span>ภายในบ้าน</span></div><div class="${state.player.mapId === 'market' ? 'active' : ''}">04 <span>ตลาด</span></div><div class="${state.player.mapId === 'riverside' ? 'active' : ''}">05 <span>ริมน้ำ</span></div><div class="${state.player.mapId === 'mine' ? 'active' : ''}">06 <span>เหมือง</span></div>`
+  ui.steps.innerHTML = `<div class="${state.player.mapId === 'village' ? 'active' : ''}">01 <span>หมู่บ้าน</span></div><div class="${state.player.mapId === 'farm' ? 'active' : ''}">02 <span>บ้านและฟาร์ม</span></div><div class="${state.player.mapId === 'home' ? 'active' : ''}">03 <span>ภายในบ้าน</span></div><div class="${state.player.mapId === 'market' ? 'active' : ''}">04 <span>ตลาด</span></div><div class="${state.player.mapId === 'riverside' ? 'active' : ''}">05 <span>ริมน้ำ</span></div><div class="${state.player.mapId.startsWith('mine') ? 'active' : ''}">06 <span>เหมือง 1–3</span></div>`
 }
 function clock() {
   const day = dayNumber(state)
@@ -133,6 +175,12 @@ ui.hotbar.addEventListener('click', event => {
 ui.inventory.addEventListener('dragstart', event => {
   const item = (event.target as HTMLElement).closest<HTMLElement>('[data-item]')
   if (item?.dataset.item) event.dataTransfer?.setData('text/plain', item.dataset.item)
+})
+ui.inventory.addEventListener('click', event => {
+  const itemId = (event.target as HTMLElement).closest<HTMLElement>('[data-item]')?.dataset.item as ItemId | undefined
+  if (!itemId || !['radish', 'rice_meal', 'stew', 'mana_potion'].includes(itemId)) return
+  if (!eat(state, itemId)) return announce('ตอนนี้ยังไม่ต้องใช้ของชิ้นนี้')
+  changed(); announce(`ใช้${ITEMS[itemId].name}แล้ว`)
 })
 ui.hotbar.addEventListener('dragover', event => {
   const button = (event.target as HTMLElement).closest<HTMLElement>('[data-slot]')
@@ -158,19 +206,55 @@ function sell() {
   if (!remove(state, 'radish')) return announce('ยังไม่มี Radish ให้ขาย')
   state.player.coins += 15; changed(); announce('ขาย Radish ได้ 15 Coins')
 }
-function closeShop() { shopOpen = false; marketOpen = false; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden') }
+const specialShop = document.querySelector<HTMLElement>('#special-shop')!
+function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden') }
 function openShop() { shopOpen = true; ui.shop.classList.remove('hidden'); announce('ยินดีต้อนรับสู่ร้านค้าหมู่บ้าน') }
 function openMarket() { marketOpen = true; document.querySelector('#market-shop')!.classList.remove('hidden'); announce('ยินดีต้อนรับสู่ตลาดเมล็ดพันธุ์') }
-const marketPrices: Partial<Record<ItemId, number>> = { radish_seed: 8, carrot_seed: 10, tomato_seed: 12, sword: 35, bow: 55 }
-const sellPrices: Partial<Record<ItemId, number>> = { carrot: 18, tomato: 22, meat: 16, hide: 12, copper: 14, iron: 22 }
+const marketPrices: Partial<Record<ItemId, number>> = { radish_seed: 8, carrot_seed: 10, tomato_seed: 12, rice_meal: 12, sword: 35, bow: 55, wand: 65, broom: 110, mana_potion: 20 }
+const sellPrices: Partial<Record<ItemId, number>> = { carrot: 18, tomato: 22, meat: 16, hide: 12, copper: 14, iron: 22, moonstone: 120 }
 function marketBuy(itemId: ItemId) {
   const price = marketPrices[itemId]
   if (!price) return
-  if ((itemId === 'sword' || itemId === 'bow') && count(state, itemId)) return announce('คุณมีอาวุธนี้แล้ว')
+  if (['sword', 'bow', 'wand', 'broom'].includes(itemId) && count(state, itemId)) return announce('คุณมีอุปกรณ์นี้แล้ว')
   if (state.player.coins < price) return announce('Coins ไม่พอซื้อของชิ้นนี้')
   if (!canAdd(state, itemId)) return announce('กระเป๋าเต็ม')
   state.player.coins -= price; add(state, itemId); changed(); announce(`ซื้อ${ITEMS[itemId].name}แล้ว`)
 }
+const outfitPrices: Partial<Record<OutfitId, number>> = { forest: 25, royal: 55, mage: 80 }
+function openSpecial(kind: 'tailor' | 'magic_shop' | 'forge') {
+  specialKind = kind; specialOpen = true
+  const title = kind === 'tailor' ? 'ร้านเสื้อผ้า' : kind === 'magic_shop' ? 'ร้านเวทมนตร์' : 'เตาหลอมอาวุธ'
+  document.querySelector('#special-label')!.textContent = kind === 'tailor' ? 'TAILOR' : kind === 'magic_shop' ? 'MAGIC SHOP' : 'FORGE'
+  document.querySelector('#special-title')!.textContent = title
+  document.querySelector('#special-description')!.textContent = kind === 'tailor' ? 'ซื้อและสวมชุดใหม่ได้ทันที' : kind === 'magic_shop' ? 'คทาใช้มานาโจมตี ไม้กวาดเพิ่มความเร็ว และยาฟื้นมานา' : 'ใช้เหล็ก 2 ชิ้น กับจันทราศิลา 1 ชิ้น ทำดาบจันทรา'
+  const list = document.querySelector<HTMLElement>('#special-list')!
+  list.innerHTML = kind === 'tailor'
+    ? (['forest', 'royal', 'mage'] as OutfitId[]).map(id => `<button class="trade" data-outfit="${id}"><span>${({ default: 'ชุดเดิม', forest: '🌿 ชุดนักผจญภัย', royal: '💙 ชุดราชสำนัก', mage: '🔮 ชุดจอมเวท' } as Record<OutfitId, string>)[id]}</span><strong>${state.ownedOutfits?.includes(id) ? 'สวมใส่' : `${outfitPrices[id]} Coins`}</strong></button>`).join('')
+    : kind === 'magic_shop'
+      ? `<button class="trade" data-special-buy="wand"><span>🪄 คทาเวท <small>โจมตีมอนสเตอร์ ใช้ 8 มานา</small></span><strong>65 Coins</strong></button><button class="trade" data-special-buy="broom"><span>🧹 ไม้กวาดขี่ <small>เลือกใน Hotbar แล้วกด E เพื่อขึ้น/ลง</small></span><strong>110 Coins</strong></button><button class="trade" data-special-buy="mana_potion"><span>🧪 ยามานา <small>ฟื้น 30 มานา</small></span><strong>20 Coins</strong></button>`
+      : `<button class="trade" data-craft="arcane_sword"><span>🗡️ ดาบจันทรา <small>เหล็ก 2 + จันทราศิลา 1</small></span><strong>หลอม</strong></button>`
+  specialShop.classList.remove('hidden')
+  announce(`ยินดีต้อนรับสู่${title}`)
+}
+specialShop.addEventListener('click', event => {
+  const target = event.target as HTMLElement
+  if (target === specialShop || target.closest('#close-special')) return closeShop()
+  const outfit = target.closest<HTMLElement>('[data-outfit]')?.dataset.outfit as OutfitId | undefined
+  const buyId = target.closest<HTMLElement>('[data-special-buy]')?.dataset.specialBuy as ItemId | undefined
+  if (outfit && outfitPrices[outfit]) {
+    if (!state.ownedOutfits?.includes(outfit)) {
+      const price = outfitPrices[outfit]!
+      if (state.player.coins < price) return announce('Coins ไม่พอซื้อชุดนี้')
+      state.player.coins -= price; state.ownedOutfits ??= ['default']; state.ownedOutfits.push(outfit)
+    }
+    state.outfit = outfit; scene?.setCharacter(); scene?.sendPresence(true); changed(); openSpecial('tailor'); announce('เปลี่ยนชุดแล้ว')
+  }
+  if (buyId && marketPrices[buyId]) marketBuy(buyId)
+  if (target.closest('[data-craft]')) {
+    if (!craftArcaneSword(state)) return announce('ต้องมีเหล็ก 2 จันทราศิลา 1 และที่ว่างในกระเป๋า')
+    changed(); announce('หลอมดาบจันทราสำเร็จ! ลากไป Hotbar เพื่อใช้')
+  }
+})
 function marketSell(itemId: ItemId) {
   const price = sellPrices[itemId]
   if (!price) return
@@ -214,6 +298,12 @@ class WorldScene extends Phaser.Scene {
   private esc!: Phaser.Input.Keyboard.Key
   private plotMarkers: Phaser.GameObjects.Container[] = []
   private resourceMarkers: Phaser.GameObjects.Container[] = []
+  private monsterMarkers: Phaser.GameObjects.Container[] = []
+  private monsters: Monster[] = []
+  private lastMonsterAttack = 0
+  private lastMonsterDay = 0
+  private broomMarker?: Phaser.GameObjects.Text
+  private handlePointer = () => this.useSelected()
   private restingUntil = 0
   private lastSave = 0
   private lastGrowthCheck = 0
@@ -226,7 +316,9 @@ class WorldScene extends Phaser.Scene {
 
   constructor() { super('World') }
   preload() {
-    for (const config of Object.values(MAPS)) if (!this.textures.exists(config.id)) this.load.image(config.id, config.image)
+    const config = MAPS[state.player.mapId]
+    const imageKey = config.id.startsWith('mine') ? 'mine' : config.id
+    if (!this.textures.exists(imageKey)) this.load.image(imageKey, config.image)
     if (!this.textures.exists('player-a')) this.load.spritesheet('player-a', '/assets/player-a.png', { frameWidth: 280, frameHeight: 280 })
     if (!this.textures.exists('player-b')) this.load.spritesheet('player-b', '/assets/player-b.png', { frameWidth: 280, frameHeight: 280 })
     if (!this.textures.exists('npcs')) this.load.spritesheet('npcs', '/assets/npcs.png', { frameWidth: 591, frameHeight: 887 })
@@ -234,9 +326,14 @@ class WorldScene extends Phaser.Scene {
   create() {
     scene = this
     const config = MAPS[state.player.mapId]
-    const artwork = this.make.tilemap({ data: visualTiles(), tileWidth: TILE, tileHeight: TILE })
-    const artworkTiles = artwork.addTilesetImage(config.id, config.id, TILE, TILE)
-    if (!artworkTiles || !artwork.createLayer(0, artworkTiles, 0, 0)) throw new Error('Visual tilemap unavailable')
+    this.remoteSprites.clear()
+    this.plotMarkers = []
+    this.resourceMarkers = []
+    this.monsterMarkers = []
+    this.monsters = []
+    this.lastMonsterAttack = 0
+    const imageKey = config.id.startsWith('mine') ? 'mine' : config.id
+    this.add.image(0, 0, imageKey).setOrigin(0).setDepth(0).setTint(config.id === 'mine2' ? 0xdbe6ff : config.id === 'mine3' ? 0xdac4f6 : 0xffffff)
     if (!this.textures.exists('collision-tile')) {
       const tile = this.make.graphics({ x: 0, y: 0 })
       tile.fillStyle(0xffffff).fillRect(0, 0, TILE, TILE)
@@ -250,6 +347,8 @@ class WorldScene extends Phaser.Scene {
     if (!blockers) throw new Error('Tilemap collision layer unavailable')
     blockers.setCollision(1).setVisible(false)
     this.player = this.physics.add.sprite(state.player.x, state.player.y, `player-${state.character ?? 'a'}`, 0).setDepth(20).setScale(.23)
+    this.player.setTint(OUTFIT_TINT[state.outfit ?? 'default'])
+    this.broomMarker = this.add.text(state.player.x, state.player.y + 10, '🧹', { fontSize: '29px' }).setOrigin(.5).setDepth(19).setVisible(!!state.mounted)
     this.player.body!.setSize(104, 78).setOffset(88, 194)
     this.player.setCollideWorldBounds(true)
     this.physics.add.collider(this.player, blockers)
@@ -268,6 +367,14 @@ class WorldScene extends Phaser.Scene {
     this.esc = this.input.keyboard!.addKey('ESC')
     if (config.id === 'farm') this.drawPlots()
     if (config.resources) this.drawResources()
+    if (mineFloor(config.id)) {
+      this.lastMonsterDay = Math.floor(Date.now() / 120000)
+      this.monsters = monstersFor(config.id, this.lastMonsterDay)
+      this.drawMonsters()
+      const labelStyle = { fontFamily: 'Nunito, sans-serif', fontSize: '19px', color: '#fff1ce', backgroundColor: '#352642', padding: { x: 10, y: 5 } }
+      this.add.text(1210, 265, config.id === 'mine3' ? 'ชั้นลึกสุด' : '⬇ ลงชั้นถัดไป', labelStyle).setOrigin(.5).setDepth(8)
+      if (config.id === 'mine') this.add.text(865, 280, '⚒ เตาหลอม', labelStyle).setOrigin(.5).setDepth(8)
+    }
     if (config.id === 'village') {
       this.addNpc(0, 530, 418, 'Shopkeeper')
       this.addNpc(2, 565, 790, 'Village Guide')
@@ -278,18 +385,20 @@ class WorldScene extends Phaser.Scene {
       this.add.text(1090, 270, 'ของทำสวน', labelStyle).setOrigin(.5).setDepth(12)
     }
     if (config.id === 'home') this.addNpc(1, 1090, 382, 'Cook')
-    this.input.on('pointerdown', () => this.useSelected())
+    this.input.off('pointerdown', this.handlePointer)
+    this.input.on('pointerdown', this.handlePointer)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.input.off('pointerdown', this.handlePointer))
     this.syncRemotePlayers()
     this.sendPresence(true)
     hud()
   }
 
   setCharacter() {
-    if (this.player?.active) this.player.setTexture(`player-${state.character ?? 'a'}`, this.facing)
+    if (this.player?.active) this.player.setTexture(`player-${state.character ?? 'a'}`, this.facing).setTint(OUTFIT_TINT[state.outfit ?? 'default'])
   }
 
   sendPresence(force = false) {
-    if (this.player?.active) multiplayer.send(this.player.x, this.player.y, state.player.mapId, state.character ?? 'a', this.facing, this.player.body?.velocity.length() !== 0, force)
+    if (this.player?.active) multiplayer.send(this.player.x, this.player.y, state.player.mapId, state.character ?? 'a', this.facing, this.player.body?.velocity.length() !== 0, force, state.outfit ?? 'default', !!state.mounted)
   }
 
   syncRemotePlayers() {
@@ -304,10 +413,12 @@ class WorldScene extends Phaser.Scene {
         const label = this.add.text(peer.x, peer.y - 49, peer.name, { fontFamily: 'Nunito, sans-serif', fontSize: '15px', color: '#ffffff', backgroundColor: '#244b46', padding: { x: 6, y: 2 } }).setOrigin(.5).setDepth(21)
         objects = { sprite, label }; this.remoteSprites.set(peer.id, objects)
       }
-      objects.sprite.setTexture(`player-${peer.character}`)
+      if (objects.sprite.texture.key !== `player-${peer.character}`) objects.sprite.setTexture(`player-${peer.character}`)
+      objects.sprite.setTint(OUTFIT_TINT[peer.outfit ?? 'default'])
       objects.sprite.setData('targetX', peer.x).setData('targetY', peer.y)
       objects.sprite.setFrame((peer.moving ? 1 + Math.floor(this.time.now / 180) % 2 : 0) * 4 + peer.facing)
-      objects.label.setText(peer.name)
+      const label = `${peer.mounted ? '🧹 ' : ''}${peer.name}`
+      if (objects.label.text !== label) objects.label.setText(label)
     }
   }
 
@@ -357,9 +468,13 @@ class WorldScene extends Phaser.Scene {
     this.resourceMarkers.forEach(marker => marker.destroy())
     this.resourceMarkers = []
     for (const node of MAPS[state.player.mapId].resources ?? []) {
-      if ((state.nodeHp?.[node.id] ?? node.hp) <= 0) continue
+      const remaining = state.nodeHp?.[node.id] ?? node.hp
+      if (remaining <= 0 && node.kind !== 'copper' && node.kind !== 'iron') continue
       const g = this.add.graphics()
-      if (node.kind === 'tree') {
+      if (remaining <= 0) {
+        g.fillStyle(0x353431).fillEllipse(0, 11, 66, 35)
+        g.lineStyle(2, 0x8b8378).strokeEllipse(0, 11, 66, 35)
+      } else if (node.kind === 'tree') {
         g.fillStyle(0x583a27).fillRect(-8, 1, 16, 30)
         g.fillStyle(0x366d3e).fillCircle(0, -12, 29)
         g.fillStyle(0x6eaf5c).fillCircle(-10, -22, 19)
@@ -387,13 +502,45 @@ class WorldScene extends Phaser.Scene {
           g.lineStyle(4, 0x81ba50).lineBetween(dx, 20, dx + 9, -19)
         }
       }
-      this.resourceMarkers.push(this.add.container(node.x, node.y, [g]).setDepth(7))
+      const children: Phaser.GameObjects.GameObject[] = [g]
+      if (node.kind === 'copper' || node.kind === 'iron') {
+        const label = this.add.text(0, -36, remaining <= 0 ? 'หมดวันนี้' : `${remaining} ⛏`, { fontFamily: 'Nunito, sans-serif', fontSize: '14px', color: '#fff4d6', backgroundColor: '#292b2be0', padding: { x: 5, y: 2 } }).setOrigin(.5)
+        children.push(label)
+      }
+      this.resourceMarkers.push(this.add.container(node.x, node.y, children).setDepth(7))
     }
   }
 
-  private nearest(): { interaction?: Interaction; plot?: number; resource?: ResourceNode; distance: number } | null {
+  private drawMonsters() {
+    this.monsterMarkers.forEach(marker => marker.destroy())
+    this.monsterMarkers = []
+    for (const monster of this.monsters) {
+      const hp = state.nodeHp?.[monster.id] ?? monster.hp
+      if (hp <= 0) continue
+      const g = this.add.graphics()
+      g.fillStyle(0x11160e, .38).fillEllipse(0, 23, 56, 14)
+      if (monster.kind === 'slime') {
+        g.fillStyle(0x6bbc6d).fillEllipse(0, 2, 46, 42)
+        g.fillStyle(0xa4e893).fillEllipse(-7, -8, 25, 15)
+        g.fillStyle(0x1c4230).fillCircle(-9, 0, 3).fillCircle(9, 0, 3)
+      } else if (monster.kind === 'bat') {
+        g.fillStyle(0x776383).fillTriangle(-8, 0, -43, -16, -28, 22).fillTriangle(8, 0, 43, -16, 28, 22)
+        g.fillStyle(0x473954).fillEllipse(0, 0, 30, 26)
+        g.fillStyle(0xffc473).fillCircle(-6, -2, 3).fillCircle(6, -2, 3)
+      } else {
+        g.fillStyle(0x6c637a).fillRoundedRect(-29, -31, 58, 64, 9)
+        g.fillStyle(0xb395d5).fillTriangle(-26, -22, -12, -55, 1, -23).fillTriangle(8, -24, 23, -52, 29, -19)
+        g.fillStyle(0xe4aaff).fillRect(-17, -9, 12, 7).fillRect(8, -9, 12, 7)
+      }
+      g.fillStyle(0x251b26).fillRect(-27, -54, 54, 8)
+      g.fillStyle(0xe76372).fillRect(-25, -52, 50 * hp / monster.hp, 4)
+      this.monsterMarkers.push(this.add.container(monster.x, monster.y, [g]).setDepth(11))
+    }
+  }
+
+  private nearest(): { interaction?: Interaction; plot?: number; resource?: ResourceNode; monster?: Monster; distance: number } | null {
     const x = this.player.x, y = this.player.y
-    const targets: { interaction?: Interaction; plot?: number; resource?: ResourceNode; distance: number }[] = []
+    const targets: { interaction?: Interaction; plot?: number; resource?: ResourceNode; monster?: Monster; distance: number }[] = []
     for (const interaction of MAPS[state.player.mapId].interactions) {
       if (interaction.kind === 'door') continue
       const distance = Math.hypot(x - interaction.x, y - interaction.y)
@@ -408,10 +555,17 @@ class WorldScene extends Phaser.Scene {
       const distance = Math.hypot(x - node.x, y - node.y)
       if (distance < 100) targets.push({ resource: node, distance })
     }
+    for (const monster of this.monsters) {
+      if ((state.nodeHp?.[monster.id] ?? monster.hp) <= 0) continue
+      const distance = Math.hypot(x - monster.x, y - monster.y)
+      if (distance < 125) targets.push({ monster, distance })
+    }
     const selected = activeActionSlot()
+    const held = state.hotbarExtras?.[(state.selectedSlot ?? 0) - 7]
     const score = (target: typeof targets[number]) => target.distance - (
       target.plot !== undefined && ([0, 1, 4].includes(selected) || !!selectedSeedId()) ? 25 :
-      target.resource && ((selected === 2 && target.resource.kind === 'tree') || (selected === 3 && target.resource.kind === 'rock') || (selected === 4 && target.resource.kind === 'grass')) ? 25 : 0)
+      target.monster && ['sword', 'bow', 'arcane_sword', 'wand'].includes(held ?? '') ? 40 :
+      target.resource && ((selected === 2 && target.resource.kind === 'tree') || (selected === 3 && ['rock', 'copper', 'iron'].includes(target.resource.kind)) || (selected === 4 && target.resource.kind === 'grass') || (['sword', 'bow', 'arcane_sword', 'wand'].includes(held ?? '') && ['rabbit', 'boar'].includes(target.resource.kind))) ? 25 : 0)
     return targets.sort((a, b) => score(a) - score(b))[0] ?? null
   }
 
@@ -458,31 +612,71 @@ class WorldScene extends Phaser.Scene {
     const animal = node.kind === 'rabbit' || node.kind === 'boar'
     const ore = node.kind === 'copper' || node.kind === 'iron'
     const required = { tree: 2, rock: 3, grass: 4, copper: 3, iron: 3, rabbit: -1, boar: -1 }[node.kind]
-    if (animal ? weapon !== 'sword' && weapon !== 'bow' : selected !== required) return announce(animal ? 'ต้องซื้อดาบหรือธนูที่ตลาด แล้วเลือกจาก Hotbar ช่อง 8–10' : `ต้องใช้${node.kind === 'tree' ? 'ขวาน' : node.kind === 'grass' ? 'เคียว' : 'อีเต้อ'}กับสิ่งนี้`)
+    if (animal ? !['sword', 'bow', 'arcane_sword', 'wand'].includes(weapon ?? '') : selected !== required) return announce(animal ? 'ต้องซื้ออาวุธที่ตลาด แล้วเลือกจาก Hotbar ช่อง 8–10' : `ต้องใช้${node.kind === 'tree' ? 'ขวาน' : node.kind === 'grass' ? 'เคียว' : 'อีเต้อ'}กับสิ่งนี้`)
     const cost = node.kind === 'grass' ? 1 : animal ? 4 : 3
     if (state.player.energy < cost) return announce('Energy ไม่พอใช้เครื่องมือ')
+    if (animal && weapon === 'wand' && (state.player.mana ?? 0) < 8) return announce('มานาไม่พอ ใช้ยามานาหรือพัก')
     const remaining = state.nodeHp?.[node.id] ?? node.hp
+    const damage = animal && weapon === 'arcane_sword' ? 3 : animal && weapon === 'wand' ? 2 : 1
+    const lastHit = remaining <= damage
     const drop: ItemId = ({ tree: 'wood', rock: 'stone', grass: 'fiber', rabbit: 'hide', boar: 'meat', copper: 'copper', iron: 'iron' } as Record<ResourceNode['kind'], ItemId>)[node.kind]
-    if (remaining === 1 && !canAdd(state, drop)) return announce('กระเป๋าเต็ม วัตถุดิบยังอยู่')
+    if (lastHit && !canAdd(state, drop)) return announce('กระเป๋าเต็ม วัตถุดิบยังอยู่')
     state.player.energy -= cost
+    if (animal && weapon === 'wand') state.player.mana = (state.player.mana ?? 0) - 8
     state.nodeHp ??= {}
-    state.nodeHp[node.id] = remaining - 1
+    state.nodeHp[node.id] = Math.max(0, remaining - damage)
     this.showAction(animal ? 1 : 4)
-    if (remaining === 1) { add(state, drop); this.drawResources(); announce(`เก็บ${ITEMS[drop].name}ได้ 1 ชิ้น`) }
-    else announce(`ใช้${animal ? ITEMS[weapon as ItemId].name : ore ? 'อีเต้อ' : HOTBAR_FIXED[selected].name}แล้ว อีก ${remaining - 1} ครั้ง`)
+    if (lastHit) {
+      add(state, drop)
+      const rare = ore && rareDrop(mineFloor(state.player.mapId), Math.random()) && canAdd(state, 'moonstone')
+      if (rare) add(state, 'moonstone')
+      const leveled = gainXp(state, animal ? 10 : ore ? 6 : 2)
+      this.drawResources()
+      announce(`เก็บ${ITEMS[drop].name}ได้ 1 ชิ้น${rare ? ' และจันทราศิลาหายาก!' : ''}${leveled ? ` · เลเวล ${state.player.level}!` : ''}`)
+    }
+    else announce(`ใช้${animal ? ITEMS[weapon as ItemId].name : ore ? 'อีเต้อ' : HOTBAR_FIXED[selected].name}แล้ว อีก ${remaining - damage} ครั้ง`)
     changed()
   }
 
+  private attackMonster(monster: Monster) {
+    const weapon = state.hotbarExtras?.[(state.selectedSlot ?? 0) - 7]
+    if (!weapon || !['sword', 'bow', 'arcane_sword', 'wand'].includes(weapon) || !count(state, weapon)) return announce('เลือกดาบ ธนู คทา หรือดาบจันทราใน Hotbar ก่อนโจมตี')
+    if (state.player.energy < 3) return announce('พลังงานไม่พอโจมตี กินข้าวหรือนอนพัก')
+    if (weapon === 'wand' && (state.player.mana ?? 0) < 8) return announce('มานาไม่พอ ใช้ยามานาหรือพัก')
+    state.player.energy -= 3
+    if (weapon === 'wand') state.player.mana = (state.player.mana ?? 0) - 8
+    const damage = weapon === 'arcane_sword' ? 3 : weapon === 'wand' ? 2 : 1
+    const hp = Math.max(0, (state.nodeHp?.[monster.id] ?? monster.hp) - damage)
+    state.nodeHp ??= {}
+    state.nodeHp[monster.id] = hp
+    this.showAction(1)
+    if (hp === 0) {
+      const loot: ItemId = monster.kind === 'golem' ? 'moonstone' : monster.kind === 'bat' ? 'hide' : 'copper'
+      const gotLoot = canAdd(state, loot) && add(state, loot)
+      const leveled = gainXp(state, monster.xp)
+      announce(`ชนะ${{ slime: 'สไลม์', bat: 'ค้างคาว', golem: 'โกเลม' }[monster.kind]}! +${monster.xp} XP${gotLoot ? ` ได้${ITEMS[loot].name}` : ' กระเป๋าเต็ม'}${leveled ? ` เลเวล ${state.player.level}!` : ''}`)
+    } else announce(`โจมตีมอนสเตอร์ เหลือ HP ${hp}/${monster.hp}`)
+    this.drawMonsters(); changed()
+  }
+
   private useSelected() {
-    if (shopOpen || marketOpen || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
+    if (shopOpen || marketOpen || specialOpen || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
     const nearest = this.nearest()
     if (nearest?.interaction) { this.interactionCooldown = this.time.now + 250; this.interact(nearest.interaction); return }
-    if (activeActionSlot() === 6) {
-      if (count(state, 'radish') < 1) return announce('ยังไม่มี Radish')
-      if (state.player.energy === MAX_ENERGY) return announce('Energy เต็มแล้ว เก็บ Radish ไว้ขายหรือทำอาหาร')
-      remove(state, 'radish'); state.player.energy = Math.min(MAX_ENERGY, state.player.energy + 10)
-      changed(); announce('กิน Radish แล้ว Energy +10'); return
+    const held = state.hotbarExtras?.[(state.selectedSlot ?? 0) - 7]
+    if (held === 'broom' && count(state, 'broom')) {
+      state.mounted = !state.mounted; this.broomMarker?.setVisible(!!state.mounted)
+      changed(); announce(state.mounted ? 'ขึ้นไม้กวาดแล้ว เดินได้เร็วขึ้น' : 'ลงจากไม้กวาดแล้ว'); return
     }
+    if (held && ['rice_meal', 'stew', 'mana_potion'].includes(held)) {
+      if (!eat(state, held)) return announce('ตอนนี้ยังไม่ต้องใช้ของชิ้นนี้')
+      changed(); announce(`ใช้${ITEMS[held].name}แล้ว`); return
+    }
+    if (activeActionSlot() === 6) {
+      if (!eat(state, 'radish')) return announce('ยังไม่ต้องกิน Radish หรือไม่มีในกระเป๋า')
+      changed(); announce('กิน Radish แล้ว'); return
+    }
+    if (nearest?.monster) { this.interactionCooldown = this.time.now + 250; this.attackMonster(nearest.monster); return }
     if (nearest?.plot !== undefined) { this.interactionCooldown = this.time.now + 250; this.usePlot(nearest.plot); return }
     if (nearest?.resource) { this.interactionCooldown = this.time.now + 250; this.useNode(nearest.resource); return }
     if (selectedSeedId()) return announce('เดินเข้าใกล้แปลงที่ขุดแล้วในฟาร์มเพื่อปลูก')
@@ -501,13 +695,14 @@ class WorldScene extends Phaser.Scene {
     state.player.mapId = target.destination
     state.player.x = target.arrival.x; state.player.y = target.arrival.y
     changed(); this.scene.restart(); announce(`เข้าสู่${MAPS[target.destination].name}`)
-    multiplayer.send(state.player.x, state.player.y, state.player.mapId, state.character ?? 'a', this.facing, false, true)
+    multiplayer.send(state.player.x, state.player.y, state.player.mapId, state.character ?? 'a', this.facing, false, true, state.outfit ?? 'default', !!state.mounted)
   }
 
   private interact(target: Interaction) {
     if (target.kind === 'future') return announce('เส้นทางนี้จะเปิดในอัปเดตถัดไป')
     if (target.kind === 'shop') return openShop()
     if (target.kind === 'market_shop') return openMarket()
+    if (target.kind === 'tailor' || target.kind === 'magic_shop' || target.kind === 'forge') return openSpecial(target.kind)
     if (target.kind === 'refill') {
       if ((state.water ?? MAX_WATER) === MAX_WATER) return announce('บัวรดน้ำเต็มแล้ว')
       state.water = MAX_WATER; changed(); announce('เติมน้ำเต็มบัวแล้ว')
@@ -520,7 +715,7 @@ class WorldScene extends Phaser.Scene {
       return
     }
     if (target.kind === 'rest') {
-      if (state.player.energy === MAX_ENERGY) return announce('Energy เต็มแล้ว')
+      if (state.player.energy === MAX_ENERGY && (state.player.hp ?? 100) === maxHp(state) && (state.player.mana ?? 50) === maxMana(state)) return announce('พลังเต็มแล้ว')
       this.restingUntil = this.time.now + 3000; announce('กำลังนอนพัก หยุดเดิน 3 วินาที')
       return
     }
@@ -529,10 +724,10 @@ class WorldScene extends Phaser.Scene {
         state.recipeUnlocked = true; changed(); announce('แม่ครัวสอนสูตรซุป Radish แล้ว! กด E อีกครั้งเพื่อทำอาหาร')
         return
       }
-      if (count(state, 'radish') < 1) return announce('ต้องใช้ Radish 1 ชิ้นในการทำอาหาร')
-      if (state.player.energy === MAX_ENERGY) return announce('Energy เต็มแล้ว เก็บ Radish ไว้ก่อน')
-      remove(state, 'radish'); state.player.energy = Math.min(MAX_ENERGY, state.player.energy + 15)
-      changed(); announce('ทำซุป Radish แล้ว Energy +15')
+      if (count(state, 'radish') < 1 || count(state, 'meat') < 1) return announce('สตูว์ต้องใช้ Radish 1 และเนื้อ 1')
+      if (!canAdd(state, 'stew')) return announce('กระเป๋าเต็ม')
+      remove(state, 'radish'); remove(state, 'meat'); add(state, 'stew')
+      changed(); announce('ทำสตูว์แล้ว คลิกในกระเป๋าเพื่อกิน')
       return
     }
     if (target.kind === 'storage') announce('ที่เก็บของและคราฟต์จะเพิ่มในอัปเดตถัดไป')
@@ -546,12 +741,34 @@ class WorldScene extends Phaser.Scene {
       objects.label.setPosition(objects.sprite.x, objects.sprite.y - 49)
     }
     if (time - this.lastClock > 1000) { this.lastClock = time; clock() }
+    this.broomMarker?.setPosition(this.player.x, this.player.y + 10)
+    if (mineFloor(state.player.mapId) && time - this.lastMonsterAttack > 1800) {
+      this.lastMonsterAttack = time
+      for (const monster of this.monsters) {
+        if ((state.nodeHp?.[monster.id] ?? monster.hp) <= 0 || Math.hypot(this.player.x - monster.x, this.player.y - monster.y) > 62) continue
+        state.player.hp = Math.max(0, (state.player.hp ?? maxHp(state)) - monster.damage)
+        this.cameras.main.shake(100, .004)
+        changed(); announce(`โดน${{ slime: 'สไลม์', bat: 'ค้างคาว', golem: 'โกเลม' }[monster.kind]}โจมตี! HP -${monster.damage}`)
+        if (state.player.hp === 0) {
+          state.player.hp = Math.ceil(maxHp(state) / 2)
+          state.player.mana = Math.ceil(maxMana(state) / 2)
+          state.player.mapId = 'village'; state.player.x = 770; state.player.y = 820; state.mounted = false
+          changed(); this.scene.restart(); announce('หมดสติ กลับมาฟื้นที่หมู่บ้าน'); return
+        }
+        break
+      }
+    }
+    if (mineFloor(state.player.mapId) && Math.floor(Date.now() / 120000) !== this.lastMonsterDay) {
+      this.lastMonsterDay = Math.floor(Date.now() / 120000)
+      this.monsters = monstersFor(state.player.mapId, this.lastMonsterDay)
+      this.drawMonsters()
+    }
     if (time - this.lastGrowthCheck > 250) {
       this.lastGrowthCheck = time
       if (refreshGrowth(state)) { if (state.player.mapId === 'farm') this.drawPlots(); if (MAPS[state.player.mapId].resources) this.drawResources(); changed() }
     }
     if (Phaser.Input.Keyboard.JustDown(this.esc)) closeShop()
-    if (shopOpen || marketOpen) {
+    if (shopOpen || marketOpen || specialOpen || [chatInput, playerName, roomCode].includes(document.activeElement as HTMLInputElement)) {
       this.player.setVelocity(0)
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.one)) buy()
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.two)) sell()
@@ -564,12 +781,13 @@ class WorldScene extends Phaser.Scene {
     let y = Number(this.cursors.down.isDown || this.wasd.S.isDown) - Number(this.cursors.up.isDown || this.wasd.W.isDown)
     if (this.restingUntil && (x || y)) { this.restingUntil = 0; announce('ยกเลิกการพัก') }
     if (this.restingUntil && time >= this.restingUntil) {
-      this.restingUntil = 0; state.player.energy = MAX_ENERGY; changed(); announce('พักเต็มอิ่ม Energy ฟื้นแล้ว')
+      this.restingUntil = 0; state.player.energy = MAX_ENERGY; state.player.hp = maxHp(state); state.player.mana = maxMana(state); changed(); announce('พักเต็มอิ่ม HP มานา และพลังงานฟื้นแล้ว')
     }
     if (this.restingUntil) { x = 0; y = 0 }
     if (this.actionUntil > time) { x = 0; y = 0 }
     const length = Math.hypot(x, y) || 1
-    this.player.setVelocity(x / length * 220, y / length * 220)
+    const speed = state.mounted ? 345 : 220
+    this.player.setVelocity(x / length * speed, y / length * speed)
     if (x || y) this.facing = y > 0 ? 0 : y < 0 ? 1 : x < 0 ? 2 : 3
     if (this.actionUntil > time) this.player.setFrame(this.actionRow * 4 + this.facing)
     else this.player.setFrame((x || y ? 1 + Math.floor(time / 180) % 2 : 0) * 4 + this.facing)
@@ -592,6 +810,7 @@ class WorldScene extends Phaser.Scene {
         label = { EMPTY: 'ขุดแปลงด้วยจอบ', TILLED: 'ปลูกด้วยเมล็ด', PLANTED: 'รดน้ำด้วยบัว', GROWING: 'ดูเวลาที่เหลือ', READY: 'เก็บด้วยเคียว', WITHERED: 'ขุดแปลงใหม่' }[stateName]
       }
       if (nearest.resource) label = { tree: 'ตัดด้วยขวาน', rock: 'ทุบด้วยอีเต้อ', grass: 'ตัดด้วยเคียว', rabbit: 'ล่าด้วยดาบหรือธนู', boar: 'ล่าด้วยดาบหรือธนู', copper: 'ขุดด้วยอีเต้อ', iron: 'ขุดด้วยอีเต้อ' }[nearest.resource.kind]
+      if (nearest.monster) label = `โจมตี${{ slime: 'สไลม์', bat: 'ค้างคาว', golem: 'โกเลม' }[nearest.monster.kind]}`
       ui.prompt.innerHTML = `<kbd>E</kbd> ${label}`
       ui.prompt.classList.remove('hidden')
     } else ui.prompt.classList.add('hidden')

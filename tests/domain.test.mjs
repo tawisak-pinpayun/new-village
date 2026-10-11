@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { add, canAdd, count, DAY_MS, initialState, isRaining, refreshGrowth, remove, validate } from '../src/domain.ts'
+import { add, canAdd, count, craftArcaneSword, DAY_MS, eat, gainXp, initialState, isRaining, maxHp, maxMana, rareDrop, refreshGrowth, remove, validate } from '../src/domain.ts'
 import { collisionTiles, MAPS, TILE } from '../src/maps.ts'
+import { monstersFor } from '../src/monsters.ts'
 
 test('inventory never removes missing items or exceeds a full stack', () => {
   const save = initialState()
@@ -108,6 +109,72 @@ test('riverside cave and mine ores can be reached by walking', () => {
       let reachable = false
       for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (seen.has(`${tx + dx},${ty + dy}`)) reachable = true
       assert.equal(reachable, true, `${mapId} ${x},${y}`)
+    }
+  }
+})
+
+test('levels, health, mana, food and crafting work with saved inventory', () => {
+  const save = initialState()
+  assert.equal(gainXp(save, 60), true)
+  assert.equal(save.player.level, 2)
+  assert.equal(save.player.hp, maxHp(save))
+  assert.equal(save.player.mana, maxMana(save))
+  save.player.hp -= 35; save.player.mana -= 25; save.player.energy -= 40
+  add(save, 'rice_meal'); add(save, 'mana_potion')
+  assert.equal(eat(save, 'rice_meal'), true)
+  assert.equal(save.player.hp, maxHp(save) - 7)
+  assert.equal(save.player.energy, 90)
+  assert.equal(eat(save, 'mana_potion'), true)
+  assert.equal(save.player.mana, maxMana(save))
+  add(save, 'iron'); add(save, 'iron'); add(save, 'moonstone')
+  assert.equal(craftArcaneSword(save), true)
+  assert.equal(count(save, 'arcane_sword'), 1)
+  assert.equal(count(save, 'moonstone'), 0)
+  assert.equal(validate(save), true)
+})
+
+test('saves made before the new stats remain valid', () => {
+  const oldSave = initialState()
+  delete oldSave.player.hp; delete oldSave.player.mana; delete oldSave.player.xp; delete oldSave.player.level
+  delete oldSave.outfit; delete oldSave.ownedOutfits; delete oldSave.mounted
+  assert.equal(validate(oldSave), true)
+})
+
+test('three mine floors have doors, resources and reproducible random monsters', () => {
+  for (const mapId of ['mine', 'mine2', 'mine3']) {
+    assert.ok(MAPS[mapId].resources.length)
+    const monsters = monstersFor(mapId, 12345)
+    assert.equal(monsters.length, mapId === 'mine3' ? 5 : mapId === 'mine2' ? 4 : 3)
+    assert.deepEqual(monsters, monstersFor(mapId, 12345))
+    assert.ok(monsters.every(monster => monster.hp <= 9))
+  }
+  assert.equal(MAPS.mine.interactions.find(i => i.id === 'to-mine2').destination, 'mine2')
+  assert.equal(MAPS.mine2.interactions.find(i => i.id === 'to-mine3').destination, 'mine3')
+  assert.equal(rareDrop(1, .06), true)
+  assert.equal(rareDrop(3, .29), true)
+  assert.equal(rareDrop(3, .31), false)
+  assert.equal(MAPS.market.interactions.some(i => i.kind === 'tailor'), true)
+  assert.equal(MAPS.market.interactions.some(i => i.kind === 'magic_shop'), true)
+})
+
+test('mine objects and monsters line up with reachable collision tiles on every floor', () => {
+  for (const mapId of ['mine', 'mine2', 'mine3']) {
+    const map = MAPS[mapId], grid = collisionTiles(map)
+    const start = [Math.floor(map.spawn.x / TILE), Math.floor(map.spawn.y / TILE)]
+    const queue = [start], seen = new Set([start.join(',')])
+    for (let i = 0; i < queue.length; i++) {
+      const [x, y] = queue[i]
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy, key = `${nx},${ny}`
+        if (grid[ny]?.[nx] !== 0 || seen.has(key)) continue
+        seen.add(key); queue.push([nx, ny])
+      }
+    }
+    for (const target of [...map.resources, ...map.interactions, ...monstersFor(mapId, 12345)]) {
+      const tx = Math.floor(target.x / TILE), ty = Math.floor(target.y / TILE)
+      let reachable = false
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (seen.has(`${tx + dx},${ty + dy}`)) reachable = true
+      assert.equal(reachable, true, `${mapId} ${target.id}`)
     }
   }
 })

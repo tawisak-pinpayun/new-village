@@ -1,15 +1,23 @@
-import type { MapId } from './domain'
+import type { MapId, OutfitId } from './domain'
 
-export type RemotePlayer = { id: string; name: string; x: number; y: number; mapId: MapId; character: 'a' | 'b'; facing: number; moving: boolean }
+export type RemotePlayer = { id: string; name: string; x: number; y: number; mapId: MapId; character: 'a' | 'b'; facing: number; moving: boolean; outfit?: OutfitId; mounted?: boolean }
 export class Multiplayer {
   socket?: WebSocket
   id = ''
   room = ''
   players = new Map<string, RemotePlayer>()
   onChange: () => void = () => {}
+  onJoined: () => void = () => {}
   onStatus: (text: string) => void = () => {}
   private lastSent = 0
   private lastPosition = ''
+  private changeQueued = false
+
+  private notifyChange() {
+    if (this.changeQueued) return
+    this.changeQueued = true
+    requestAnimationFrame(() => { this.changeQueued = false; this.onChange() })
+  }
 
   connect(room: string, name: string, character: 'a' | 'b') {
     this.disconnect()
@@ -26,15 +34,19 @@ export class Multiplayer {
         this.id = data.id; this.room = data.room
         this.players = new Map(data.players.map((p: RemotePlayer) => [p.id, p]))
         this.onStatus(`อยู่ในห้อง ${this.room} · ${this.players.size + 1} คน`)
-        this.onChange()
+        this.onJoined()
+        this.notifyChange()
+      } else if (data.type === 'peers' && Array.isArray(data.players)) {
+        this.players = new Map(data.players.map((p: RemotePlayer) => [p.id, p]))
+        this.notifyChange()
       } else if (data.type === 'player' && data.player?.id !== this.id) {
         this.players.set(data.player.id, data.player)
         this.onStatus(`อยู่ในห้อง ${this.room} · ${this.players.size + 1} คน`)
-        this.onChange()
+        this.notifyChange()
       } else if (data.type === 'left') {
         this.players.delete(data.id)
         this.onStatus(`อยู่ในห้อง ${this.room} · ${this.players.size + 1} คน`)
-        this.onChange()
+        this.notifyChange()
       } else if (data.type === 'error') {
         this.onStatus(data.message)
         socket.close()
@@ -42,22 +54,22 @@ export class Multiplayer {
     }
     socket.onclose = () => {
       if (this.socket !== socket) return
-      this.id = ''; this.room = ''; this.players.clear(); this.onChange()
+      this.id = ''; this.room = ''; this.players.clear(); this.notifyChange()
       this.onStatus('หลุดจากห้อง กดเข้าห้องอีกครั้ง')
     }
     socket.onerror = () => this.onStatus('เชื่อมต่อไม่ได้ ตรวจว่าเซิร์ฟเวอร์ออนไลน์อยู่')
   }
-  send(x: number, y: number, mapId: MapId, character: 'a' | 'b', facing: number, moving: boolean, force = false) {
+  send(x: number, y: number, mapId: MapId, character: 'a' | 'b', facing: number, moving: boolean, force = false, outfit: OutfitId = 'default', mounted = false) {
     if (!this.room || this.socket?.readyState !== WebSocket.OPEN) return
     const now = Date.now()
-    const position = `${Math.round(x)},${Math.round(y)},${mapId},${character},${facing},${moving}`
-    if (!force && (now - this.lastSent < 100 || (position === this.lastPosition && now - this.lastSent < 15000))) return
+    const position = `${Math.round(x)},${Math.round(y)},${mapId},${character},${facing},${moving},${outfit},${mounted}`
+    if (!force && (now - this.lastSent < 250 || (position === this.lastPosition && now - this.lastSent < 15000))) return
     this.lastSent = now
     this.lastPosition = position
-    this.socket.send(JSON.stringify({ type: 'move', x, y, mapId, character, facing, moving }))
+    this.socket.send(JSON.stringify({ type: 'move', x, y, mapId, character, facing, moving, outfit, mounted }))
   }
   disconnect() {
     this.socket?.close()
-    this.socket = undefined; this.id = ''; this.room = ''; this.players.clear(); this.onChange()
+    this.socket = undefined; this.id = ''; this.room = ''; this.players.clear(); this.notifyChange()
   }
 }
