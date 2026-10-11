@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import './style.css'
-import { add, canAdd, count, craftArcaneSword, dayNumber, eat, equipmentStats, gainXp, GEAR, GEAR_IDS, GROW_MS, initialState, isRaining, KEY, load, maxHp, maxMana, MAX_ENERGY, MAX_WATER, persist, rareDrop, refreshGrowth, remove, xpNeeded, type CropId, type GearId, type GearSlot, type ItemId, type OutfitId } from './domain'
+import { add, canAdd, count, craftArcaneSword, dayNumber, eat, equipmentStats, gainXp, GEAR, GEAR_IDS, GROW_MS, isRaining, load, maxHp, maxMana, MAX_ENERGY, MAX_WATER, persist, rareDrop, refreshGrowth, remove, xpNeeded, type CropId, type GearId, type GearSlot, type ItemId, type OutfitId } from './domain'
 import { collisionTiles, FARM_PLOTS, MAPS, TILE, WORLD_HEIGHT, WORLD_WIDTH, type Interaction, type ResourceNode } from './maps'
 import { Multiplayer } from './multiplayer'
 import { WorldChat } from './world-chat'
@@ -9,7 +9,7 @@ import { drawAppearance } from './appearance'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `<div id="game"></div><div class="vignette"></div>
-  <div class="topbar"><div class="brand"><span class="flower">✿</span><span>NEW VILLAGE</span></div><div class="location"><span class="location-label">CURRENT LOCATION</span><strong id="map-name">หมู่บ้าน</strong></div><div id="day-display" class="day-display">☀ วันที่ 1 · 09:00</div><button id="dress-toggle" title="แต่งตัวและดูสเตตัส">👗 แต่งตัว</button><button id="switch-character" title="เปลี่ยนตัวละคร">☺ <span id="character-label">Player A</span></button><button id="new-game" title="เริ่มเกมใหม่">↻ <span>เกมใหม่</span></button></div>
+  <div class="topbar"><div class="brand"><span class="flower">✿</span><span>NEW VILLAGE</span></div><div class="location"><span class="location-label">CURRENT LOCATION</span><strong id="map-name">หมู่บ้าน</strong></div><div id="day-display" class="day-display">☀ วันที่ 1 · 09:00</div><button id="dress-toggle" title="แต่งตัวและดูสเตตัส">👗 แต่งตัว</button><button id="switch-character" title="เปลี่ยนตัวละคร">☺ <span id="character-label">Player A</span></button></div>
   <div class="status"><div class="coins"><span>✦</span><strong id="coins">50</strong></div><div class="energy"><span>⚡ ENERGY</span><strong id="energy-value">100 / 100</strong><div class="energy-track"><div id="energy-bar"></div></div></div><div class="vitals"><div><span>❤️ HP</span><b id="hp-value"></b></div><div class="vital-track"><i id="hp-bar"></i></div><div><span>✨ MANA</span><b id="mana-value"></b></div><div class="vital-track"><i id="mana-bar"></i></div><div><span id="level-value">LV 1</span><b id="xp-value"></b></div><div class="vital-track"><i id="xp-bar"></i></div></div></div>
   <div class="inventory"><div class="section-label">กระเป๋า <small>ลากของไปช่อง 8–10</small></div><div id="inventory-items"></div></div>
   <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span></div></div>
@@ -405,11 +405,6 @@ marketShop.addEventListener('click', event => {
   const sellId = (event.target as HTMLElement).closest<HTMLElement>('[data-sell]')?.dataset.sell as ItemId | undefined
   if (buyId && buyId in marketPrices) marketBuy(buyId)
   if (sellId && sellId in sellPrices) marketSell(sellId)
-})
-document.querySelector('#new-game')!.addEventListener('click', () => {
-  if (!window.confirm('เริ่มเกมใหม่และลบข้อมูลบันทึกเดิม?')) return
-  try { localStorage.removeItem(KEY); localStorage.removeItem('new-village.save.v1') } catch { return announce('ลบข้อมูลบันทึกไม่ได้') }
-  state = initialState(); saveBlocked = false; closeShop(); changed(); scene?.scene.restart(); announce('เริ่มเกมใหม่แล้ว')
 })
 document.querySelector('#switch-character')!.addEventListener('click', () => {
   state.character = state.character === 'b' ? 'a' : 'b'
