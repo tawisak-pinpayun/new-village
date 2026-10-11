@@ -9,7 +9,7 @@ export type Interaction = {
   x: number
   y: number
   label: string
-  kind: 'door' | 'shop' | 'market_shop' | 'tailor' | 'magic_shop' | 'forge' | 'quest' | 'rest' | 'cook' | 'storage' | 'future' | 'refill'
+  kind: 'door' | 'shop' | 'market_shop' | 'tailor' | 'magic_shop' | 'forge' | 'quest' | 'festival' | 'rest' | 'cook' | 'storage' | 'future' | 'refill'
   destination?: MapId
   arrival?: { x: number; y: number }
 }
@@ -86,7 +86,8 @@ export const MAPS: Record<MapId, MapConfig> = {
       { id: 'seed-stall', x: 555, y: 285, label: 'ซื้อเมล็ดผัก', kind: 'market_shop' },
       { id: 'garden-stall', x: 1050, y: 335, label: 'ดูอุปกรณ์ปลูกผัก', kind: 'market_shop' },
       { id: 'tailor-stall', x: 545, y: 690, label: 'ร้านเสื้อผ้า', kind: 'tailor' },
-      { id: 'magic-stall', x: 925, y: 690, label: 'ร้านเวทมนตร์', kind: 'magic_shop' }
+      { id: 'magic-stall', x: 925, y: 690, label: 'ร้านเวทมนตร์', kind: 'magic_shop' },
+      { id: 'harvest-festival', x: 770, y: 745, label: 'งานเทศกาลเก็บเกี่ยว', kind: 'festival' }
     ]
   },
   magic_city: {

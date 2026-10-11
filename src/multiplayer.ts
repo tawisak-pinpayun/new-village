@@ -1,11 +1,19 @@
-import type { GearId, GearSlot, MapId, OutfitId } from './domain'
+import type { GearId, GearSlot, MapId, OutfitId, Plot } from './domain'
+import type { Monster } from './monsters'
 
-export type RemotePlayer = { id: string; name: string; x: number; y: number; mapId: MapId; character: 'a' | 'b'; facing: number; moving: boolean; outfit?: OutfitId; equipped?: Partial<Record<GearSlot, GearId>>; mounted?: boolean }
+export type RemotePlayer = { id: string; name: string; x: number; y: number; mapId: MapId; character: 'a' | 'b'; facing: number; moving: boolean; outfit?: OutfitId; equipped?: Partial<Record<GearSlot, GearId>>; mounted?: boolean; party?: boolean }
+export type SharedWorld = { day: number; nodeHp: Record<string, number>; plots: Plot[]; monsters: Partial<Record<MapId, (Monster & { remaining: number })[]>>; quest: { stage: number; harvested: number; mined: number; completed: boolean }; festival: { day: number; donated: number; goal: number; completed: boolean } }
+export type ActionResult = { ok: boolean; action?: string; message?: string; remaining?: number; defeated?: boolean; kind?: string; crop?: string; itemId?: string; monsterKind?: string; xp?: number; monsterHp?: number; maxMonsterHp?: number }
 export class Multiplayer {
   socket?: WebSocket
   id = ''
   room = ''
   players = new Map<string, RemotePlayer>()
+  world?: SharedWorld
+  onWorld: (full: boolean) => void = () => {}
+  onReward: (kind: string, xp: number, coins: number, from?: string) => void = () => {}
+  private sequence = 0
+  private pending = new Map<number, (value: ActionResult) => void>()
   onChange: () => void = () => {}
   onJoined: () => void = () => {}
   onStatus: (text: string) => void = () => {}
@@ -36,6 +44,21 @@ export class Multiplayer {
         this.onStatus(`อยู่ในห้อง ${this.room} · ${this.players.size + 1} คน`)
         this.onJoined()
         this.notifyChange()
+      } else if (data.type === 'world-state') {
+        this.world = data as SharedWorld
+        this.onWorld(true)
+      } else if (data.type === 'monster-tick' && this.world) {
+        const list = this.world.monsters[data.mapId as MapId]
+        if (list) for (const remote of data.monsters as { id: string; x: number; y: number; remaining: number }[]) {
+          const monster = list.find(item => item.id === remote.id)
+          if (monster) { monster.x = remote.x; monster.y = remote.y; monster.remaining = remote.remaining }
+        }
+        this.onWorld(false)
+      } else if (data.type === 'action-result') {
+        const callback = this.pending.get(data.seq)
+        if (callback) { this.pending.delete(data.seq); callback(data as ActionResult) }
+      } else if (['party-reward', 'quest-reward', 'festival-reward'].includes(data.type)) {
+        this.onReward(data.type, data.xp, data.coins, data.from)
       } else if (data.type === 'peers' && Array.isArray(data.players)) {
         this.players = new Map(data.players.map((p: RemotePlayer) => [p.id, p]))
         this.notifyChange()
@@ -55,6 +78,7 @@ export class Multiplayer {
     socket.onclose = () => {
       if (this.socket !== socket) return
       this.id = ''; this.room = ''; this.players.clear(); this.notifyChange()
+      this.world = undefined; this.pending.clear(); this.onWorld(true)
       this.onStatus('หลุดจากห้อง กดเข้าห้องอีกครั้ง')
     }
     socket.onerror = () => this.onStatus('เชื่อมต่อไม่ได้ ตรวจว่าเซิร์ฟเวอร์ออนไลน์อยู่')
@@ -68,8 +92,16 @@ export class Multiplayer {
     this.lastPosition = position
     this.socket.send(JSON.stringify({ type: 'move', x, y, mapId, character, facing, moving, outfit, mounted, equipped }))
   }
+  action(action: string, payload: Record<string, unknown>, callback: (result: ActionResult) => void): boolean {
+    if (!this.room || this.socket?.readyState !== WebSocket.OPEN || !this.world) return false
+    const seq = ++this.sequence
+    this.pending.set(seq, callback)
+    this.socket.send(JSON.stringify({ type: 'world-action', seq, action, ...payload }))
+    return true
+  }
+  setParty(join: boolean) { if (this.room && this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify({ type: 'party', join })) }
   disconnect() {
     this.socket?.close()
-    this.socket = undefined; this.id = ''; this.room = ''; this.players.clear(); this.notifyChange()
+    this.socket = undefined; this.id = ''; this.room = ''; this.players.clear(); this.world = undefined; this.pending.clear(); this.onWorld(true); this.notifyChange()
   }
 }

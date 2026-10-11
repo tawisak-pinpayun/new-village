@@ -2,10 +2,12 @@ import { createServer } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import { resolve, sep, extname } from 'node:path'
 import { WebSocketServer, WebSocket } from 'ws'
+import { actPlot, advanceWorld, hitMonster, hitResource, makeWorld, publicWorld } from './world.mjs'
 
 const port = Number(process.env.PORT || 3000)
 const root = resolve('dist')
 const rooms = new Map()
+const worlds = new Map()
 const chatClients = new Set()
 const chatHistory = []
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' }
@@ -31,7 +33,7 @@ function leave(ws) {
   if (!room) return
   room.delete(ws.playerId)
   broadcast(room, { type: 'left', id: ws.playerId })
-  if (!room.size) rooms.delete(ws.roomCode)
+  if (!room.size) { rooms.delete(ws.roomCode); worlds.delete(ws.roomCode) }
   ws.roomCode = undefined
 }
 wss.on('connection', ws => {
@@ -61,11 +63,56 @@ wss.on('connection', ws => {
       const room = rooms.get(code) || new Map()
       if (room.size >= 20) return send(ws, { type: 'error', message: 'ห้องเต็มแล้ว' })
       rooms.set(code, room)
+      if (!worlds.has(code)) worlds.set(code, makeWorld())
       ws.roomCode = code
-      const player = { id: ws.playerId, name: String(data.name || 'เพื่อน').trim().slice(0, 20) || 'เพื่อน', x: 768, y: 800, mapId: 'village', character: data.character === 'b' ? 'b' : 'a', facing: 0, moving: false, outfit: 'default', mounted: false, ws }
+      const player = { id: ws.playerId, name: String(data.name || 'เพื่อน').trim().slice(0, 20) || 'เพื่อน', x: 768, y: 800, mapId: 'village', character: data.character === 'b' ? 'b' : 'a', facing: 0, moving: false, outfit: 'default', mounted: false, party: false, ws }
       room.set(ws.playerId, player)
       send(ws, { type: 'joined', id: ws.playerId, room: code, players: [...room.values()].filter(p => p !== player).map(({ ws: _, ...p }) => p) })
+      send(ws, publicWorld(worlds.get(code)))
       broadcast(room, { type: 'player', player: { ...player, ws: undefined } }, ws)
+    } else if (data.type === 'party' && ws.roomCode) {
+      const room = rooms.get(ws.roomCode), player = room?.get(ws.playerId)
+      if (!player) return
+      player.party = !!data.join
+      for (const peer of room.values()) send(peer.ws, { type: 'player', player: { ...player, ws: undefined } })
+    } else if (data.type === 'world-action' && ws.roomCode) {
+      const room = rooms.get(ws.roomCode), world = worlds.get(ws.roomCode), player = room?.get(ws.playerId)
+      if (!room || !world || !player) return
+      const seq = Number(data.seq)
+      if (!Number.isInteger(seq) || seq < 1) return
+      if (Date.now() - (ws.lastAction ?? 0) < 130) return send(ws, { type: 'action-result', seq, ok: false, message: 'ทำรายการเร็วเกินไป' })
+      ws.lastAction = Date.now()
+      advanceWorld(world)
+      let result
+      if (data.action === 'node') result = hitResource(world, player, String(data.id || ''), data.damage)
+      else if (data.action === 'monster') result = hitMonster(world, player, String(data.id || ''), data.damage)
+      else if (data.action === 'plot') result = actPlot(world, player, Number(data.index), data.plotAction, data.cropId)
+      else if (data.action === 'quest-deliver') {
+        result = player.mapId === 'village' && Math.hypot(player.x - 565, player.y - 790) < 140 && world.quest.stage === 2 && !world.quest.completed
+          ? { ok: true, questReward: true } : { ok: false, message: 'เควสต์ยังไม่ถึงขั้นส่งของ' }
+        if (result.ok) { world.quest.completed = true; world.quest.stage = 3 }
+      } else if (data.action === 'festival') {
+        result = player.mapId === 'market' && Math.hypot(player.x - 770, player.y - 745) < 145 && !world.festival.completed && ['radish', 'carrot', 'tomato'].includes(data.itemId)
+          ? { ok: true, itemId: data.itemId } : { ok: false, message: 'งานเทศกาลปิดหรืออยู่ไกลเกินไป' }
+        if (result.ok) { world.festival.donated++; if (world.festival.donated >= world.festival.goal) world.festival.completed = true }
+      } else result = { ok: false, message: 'ไม่รู้จักกิจกรรมนี้' }
+      if (!result.ok) return send(ws, { type: 'action-result', seq, ...result })
+      if (data.action === 'plot' && data.plotAction === 'harvest' && world.quest.stage === 0) {
+        world.quest.harvested++
+        if (world.quest.harvested >= 5) world.quest.stage = 1
+      }
+      if (data.action === 'node' && result.defeated && ['copper', 'iron'].includes(result.node.kind) && world.quest.stage === 1) {
+        world.quest.mined++
+        if (world.quest.mined >= 3) world.quest.stage = 2
+      }
+      const { node, monster, plot, ...reply } = result
+      send(ws, { type: 'action-result', seq, action: data.action, ...reply, kind: node?.kind, crop: result.crop, monsterKind: monster?.kind, xp: monster?.xp, monsterHp: monster?.hp, maxMonsterHp: monster?.maxHp })
+      if (data.action === 'monster' && result.defeated && player.party) {
+        for (const peer of room.values()) if (peer !== player && peer.party && peer.mapId === player.mapId && Math.hypot(peer.x - monster.x, peer.y - monster.y) < 300) send(peer.ws, { type: 'party-reward', xp: Math.ceil(monster.xp / 2), coins: 5, from: player.name })
+      }
+      if (data.action === 'quest-deliver') broadcast(room, { type: 'quest-reward', coins: 40, xp: 20 })
+      if (data.action === 'festival' && world.festival.completed) broadcast(room, { type: 'festival-reward', coins: 35, xp: 15 })
+      broadcast(room, publicWorld(world))
     } else if (data.type === 'move' && ws.roomCode) {
       const room = rooms.get(ws.roomCode)
       const player = room?.get(ws.playerId)
@@ -90,6 +137,19 @@ wss.on('connection', ws => {
   })
   ws.on('close', () => { leave(ws); chatClients.delete(ws) })
 })
+setInterval(() => {
+  for (const [code, world] of worlds) {
+    const room = rooms.get(code)
+    if (!room) continue
+    const changed = advanceWorld(world)
+    if (changed) broadcast(room, publicWorld(world))
+    for (const mapId of ['mine', 'mine2', 'mine3']) {
+      if (![...room.values()].some(player => player.mapId === mapId)) continue
+      const monsters = world.monsters[mapId].map(monster => ({ id: monster.id, x: Math.round(monster.x), y: Math.round(monster.y), remaining: monster.hp }))
+      for (const player of room.values()) if (player.mapId === mapId) send(player.ws, { type: 'monster-tick', mapId, monsters })
+    }
+  }
+}, 200)
 setInterval(() => {
   for (const ws of wss.clients) {
     if (ws.alive === false) { ws.terminate(); continue }

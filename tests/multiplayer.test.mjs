@@ -67,3 +67,44 @@ test('world chat and twelve-player room stay responsive without echoing movement
   chatter.send(JSON.stringify({ type: 'chat', text: 'ทดสอบแชทโลก' }))
   assert.equal((await heard).text, 'ทดสอบแชทโลก')
 })
+
+test('two clients receive one shared resource result and party mine reward', async t => {
+  const port = await freePort()
+  const child = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, PORT: String(port) }, stdio: ['ignore', 'pipe', 'pipe'] })
+  t.after(() => child.kill())
+  await Promise.race([new Promise(resolve => child.stdout.on('data', chunk => { if (chunk.toString().includes('listening')) resolve() })), new Promise((_, reject) => setTimeout(() => reject(new Error('Server did not start')), 5000))])
+  const clients = []
+  let firstWorld
+  t.after(() => clients.forEach(socket => socket.close()))
+  for (const name of ['A', 'B']) {
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/multiplayer`)
+    clients.push(socket)
+    await once(socket, 'open')
+    const joined = nextMessage(socket, 'joined'), world = nextMessage(socket, 'world-state')
+    socket.send(JSON.stringify({ type: 'join', room: 'SHARED', name }))
+    await joined
+    const snapshot = await world
+    if (!firstWorld) firstWorld = snapshot
+  }
+  const [a, b] = clients
+  for (const socket of clients) socket.send(JSON.stringify({ type: 'move', x: 425, y: 845, mapId: 'farm', character: 'a', facing: 0 }))
+  await new Promise(resolve => setTimeout(resolve, 190))
+  const resultA = nextMessage(a, 'action-result'), updatedB = nextMessage(b, 'world-state')
+  a.send(JSON.stringify({ type: 'world-action', seq: 1, action: 'node', id: 'farm-grass-1', damage: 1 }))
+  assert.equal((await resultA).defeated, true)
+  assert.equal((await updatedB).nodeHp['farm-grass-1'], 0)
+  const resultB = nextMessage(b, 'action-result')
+  b.send(JSON.stringify({ type: 'world-action', seq: 1, action: 'node', id: 'farm-grass-1', damage: 1 }))
+  assert.equal((await resultB).ok, false)
+
+  const monster = firstWorld.monsters.mine[0]
+  for (const socket of clients) {
+    socket.send(JSON.stringify({ type: 'move', x: monster.x, y: monster.y, mapId: 'mine', character: 'a', facing: 0 }))
+    socket.send(JSON.stringify({ type: 'party', join: true }))
+  }
+  await new Promise(resolve => setTimeout(resolve, 190))
+  const reward = nextMessage(b, 'party-reward'), kill = nextMessage(a, 'action-result')
+  a.send(JSON.stringify({ type: 'world-action', seq: 2, action: 'monster', id: monster.id, damage: 5 }))
+  assert.equal((await kill).defeated, true)
+  assert.ok((await reward).xp > 0)
+})

@@ -119,6 +119,8 @@ kbd { display: inline-block; padding: 1px 4px; min-width: 16px; border-radius: 4
 .room-panel button { border: 0; border-radius: 7px; background: #8ab46b; color: #1d321f; padding: 7px; font-size: 11px; font-weight: 900; }
 .room-panel button:hover { background: #b0d28d; }
 .world-chat { position: fixed; top: 187px; left: 20px; z-index: 25; width: min(285px, calc(100vw - 40px)); }
+.community-panel { position: fixed; top: 248px; left: 20px; z-index: 20; width: min(265px, calc(100vw - 40px)); display: grid; gap: 5px; padding: 11px 13px; color: #fff3d4; background: #23352bed; border: 2px solid #d5bd82a8; border-radius: 12px; box-shadow: 0 5px 0 #15221db3; font-size: 12px; }
+.community-panel strong { color: #f5d78b; }.community-panel small { font-size: 11px; color: #d7e8c9; }
 #chat-toggle, .chat-panel { background: #23352bed; border: 2px solid #d5bd82a8; color: #fff9e9; box-shadow: 0 5px 0 #15221db3, 0 8px 22px #10201791; border-radius: 12px; }
 #chat-toggle { padding: 9px 13px; font-weight: 900; }
 .chat-panel { margin-top: 8px; padding: 10px; display: grid; gap: 6px; }
@@ -139,9 +141,11 @@ kbd { display: inline-block; padding: 1px 4px; min-width: 16px; border-radius: 4
 .dialog h2 { margin: 5px 0; font: bold 27px Georgia, serif; }.dialog p { font-size: 12px; margin: 3px 0 17px; }
 .trade { width: 100%; border: 2px solid #d5c29d; border-radius: 9px; background: #fffaf0; color: #3f563c; display: flex; align-items: center; justify-content: space-between; text-align: left; padding: 12px; margin: 8px 0; gap: 12px; font-size: 13px; }
 .trade:hover { color: white; }.trade span { font-weight: 900; }.trade small { display: block; font-size: 10px; font-weight: 500; margin-top: 4px; }.trade strong { white-space: nowrap; font-size: 12px; }
+.trade:disabled { opacity: .55; cursor: default; }
 .dialog-foot { text-align: center; margin-top: 16px; color: #8e826e; font-size: 10px; }
 @media (max-width: 1050px) { .day-display { display: none; }.inventory { bottom: 109px; }.map-guide { display: none; }.hotbar { max-width: calc(100vw - 20px); width: max-content; }.bottom-center { bottom: 200px; width: min(440px, calc(100vw - 25px)); } }
 @media (max-width: 800px) { .brand { font-size: 11px; padding-right: 10px; }.brand .flower { width: 28px; height: 28px; font-size: 18px; }.location { min-width: 110px; }.location strong { font-size: 13px; }.location-label { font-size: 7px; }.topbar { top: 10px; left: 10px; right: 10px; gap: 6px; }.status { top: 72px; right: 10px; }.inventory { left: 10px; bottom: 106px; width: 165px; }.inventory .section-label small, .item small, #new-game span, #switch-character span { display: none; }.item strong { font-size: 9px; }.hotbar-slot { flex-basis: 58px; height: 70px; } }
 @media (max-width: 600px) { #dress-toggle { padding: 9px 7px; font-size: 10px; }.location { display: none; } }
 @media (max-width: 800px) { .multiplayer { top: 275px; right: 10px; width: 170px; } .world-chat { top: 150px; left: 10px; width: 225px; } .status { min-width: 170px; } }
+@media (max-width: 800px) { .community-panel { left: 10px; top: 205px; width: 225px; } }
 @media (max-width: 480px) { .brand { height: 41px; }.location { padding: 5px 8px; }.status { top: 58px; }.inventory { width: 150px; max-height: 125px; overflow: hidden; }.bottom-center { bottom: 188px; }.controls { display: none; }.hotbar-slot { flex-basis: 52px; } .slot-name { font-size: 8px; } }

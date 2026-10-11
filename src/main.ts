@@ -15,12 +15,14 @@ app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span></div></div>
   <div id="hotbar" class="hotbar" aria-label="แถบเครื่องมือ"></div>
   <div class="map-guide"><span class="section-label">แผนที่</span><div id="map-steps"></div></div>
-  <div class="multiplayer"><button id="room-toggle" title="เล่นกับเพื่อน">👥 เล่นกับเพื่อน</button><div id="room-panel" class="room-panel hidden"><strong>เล่นกับเพื่อน</strong><p id="room-status">ยังไม่ได้เข้าห้อง</p><input id="player-name" maxlength="20" placeholder="ชื่อของคุณ" aria-label="ชื่อของคุณ"><input id="room-code" maxlength="16" placeholder="รหัสห้อง เช่น FARM123" aria-label="รหัสห้อง"><button id="join-room">เข้าห้อง / สร้างห้อง</button><button id="copy-room" class="hidden">คัดลอกลิงก์ชวนเพื่อน</button><button id="leave-room" class="hidden">ออกจากห้อง</button><small>เพื่อนที่ใช้รหัสเดียวกันจะเห็นกันบนแผนที่</small></div></div>
+  <div class="multiplayer"><button id="room-toggle" title="เล่นกับเพื่อน">👥 เล่นกับเพื่อน</button><div id="room-panel" class="room-panel hidden"><strong>เล่นกับเพื่อน</strong><p id="room-status">ยังไม่ได้เข้าห้อง</p><input id="player-name" maxlength="20" placeholder="ชื่อของคุณ" aria-label="ชื่อของคุณ"><input id="room-code" maxlength="16" placeholder="รหัสห้อง เช่น FARM123" aria-label="รหัสห้อง"><button id="join-room">เข้าห้อง / สร้างห้อง</button><button id="party-toggle" class="hidden">⚔️ เข้าปาร์ตี้เหมือง</button><button id="copy-room" class="hidden">คัดลอกลิงก์ชวนเพื่อน</button><button id="leave-room" class="hidden">ออกจากห้อง</button><small>เพื่อนที่ใช้รหัสเดียวกันจะเห็นกันบนแผนที่</small></div></div>
+  <div id="community-panel" class="community-panel hidden"><strong>🤝 เควสต์ร่วมในห้อง</strong><span id="community-quest"></span><small id="community-festival"></small></div>
   <div class="world-chat"><button id="chat-toggle">🌍 แชทโลก</button><div id="chat-panel" class="chat-panel hidden"><strong>แชทโลก</strong><small id="chat-status">กำลังเชื่อมต่อ...</small><div id="chat-log" role="log" aria-live="polite"></div><form id="chat-form"><input id="chat-input" maxlength="200" placeholder="พิมพ์ข้อความ..." aria-label="ข้อความแชท"><button type="submit">ส่ง</button></form></div></div>
   <div id="shop" class="overlay hidden"><div class="dialog"><div class="dialog-top"><span>GENERAL STORE</span><button id="close-shop">✕</button></div><h2>ร้านค้าหมู่บ้าน</h2><p>ซื้อเมล็ดไว้ปลูก หรือขายผลผลิตจากฟาร์ม</p><button id="buy" class="trade"><span>✿ เมล็ด Radish <small>ปลูกได้ 1 แปลง</small></span><strong>ซื้อ · 8 Coins</strong></button><button id="sell" class="trade"><span>❀ Radish <small>ผลผลิตจากสวน</small></span><strong>ขาย · 15 Coins</strong></button><div class="dialog-foot">กด <kbd>1</kbd> ซื้อ &nbsp; <kbd>2</kbd> ขาย &nbsp; <kbd>Esc</kbd> ปิด</div></div></div>
   <div id="market-shop" class="overlay hidden"><div class="dialog market-dialog"><div class="dialog-top"><span>FARMERS' MARKET</span><button id="close-market">✕</button></div><h2>ตลาดเมล็ดพันธุ์และอุปกรณ์</h2><p>ซื้อเมล็ด อาหาร และอาวุธ หรือขายของที่หาได้</p><button class="trade" data-buy="radish_seed"><span>✿ เมล็ด Radish</span><strong>8 Coins</strong></button><button class="trade" data-buy="carrot_seed"><span>🥕 เมล็ดแครอท</span><strong>10 Coins</strong></button><button class="trade" data-buy="tomato_seed"><span>🍅 เมล็ดมะเขือเทศ</span><strong>12 Coins</strong></button><div class="market-divider">อาหารและอาวุธ</div><button class="trade" data-buy="rice_meal"><span>🍚 ข้าวกล่อง <small>ฟื้น HP และพลังงาน คลิกในกระเป๋าเพื่อกิน</small></span><strong>12 Coins</strong></button><button class="trade" data-buy="sword"><span>⚔️ ดาบ</span><strong>35 Coins</strong></button><button class="trade" data-buy="bow"><span>🏹 ธนู</span><strong>55 Coins</strong></button><div class="market-divider">รับซื้อ</div><button class="trade" data-sell="carrot"><span>🥕 แครอท</span><strong>18 Coins</strong></button><button class="trade" data-sell="tomato"><span>🍅 มะเขือเทศ</span><strong>22 Coins</strong></button><button class="trade" data-sell="meat"><span>🍖 เนื้อ</span><strong>16 Coins</strong></button><button class="trade" data-sell="hide"><span>🟤 หนังสัตว์</span><strong>12 Coins</strong></button><button class="trade" data-sell="copper"><span>🟠 แร่ทองแดง</span><strong>14 Coins</strong></button><button class="trade" data-sell="iron"><span>⚪ แร่เหล็ก</span><strong>22 Coins</strong></button><button class="trade" data-sell="moonstone"><span>💎 จันทราศิลา</span><strong>120 Coins</strong></button><div class="dialog-foot">ลากอาวุธไป Hotbar ช่อง 8–10 · กด <kbd>Esc</kbd> ปิด</div></div></div>
   <div id="special-shop" class="overlay hidden"><div class="dialog market-dialog"><div class="dialog-top"><span id="special-label"></span><button id="close-special">✕</button></div><h2 id="special-title"></h2><p id="special-description"></p><div id="special-list"></div><div class="dialog-foot">กด <kbd>Esc</kbd> ปิด</div></div></div>
-  <div id="wardrobe" class="overlay hidden"><div class="dialog wardrobe-dialog"><div class="dialog-top"><span>WARDROBE</span><button id="close-wardrobe">✕</button></div><h2>แต่งตัวและอุปกรณ์</h2><div id="wardrobe-content"></div><div class="dialog-foot">ซื้อชุดและเครื่องประดับจากร้านเสื้อผ้าในตลาดหรือเมืองเวทมนตร์ · กด <kbd>Esc</kbd> ปิด</div></div></div>`
+  <div id="wardrobe" class="overlay hidden"><div class="dialog wardrobe-dialog"><div class="dialog-top"><span>WARDROBE</span><button id="close-wardrobe">✕</button></div><h2>แต่งตัวและอุปกรณ์</h2><div id="wardrobe-content"></div><div class="dialog-foot">ซื้อชุดและเครื่องประดับจากร้านเสื้อผ้าในตลาดหรือเมืองเวทมนตร์ · กด <kbd>Esc</kbd> ปิด</div></div></div>
+  <div id="festival-shop" class="overlay hidden"><div class="dialog"><div class="dialog-top"><span>HARVEST FESTIVAL</span><button id="close-festival">✕</button></div><h2>งานเทศกาลเก็บเกี่ยว</h2><p id="festival-description"></p><div id="festival-items"></div><div class="dialog-foot">นำผลผลิตมาร่วมงาน · กด <kbd>Esc</kbd> ปิด</div></div></div>`
 
 const ui = {
   map: document.querySelector<HTMLElement>('#map-name')!,
@@ -45,10 +47,12 @@ let shopOpen = false
 let marketOpen = false
 let specialOpen = false
 let wardrobeOpen = false
+let festivalOpen = false
 let specialKind: 'tailor' | 'magic_shop' | 'forge' | null = null
 let scene: WorldScene | undefined
 let messageTimer: number | undefined
 const multiplayer = new Multiplayer()
+let soloWorldBackup: { plots: typeof state.plots; nodeHp: NonNullable<typeof state.nodeHp> } | null = null
 const worldChat = new WorldChat()
 const roomPanel = document.querySelector<HTMLElement>('#room-panel')!
 const roomStatus = document.querySelector<HTMLElement>('#room-status')!
@@ -56,6 +60,8 @@ const playerName = document.querySelector<HTMLInputElement>('#player-name')!
 const roomCode = document.querySelector<HTMLInputElement>('#room-code')!
 const copyRoom = document.querySelector<HTMLButtonElement>('#copy-room')!
 const leaveRoom = document.querySelector<HTMLButtonElement>('#leave-room')!
+const partyToggle = document.querySelector<HTMLButtonElement>('#party-toggle')!
+let inParty = false
 playerName.value = localStorage.getItem('new-village.player-name') || ''
 roomCode.value = new URLSearchParams(location.search).get('room') || ''
 document.querySelector('#room-toggle')!.addEventListener('click', () => roomPanel.classList.toggle('hidden'))
@@ -73,10 +79,45 @@ copyRoom.addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(url.toString()); announce('คัดลอกลิงก์ชวนเพื่อนแล้ว') }
   catch { announce(`ส่งลิงก์นี้ให้เพื่อน: ${url}`) }
 })
-leaveRoom.addEventListener('click', () => { multiplayer.disconnect(); roomStatus.textContent = 'ออกจากห้องแล้ว' })
-multiplayer.onStatus = text => { roomStatus.textContent = text; copyRoom.classList.toggle('hidden', !multiplayer.room); leaveRoom.classList.toggle('hidden', !multiplayer.room) }
+leaveRoom.addEventListener('click', () => { multiplayer.disconnect(); inParty = false; roomStatus.textContent = 'ออกจากห้องแล้ว'; renderCommunity() })
+partyToggle.addEventListener('click', () => { inParty = !inParty; multiplayer.setParty(inParty); partyToggle.textContent = inParty ? '✅ อยู่ในปาร์ตี้เหมือง' : '⚔️ เข้าปาร์ตี้เหมือง'; announce(inParty ? 'เข้าปาร์ตี้แล้ว คนในปาร์ตี้ที่อยู่ใกล้กันในเหมืองจะได้ XP ร่วมกัน' : 'ออกจากปาร์ตี้แล้ว') })
+multiplayer.onStatus = text => { roomStatus.textContent = text; copyRoom.classList.toggle('hidden', !multiplayer.room); leaveRoom.classList.toggle('hidden', !multiplayer.room); partyToggle.classList.toggle('hidden', !multiplayer.room) }
 multiplayer.onChange = () => scene?.syncRemotePlayers()
-multiplayer.onJoined = () => scene?.sendPresence(true)
+multiplayer.onJoined = () => { soloWorldBackup = { plots: state.plots.map(plot => ({ ...plot })), nodeHp: { ...state.nodeHp } }; inParty = false; partyToggle.textContent = '⚔️ เข้าปาร์ตี้เหมือง'; scene?.sendPresence(true) }
+function renderCommunity() {
+  const panel = document.querySelector<HTMLElement>('#community-panel')!
+  const world = multiplayer.world
+  panel.classList.toggle('hidden', !world || !multiplayer.room)
+  if (!world) return
+  const q = world.quest
+  document.querySelector('#community-quest')!.textContent = q.completed ? '✅ เควสต์ร่วมสำเร็จ' : q.stage === 0 ? `เก็บเกี่ยวผัก ${q.harvested}/5` : q.stage === 1 ? `ขุดแร่ในเหมือง ${q.mined}/3` : 'นำ Radish ไปให้ไกด์หมู่บ้าน'
+  document.querySelector('#community-festival')!.textContent = `🎪 งานเทศกาลตลาด: ส่งผลผลิต ${world.festival.donated}/${world.festival.goal}${world.festival.completed ? ' · สำเร็จแล้ว' : ''}`
+}
+multiplayer.onWorld = full => {
+  if (full && !multiplayer.world && soloWorldBackup) {
+    state.plots = soloWorldBackup.plots
+    state.nodeHp = soloWorldBackup.nodeHp
+    soloWorldBackup = null
+    changed(); scene?.scene.restart()
+  }
+  if (full && multiplayer.world) {
+    for (const map of Object.values(MAPS)) for (const node of map.resources ?? []) delete state.nodeHp?.[node.id]
+    for (const id of Object.keys(state.nodeHp ?? {})) if (id.startsWith('monster-')) delete state.nodeHp![id]
+    Object.assign(state.nodeHp ??= {}, multiplayer.world.nodeHp)
+    state.plots = multiplayer.world.plots.map(plot => ({ ...plot }))
+    for (const list of Object.values(multiplayer.world.monsters)) for (const monster of list ?? []) state.nodeHp[monster.id] = monster.remaining
+    changed()
+  }
+  renderCommunity()
+  if (festivalOpen) renderFestival()
+  scene?.syncSharedWorld(full)
+}
+multiplayer.onReward = (kind, xp, coins, from) => {
+  state.player.coins += coins
+  const leveled = gainXp(state, xp)
+  changed()
+  announce(kind === 'party-reward' ? `ปาร์ตี้ช่วย${from ?? 'เพื่อน'}ปราบมอนสเตอร์ ได้ ${xp} XP และ ${coins} Coins` : kind === 'quest-reward' ? `เควสต์ร่วมสำเร็จ! ได้ ${coins} Coins และ ${xp} XP` : `งานเทศกาลสำเร็จ! ได้ ${coins} Coins และ ${xp} XP${leveled ? ' · เลเวลเพิ่ม!' : ''}`)
+}
 const chatPanel = document.querySelector<HTMLElement>('#chat-panel')!
 const chatLog = document.querySelector<HTMLElement>('#chat-log')!
 const chatInput = document.querySelector<HTMLInputElement>('#chat-input')!
@@ -210,7 +251,39 @@ function sell() {
 }
 const specialShop = document.querySelector<HTMLElement>('#special-shop')!
 const wardrobe = document.querySelector<HTMLElement>('#wardrobe')!
-function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden') }
+const festivalShop = document.querySelector<HTMLElement>('#festival-shop')!
+function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden') }
+function festivalStatus() {
+  if (multiplayer.world) return multiplayer.world.festival
+  const day = dayNumber(state)
+  if (!state.festival || state.festival.day !== day) state.festival = { day, donated: 0, completed: false }
+  return { ...state.festival, goal: 3 }
+}
+function renderFestival() {
+  const event = festivalStatus()
+  document.querySelector('#festival-description')!.textContent = event.completed ? 'งานวันนี้สำเร็จแล้ว! มาร่วมงานใหม่วันถัดไป' : `นำผลผลิตมาร่วมงาน ${event.donated}/${event.goal} ชิ้น · ครบแล้วทุกคนในห้องได้ 35 Coins และ 15 XP`
+  document.querySelector<HTMLElement>('#festival-items')!.innerHTML = (['radish', 'carrot', 'tomato'] as ItemId[]).map(id => `<button class="trade" data-festival-item="${id}" ${event.completed || count(state, id) < 1 ? 'disabled' : ''}><span>${ITEMS[id].icon} ${ITEMS[id].name} <small>ในกระเป๋า ${count(state, id)}</small></span><strong>ร่วมงาน 1 ชิ้น</strong></button>`).join('')
+}
+function openFestival() { closeShop(); festivalOpen = true; renderFestival(); festivalShop.classList.remove('hidden') }
+festivalShop.addEventListener('click', event => {
+  const target = event.target as HTMLElement
+  if (target === festivalShop || target.closest('#close-festival')) return closeShop()
+  const itemId = target.closest<HTMLElement>('[data-festival-item]')?.dataset.festivalItem as ItemId | undefined
+  if (!itemId || count(state, itemId) < 1 || festivalStatus().completed) return
+  if (multiplayer.world) {
+    multiplayer.action('festival', { itemId }, result => {
+      if (!result.ok) return announce(result.message ?? 'ร่วมงานไม่ได้')
+      remove(state, itemId); changed(); renderFestival(); announce('นำผลผลิตมาร่วมงานเทศกาลแล้ว')
+    })
+  } else {
+    remove(state, itemId)
+    const local = state.festival!
+    local.donated++
+    if (local.donated >= 3) { local.completed = true; state.player.coins += 35; gainXp(state, 15); announce('งานเทศกาลสำเร็จ! ได้ 35 Coins และ 15 XP') }
+    else announce(`นำผลผลิตมาร่วมงานแล้ว ${local.donated}/3`)
+    changed(); renderFestival()
+  }
+})
 function openShop() { shopOpen = true; ui.shop.classList.remove('hidden'); announce('ยินดีต้อนรับสู่ร้านค้าหมู่บ้าน') }
 function openMarket() { marketOpen = true; document.querySelector('#market-shop')!.classList.remove('hidden'); announce('ยินดีต้อนรับสู่ตลาดเมล็ดพันธุ์') }
 const marketPrices: Partial<Record<ItemId, number>> = { radish_seed: 8, carrot_seed: 10, tomato_seed: 12, rice_meal: 12, sword: 35, bow: 55, wand: 65, broom: 110, mana_potion: 20 }
@@ -440,7 +513,7 @@ class WorldScene extends Phaser.Scene {
     if (config.resources) this.drawResources()
     if (mineFloor(config.id)) {
       this.lastMonsterDay = Math.floor(Date.now() / 120000)
-      this.monsters = monstersFor(config.id, this.lastMonsterDay)
+      this.monsters = multiplayer.world?.monsters[config.id]?.map(({ remaining: _, ...monster }) => monster) ?? monstersFor(config.id, this.lastMonsterDay)
       this.drawMonsters()
       const labelStyle = { fontFamily: 'Nunito, sans-serif', fontSize: '19px', color: '#fff1ce', backgroundColor: '#352642', padding: { x: 10, y: 5 } }
       this.add.text(1210, 265, config.id === 'mine3' ? 'ชั้นลึกสุด' : '⬇ ลงชั้นถัดไป', labelStyle).setOrigin(.5).setDepth(8)
@@ -455,6 +528,7 @@ class WorldScene extends Phaser.Scene {
       this.add.text(460, 245, 'เมล็ดพันธุ์', labelStyle).setOrigin(.5).setDepth(12)
       this.add.text(1090, 270, 'ของทำสวน', labelStyle).setOrigin(.5).setDepth(12)
       this.add.text(770, 875, '⬇ เมืองเวทมนตร์', labelStyle).setOrigin(.5).setDepth(12)
+      this.add.text(770, 705, '🎪 เทศกาลเก็บเกี่ยว', labelStyle).setOrigin(.5).setDepth(12)
     }
     if (config.id === 'magic_city') {
       const labelStyle = { fontFamily: 'Nunito, sans-serif', fontSize: '18px', color: '#fff4ff', backgroundColor: '#34234d', padding: { x: 9, y: 4 } }
@@ -475,6 +549,21 @@ class WorldScene extends Phaser.Scene {
     if (this.player?.active) this.player.setTexture(`player-${state.character ?? 'a'}`, this.facing)
     if (this.flyingSprite?.active) this.flyingSprite.setTexture(`player-${state.character ?? 'a'}`, this.facing)
     if (this.clothing?.active) drawAppearance(this.clothing, { outfit: state.outfit ?? 'default', equipped: state.equipped ?? {} }, this.facing)
+  }
+
+  syncSharedWorld(full: boolean) {
+    if (!this.player?.active) return
+    if (full && MAPS[state.player.mapId].resources) this.drawResources()
+    if (full && state.player.mapId === 'farm') this.drawPlots()
+    if (!mineFloor(state.player.mapId) || !multiplayer.world) return
+    const list = multiplayer.world.monsters[state.player.mapId] ?? []
+    const changedRoster = this.monsters.length !== list.length || this.monsters.some((monster, index) => monster.id !== list[index]?.id)
+    this.monsters = list.map(({ remaining: _, ...monster }) => monster)
+    if (full || changedRoster) this.drawMonsters()
+    else for (const marker of this.monsterMarkers) {
+      const monster = this.monsters.find(item => item.id === marker.getData('monsterId'))
+      if (monster) marker.setPosition(monster.x, monster.y + (monster.kind === 'bat' ? Math.sin(this.time.now / 220) * 6 : 0))
+    }
   }
 
   sendPresence(force = false) {
@@ -690,6 +779,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   private usePlot(i: number) {
+    if (multiplayer.world) return this.useSharedPlot(i)
     const plot = state.plots[i]
     const selected = activeActionSlot()
     if (selected === 0) {
@@ -726,6 +816,26 @@ class WorldScene extends Phaser.Scene {
     this.drawPlots(); changed()
   }
 
+  private useSharedPlot(i: number) {
+    const plot = state.plots[i], selected = activeActionSlot(), seed = selectedSeedId()
+    let action = '', cropId: CropId | undefined, cost = 2
+    if (selected === 0 && ['EMPTY', 'WITHERED'].includes(plot.state)) action = 'till'
+    else if (seed && plot.state === 'TILLED') { action = 'plant'; cropId = seed.replace('_seed', '') as CropId; if (!count(state, seed)) return announce('เมล็ดหมด ซื้อเพิ่มได้ที่ตลาด') }
+    else if (selected === 1 && plot.state === 'PLANTED') { action = 'water'; cost = 1; if ((state.water ?? 0) < 1) return announce('บัวรดน้ำหมด ไปเติมที่บ่อ') }
+    else if (selected === 4 && plot.state === 'READY') { action = 'harvest'; if (!canAdd(state, plot.cropId as ItemId)) return announce('กระเป๋าเต็ม') }
+    else return announce('เลือกเครื่องมือให้ตรงงาน: จอบ → เมล็ด → บัวรดน้ำ → เคียว')
+    if (state.player.energy < cost) return announce('Energy ไม่พอทำสวน')
+    multiplayer.action('plot', { index: i, plotAction: action, cropId }, result => {
+      if (!result.ok) return announce(result.message ?? 'แปลงเปลี่ยนไปแล้ว')
+      state.player.energy -= cost
+      if (action === 'plant' && seed) remove(state, seed)
+      if (action === 'water') state.water = (state.water ?? 0) - 1
+      if (action === 'harvest' && result.crop) add(state, result.crop as ItemId)
+      this.showAction(action === 'water' ? 3 : 4)
+      changed(); announce(action === 'harvest' ? `เก็บ${ITEMS[result.crop as ItemId]?.name ?? 'ผลผลิต'}แล้ว เควสต์ร่วมคืบหน้า!` : action === 'plant' ? 'ปลูกแล้ว รดน้ำเพื่อให้โต' : action === 'water' ? 'รดน้ำแล้ว รอให้โต' : 'ขุดแปลงแล้ว')
+    })
+  }
+
   private useNode(node: ResourceNode) {
     const selected = activeActionSlot()
     const weapon = state.hotbarExtras?.[(state.selectedSlot ?? 0) - 7]
@@ -738,8 +848,27 @@ class WorldScene extends Phaser.Scene {
     if (animal && weapon === 'wand' && (state.player.mana ?? 0) < 8) return announce('มานาไม่พอ ใช้ยามานาหรือพัก')
     const remaining = state.nodeHp?.[node.id] ?? node.hp
     const damage = (animal && weapon === 'arcane_sword' ? 3 : animal && weapon === 'wand' ? 2 : 1) + (animal ? equipmentStats(state).attack : 0)
-    const lastHit = remaining <= damage
     const drop: ItemId = ({ tree: 'wood', rock: 'stone', grass: 'fiber', rabbit: 'hide', boar: 'meat', copper: 'copper', iron: 'iron' } as Record<ResourceNode['kind'], ItemId>)[node.kind]
+    if (multiplayer.world) {
+      if ((state.nodeHp?.[node.id] ?? node.hp) <= damage && !canAdd(state, drop)) return announce('กระเป๋าเต็ม วัตถุดิบยังอยู่')
+      multiplayer.action('node', { id: node.id, damage }, result => {
+        if (!result.ok) return announce(result.message ?? 'วัตถุนี้ถูกเก็บไปแล้ว')
+        state.player.energy -= cost
+        if (animal && weapon === 'wand') state.player.mana = (state.player.mana ?? 0) - 8
+        state.nodeHp ??= {}; state.nodeHp[node.id] = result.remaining ?? 0
+        this.showAction(animal ? 1 : 4)
+        if (result.defeated) {
+          if (canAdd(state, drop)) add(state, drop)
+          const rare = ore && rareDrop(mineFloor(state.player.mapId), Math.random()) && canAdd(state, 'moonstone')
+          if (rare) add(state, 'moonstone')
+          gainXp(state, animal ? 10 : ore ? 6 : 2)
+          announce(`เก็บ${ITEMS[drop].name}ได้${rare ? ' และจันทราศิลา!' : ''}`)
+        } else announce(`ใช้เครื่องมือแล้ว เหลือ ${result.remaining} ครั้ง`)
+        this.drawResources(); changed()
+      })
+      return
+    }
+    const lastHit = remaining <= damage
     if (lastHit && !canAdd(state, drop)) return announce('กระเป๋าเต็ม วัตถุดิบยังอยู่')
     state.player.energy -= cost
     if (animal && weapon === 'wand') state.player.mana = (state.player.mana ?? 0) - 8
@@ -763,9 +892,28 @@ class WorldScene extends Phaser.Scene {
     if (!weapon || !['sword', 'bow', 'arcane_sword', 'wand'].includes(weapon) || !count(state, weapon)) return announce('เลือกดาบ ธนู คทา หรือดาบจันทราใน Hotbar ก่อนโจมตี')
     if (state.player.energy < 3) return announce('พลังงานไม่พอโจมตี กินข้าวหรือนอนพัก')
     if (weapon === 'wand' && (state.player.mana ?? 0) < 8) return announce('มานาไม่พอ ใช้ยามานาหรือพัก')
+    const damage = (weapon === 'arcane_sword' ? 3 : weapon === 'wand' ? 2 : 1) + equipmentStats(state).attack
+    if (multiplayer.world) {
+      const loot: ItemId = monster.kind === 'golem' ? 'moonstone' : monster.kind === 'bat' ? 'hide' : 'copper'
+      if ((state.nodeHp?.[monster.id] ?? monster.hp) <= damage && !canAdd(state, loot)) return announce('กระเป๋าเต็ม เก็บของจากมอนสเตอร์ไม่ได้')
+      multiplayer.action('monster', { id: monster.id, damage }, result => {
+        if (!result.ok) return announce(result.message ?? 'มอนสเตอร์ถูกปราบแล้ว')
+        state.player.energy -= 3
+        if (weapon === 'wand') state.player.mana = (state.player.mana ?? 0) - 8
+        state.nodeHp ??= {}; state.nodeHp[monster.id] = result.monsterHp ?? 0
+        this.showAction(1)
+        if (result.defeated) {
+          const loot: ItemId = result.monsterKind === 'golem' ? 'moonstone' : result.monsterKind === 'bat' ? 'hide' : 'copper'
+          const got = canAdd(state, loot) && add(state, loot)
+          gainXp(state, result.xp ?? 0)
+          announce(`ปราบมอนสเตอร์แล้ว! +${result.xp ?? 0} XP${got ? ` ได้${ITEMS[loot].name}` : ''}`)
+        } else announce(`โจมตีมอนสเตอร์ เหลือ HP ${result.monsterHp}/${result.maxMonsterHp}`)
+        this.drawMonsters(); changed()
+      })
+      return
+    }
     state.player.energy -= 3
     if (weapon === 'wand') state.player.mana = (state.player.mana ?? 0) - 8
-    const damage = (weapon === 'arcane_sword' ? 3 : weapon === 'wand' ? 2 : 1) + equipmentStats(state).attack
     const hp = Math.max(0, (state.nodeHp?.[monster.id] ?? monster.hp) - damage)
     state.nodeHp ??= {}
     state.nodeHp[monster.id] = hp
@@ -780,7 +928,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   private useSelected() {
-    if (shopOpen || marketOpen || specialOpen || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
     const nearest = this.nearest()
     if (nearest?.interaction) { this.interactionCooldown = this.time.now + 250; this.interact(nearest.interaction); return }
     const held = state.hotbarExtras?.[(state.selectedSlot ?? 0) - 7]
@@ -821,13 +969,14 @@ class WorldScene extends Phaser.Scene {
     state.player.mapId = target.destination
     state.player.x = target.arrival.x; state.player.y = target.arrival.y
     changed(); this.scene.restart(); announce(`เข้าสู่${MAPS[target.destination].name}`)
-    multiplayer.send(state.player.x, state.player.y, state.player.mapId, state.character ?? 'a', this.facing, false, true, state.outfit ?? 'default', !!state.mounted)
+    multiplayer.send(state.player.x, state.player.y, state.player.mapId, state.character ?? 'a', this.facing, false, true, state.outfit ?? 'default', !!state.mounted, state.equipped ?? {})
   }
 
   private interact(target: Interaction) {
     if (target.kind === 'future') return announce('เส้นทางนี้จะเปิดในอัปเดตถัดไป')
     if (target.kind === 'shop') return openShop()
     if (target.kind === 'market_shop') return openMarket()
+    if (target.kind === 'festival') return openFestival()
     if (target.kind === 'tailor' || target.kind === 'magic_shop' || target.kind === 'forge') return openSpecial(target.kind)
     if (target.kind === 'refill') {
       if ((state.water ?? MAX_WATER) === MAX_WATER) return announce('บัวรดน้ำเต็มแล้ว')
@@ -835,6 +984,18 @@ class WorldScene extends Phaser.Scene {
       return
     }
     if (target.kind === 'quest') {
+      if (multiplayer.world) {
+        const quest = multiplayer.world.quest
+        if (quest.completed) return announce('เควสต์ร่วมสำเร็จแล้ว ขอบคุณทุกคน!')
+        if (quest.stage === 0) return announce(`เควสต์ร่วม: เก็บเกี่ยวผัก ${quest.harvested}/5`)
+        if (quest.stage === 1) return announce(`เควสต์ร่วม: ขุดแร่ในเหมือง ${quest.mined}/3`)
+        if (!count(state, 'radish')) return announce('นำ Radish 1 ชิ้นมาส่งไกด์เพื่อจบเควสต์ร่วม')
+        multiplayer.action('quest-deliver', {}, result => {
+          if (!result.ok) return announce(result.message ?? 'ส่งเควสต์ไม่ได้')
+          remove(state, 'radish'); changed(); announce('ส่ง Radish แล้ว ทุกคนในห้องได้รับรางวัล!')
+        })
+        return
+      }
       if (state.questDone) return announce('เควสต์แรกสำเร็จแล้ว ขอบคุณที่ช่วยหมู่บ้าน!')
       if (!remove(state, 'radish')) return announce('เควสต์แรก: นำ Radish 1 ชิ้นมาส่ง รับ 20 Coins')
       state.player.coins += 20; state.questDone = true; changed(); announce('ส่ง Radish สำเร็จ ได้รับ 20 Coins!')
@@ -868,7 +1029,7 @@ class WorldScene extends Phaser.Scene {
       objects.clothing.setPosition(objects.sprite.x, objects.sprite.y)
     }
     if (time - this.lastClock > 1000) { this.lastClock = time; clock() }
-    if (mineFloor(state.player.mapId)) this.moveMonsters(time, delta)
+    if (mineFloor(state.player.mapId) && !multiplayer.world) this.moveMonsters(time, delta)
     const hover = Math.sin(time / 210) * 4
     this.broomMarker?.setPosition(this.player.x, this.player.y + 4 + hover)
     this.flyingSprite?.setPosition(this.player.x, this.player.y - 28 + hover).setFrame(this.player.frame.name).setVisible(!!state.mounted)
@@ -891,7 +1052,7 @@ class WorldScene extends Phaser.Scene {
         break
       }
     }
-    if (mineFloor(state.player.mapId) && Math.floor(Date.now() / 120000) !== this.lastMonsterDay) {
+    if (!multiplayer.world && mineFloor(state.player.mapId) && Math.floor(Date.now() / 120000) !== this.lastMonsterDay) {
       this.lastMonsterDay = Math.floor(Date.now() / 120000)
       this.monsters = monstersFor(state.player.mapId, this.lastMonsterDay)
       this.monsterWander.clear()
@@ -902,7 +1063,7 @@ class WorldScene extends Phaser.Scene {
       if (refreshGrowth(state)) { if (state.player.mapId === 'farm') this.drawPlots(); if (MAPS[state.player.mapId].resources) this.drawResources(); changed() }
     }
     if (Phaser.Input.Keyboard.JustDown(this.esc)) closeShop()
-    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || [chatInput, playerName, roomCode].includes(document.activeElement as HTMLInputElement)) {
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || [chatInput, playerName, roomCode].includes(document.activeElement as HTMLInputElement)) {
       this.player.setVelocity(0)
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.one)) buy()
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.two)) sell()

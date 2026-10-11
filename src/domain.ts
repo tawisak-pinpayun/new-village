@@ -40,6 +40,7 @@ export type Save = {
   ownedOutfits?: OutfitId[]
   ownedGear?: GearId[]
   equipped?: Partial<Record<GearSlot, GearId>>
+  festival?: { day: number; donated: number; completed: boolean }
   mounted?: boolean
 }
 
@@ -68,6 +69,7 @@ export const initialState = (): Save => ({
   ownedOutfits: ['default'],
   ownedGear: [],
   equipped: {},
+  festival: { day: 1, donated: 0, completed: false },
   mounted: false
 })
 
@@ -205,6 +207,7 @@ export function validate(value: unknown): value is Save {
     (s.ownedGear !== undefined && (!Array.isArray(s.ownedGear) || s.ownedGear.some(v => !GEAR_IDS.includes(v)))) ||
     (s.equipped !== undefined && (typeof s.equipped !== 'object' || s.equipped === null || Object.entries(s.equipped).some(([slot, id]) => !['hat', 'necklace', 'bracelet', 'boots', 'charm'].includes(slot) || !GEAR_IDS.includes(id as GearId) || GEAR[id as GearId].slot !== slot || !s.ownedGear?.includes(id as GearId)))) ||
     (s.mounted !== undefined && typeof s.mounted !== 'boolean') ||
+    (s.festival !== undefined && (!Number.isInteger(s.festival.day) || s.festival.day < 1 || !Number.isInteger(s.festival.donated) || s.festival.donated < 0 || s.festival.donated > 3 || typeof s.festival.completed !== 'boolean')) ||
     (s.character !== undefined && !['a', 'b'].includes(s.character)) ||
     (s.recipeUnlocked !== undefined && typeof s.recipeUnlocked !== 'boolean') ||
     (s.water !== undefined && (!Number.isInteger(s.water) || s.water < 0 || s.water > MAX_WATER)) ||
@@ -271,6 +274,7 @@ export function load(): { state: Save; error?: string } {
     parsed.ownedOutfits ??= ['default']
     parsed.ownedGear ??= []
     parsed.equipped ??= {}
+    parsed.festival ??= { day: dayNumber(parsed), donated: 0, completed: false }
     parsed.mounted ??= false
     for (const plot of parsed.plots) { plot.dryDays ??= 0; plot.wateredDay ??= null; if (plot.state === 'READY') plot.readyAt = null }
     refreshGrowth(parsed)
