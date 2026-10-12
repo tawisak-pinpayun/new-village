@@ -13,7 +13,7 @@ app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   <div class="topbar"><div class="brand"><span class="flower">✿</span><span>NEW VILLAGE</span></div><div class="location"><span class="location-label">CURRENT LOCATION</span><strong id="map-name">หมู่บ้าน</strong></div><div id="day-display" class="day-display">🌸 ใบไม้ผลิ · วันที่ 1 · 06:00</div><button id="dress-toggle" title="แต่งตัวและดูสเตตัส">👗 แต่งตัว</button><button id="switch-character" title="เปลี่ยนตัวละคร">☺ <span id="character-label">Player A</span></button></div>
   <div class="status"><div class="coins"><span>✦</span><strong id="coins">50</strong></div><div class="energy"><span>⚡ ENERGY</span><strong id="energy-value">100 / 100</strong><div class="energy-track"><div id="energy-bar"></div></div></div><div class="vitals"><div><span>❤️ HP</span><b id="hp-value"></b></div><div class="vital-track"><i id="hp-bar"></i></div><div><span>✨ MANA</span><b id="mana-value"></b></div><div class="vital-track"><i id="mana-bar"></i></div><div><span id="level-value">LV 1</span><b id="xp-value"></b></div><div class="vital-track"><i id="xp-bar"></i></div></div></div>
   <div class="inventory"><div class="section-label">กระเป๋า <small>ลากของไปช่อง 8–10</small></div><div id="inventory-items"></div></div>
-  <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span></div></div>
+  <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span><span><kbd>F</kbd> ก่อกองไฟ (ไม้ 2 หิน 1)</span></div></div>
   <div id="hotbar" class="hotbar" aria-label="แถบเครื่องมือ"></div>
   <div class="map-guide"><span class="section-label">แผนที่</span><div id="map-steps"></div></div>
   <div class="multiplayer"><button id="room-toggle" title="เล่นกับเพื่อน">👥 เล่นกับเพื่อน</button><div id="room-panel" class="room-panel hidden"><strong>เล่นกับเพื่อน</strong><p id="room-status">ยังไม่ได้เข้าห้อง</p><input id="player-name" maxlength="20" placeholder="ชื่อของคุณ" aria-label="ชื่อของคุณ"><input id="room-code" maxlength="16" placeholder="รหัสห้อง เช่น FARM123" aria-label="รหัสห้อง"><button id="join-room">เข้าห้อง / สร้างห้อง</button><button id="party-toggle" class="hidden">⚔️ เข้าปาร์ตี้เหมือง</button><button id="copy-room" class="hidden">คัดลอกลิงก์ชวนเพื่อน</button><button id="leave-room" class="hidden">ออกจากห้อง</button><small>เพื่อนที่ใช้รหัสเดียวกันจะเห็นกันบนแผนที่</small></div></div>
@@ -53,7 +53,7 @@ let specialKind: 'tailor' | 'magic_shop' | 'forge' | null = null
 let scene: WorldScene | undefined
 let messageTimer: number | undefined
 const multiplayer = new Multiplayer()
-let soloWorldBackup: { plots: typeof state.plots; nodeHp: NonNullable<typeof state.nodeHp> } | null = null
+let soloWorldBackup: { plots: typeof state.plots; nodeHp: NonNullable<typeof state.nodeHp>; gardenGateOpen: boolean; campfires: NonNullable<typeof state.campfires> } | null = null
 const worldChat = new WorldChat()
 const roomPanel = document.querySelector<HTMLElement>('#room-panel')!
 const roomStatus = document.querySelector<HTMLElement>('#room-status')!
@@ -84,7 +84,7 @@ leaveRoom.addEventListener('click', () => { multiplayer.disconnect(); inParty = 
 partyToggle.addEventListener('click', () => { inParty = !inParty; multiplayer.setParty(inParty); partyToggle.textContent = inParty ? '✅ อยู่ในปาร์ตี้เหมือง' : '⚔️ เข้าปาร์ตี้เหมือง'; announce(inParty ? 'เข้าปาร์ตี้แล้ว คนในปาร์ตี้ที่อยู่ใกล้กันในเหมืองจะได้ XP ร่วมกัน' : 'ออกจากปาร์ตี้แล้ว') })
 multiplayer.onStatus = text => { roomStatus.textContent = text; copyRoom.classList.toggle('hidden', !multiplayer.room); leaveRoom.classList.toggle('hidden', !multiplayer.room); partyToggle.classList.toggle('hidden', !multiplayer.room) }
 multiplayer.onChange = () => scene?.syncRemotePlayers()
-multiplayer.onJoined = () => { soloWorldBackup = { plots: state.plots.map(plot => ({ ...plot })), nodeHp: { ...state.nodeHp } }; inParty = false; partyToggle.textContent = '⚔️ เข้าปาร์ตี้เหมือง'; scene?.sendPresence(true) }
+multiplayer.onJoined = () => { soloWorldBackup = { plots: state.plots.map(plot => ({ ...plot })), nodeHp: { ...state.nodeHp }, gardenGateOpen: !!state.gardenGateOpen, campfires: (state.campfires ?? []).map(fire => ({ ...fire })) }; inParty = false; partyToggle.textContent = '⚔️ เข้าปาร์ตี้เหมือง'; scene?.sendPresence(true) }
 function renderCommunity() {
   const panel = document.querySelector<HTMLElement>('#community-panel')!
   const world = multiplayer.world
@@ -98,6 +98,8 @@ multiplayer.onWorld = full => {
   if (full && !multiplayer.world && soloWorldBackup) {
     state.plots = soloWorldBackup.plots
     state.nodeHp = soloWorldBackup.nodeHp
+    state.gardenGateOpen = soloWorldBackup.gardenGateOpen
+    state.campfires = soloWorldBackup.campfires
     soloWorldBackup = null
     changed(); scene?.scene.restart()
   }
@@ -106,6 +108,8 @@ multiplayer.onWorld = full => {
     for (const id of Object.keys(state.nodeHp ?? {})) if (id.startsWith('monster-')) delete state.nodeHp![id]
     Object.assign(state.nodeHp ??= {}, multiplayer.world.nodeHp)
     state.plots = multiplayer.world.plots.map(plot => ({ ...plot }))
+    state.gardenGateOpen = multiplayer.world.gardenGateOpen
+    state.campfires = multiplayer.world.campfires.map(fire => ({ ...fire }))
     for (const list of Object.values(multiplayer.world.monsters)) for (const monster of list ?? []) state.nodeHp[monster.id] = monster.remaining
     changed()
   }
@@ -209,7 +213,7 @@ function clock() {
   const calendar = calendarAt(day, (elapsed % DAY_MS) / DAY_MS)
   const time = `${String(calendar.hour).padStart(2, '0')}:${String(calendar.minute).padStart(2, '0')}`
   ui.day.textContent = `${calendar.season.icon} ฤดู${calendar.season.name} · วันที่ ${calendar.dayInSeason} · ${calendar.night ? '🌙' : '☀️'} ${time}${isRaining(day) ? ' · ☂ ฝน' : ''}`
-  scene?.setAtmosphere(calendar)
+  scene?.setAtmosphere(calendar, isRaining(day))
 }
 function changed() {
   hud()
@@ -426,12 +430,19 @@ class WorldScene extends Phaser.Scene {
   private background?: Phaser.GameObjects.Image
   private seasonWash?: Phaser.GameObjects.Rectangle
   private darkness?: Phaser.GameObjects.Rectangle
+  private rainGraphics?: Phaser.GameObjects.Graphics
+  private raining = false
+  private gardenGateImage?: Phaser.GameObjects.Image
+  private gardenGateCollider?: Phaser.Physics.Arcade.Collider
+  private campfireMarkers: Phaser.GameObjects.GameObject[] = []
+  private campfireGlows: Phaser.GameObjects.Arc[] = []
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private wasd!: Record<string, Phaser.Input.Keyboard.Key>
   private e!: Phaser.Input.Keyboard.Key
   private one!: Phaser.Input.Keyboard.Key
   private two!: Phaser.Input.Keyboard.Key
   private space!: Phaser.Input.Keyboard.Key
+  private f!: Phaser.Input.Keyboard.Key
   private hotbarKeys!: Phaser.Input.Keyboard.Key[]
   private esc!: Phaser.Input.Keyboard.Key
   private plotMarkers: Phaser.GameObjects.Container[] = []
@@ -462,6 +473,7 @@ class WorldScene extends Phaser.Scene {
     const config = MAPS[state.player.mapId]
     const imageKey = config.id.startsWith('mine') ? 'mine' : config.id
     if (!this.textures.exists(imageKey)) this.load.image(imageKey, config.image)
+    if (config.id === 'farm' && !this.textures.exists('farm-open')) this.load.image('farm-open', '/assets/farm-open.png')
     if (!this.textures.exists('player-a')) this.load.spritesheet('player-a', '/assets/player-a.png', { frameWidth: 280, frameHeight: 280 })
     if (!this.textures.exists('player-b')) this.load.spritesheet('player-b', '/assets/player-b.png', { frameWidth: 280, frameHeight: 280 })
     if (!this.textures.exists('npcs')) this.load.spritesheet('npcs', '/assets/npcs.png', { frameWidth: 591, frameHeight: 887 })
@@ -481,6 +493,7 @@ class WorldScene extends Phaser.Scene {
     const outdoors = !config.id.startsWith('mine') && config.id !== 'home'
     this.seasonWash = outdoors ? this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0xffffff).setDepth(1) : undefined
     this.darkness = outdoors ? this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0x07152e).setDepth(40) : undefined
+    this.rainGraphics = outdoors ? this.add.graphics().setDepth(43).setScrollFactor(0) : undefined
     if (!this.textures.exists('collision-tile')) {
       const tile = this.make.graphics({ x: 0, y: 0 })
       tile.fillStyle(0xffffff).fillRect(0, 0, TILE, TILE)
@@ -504,6 +517,13 @@ class WorldScene extends Phaser.Scene {
     this.player.setCollideWorldBounds(true)
     this.terrainCollider = this.physics.add.collider(this.player, blockers)
     this.terrainCollider.active = !state.mounted
+    if (config.id === 'farm') {
+      this.gardenGateImage = this.add.image(0, 0, 'farm-open').setOrigin(0).setCrop(683, 712, 174, 111).setDepth(3)
+      const gateBody = this.physics.add.staticImage(770, 780, 'collision-tile').setDisplaySize(102, 35).setVisible(false)
+      gateBody.refreshBody()
+      this.gardenGateCollider = this.physics.add.collider(this.player, gateBody)
+      this.syncGardenGate()
+    }
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT).startFollow(this.player, true, .12, .12)
     this.resizeCamera()
@@ -515,9 +535,11 @@ class WorldScene extends Phaser.Scene {
     this.one = this.input.keyboard!.addKey('ONE')
     this.two = this.input.keyboard!.addKey('TWO')
     this.space = this.input.keyboard!.addKey('SPACE')
+    this.f = this.input.keyboard!.addKey('F')
     this.hotbarKeys = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'ZERO'].map(key => this.input.keyboard!.addKey(key))
     this.esc = this.input.keyboard!.addKey('ESC')
     if (config.id === 'farm') this.drawPlots()
+    this.syncCampfires()
     if (config.resources) this.drawResources()
     if (mineFloor(config.id)) {
       this.lastMonsterDay = dayNumber(state)
@@ -559,15 +581,43 @@ class WorldScene extends Phaser.Scene {
     if (this.clothing?.active) drawAppearance(this.clothing, { outfit: state.outfit ?? 'default', equipped: state.equipped ?? {} }, this.facing)
   }
 
-  setAtmosphere(calendar: Calendar) {
+  setAtmosphere(calendar: Calendar, raining: boolean) {
     if (!this.seasonWash || !this.darkness) return
     this.background?.setTint(calendar.season.tint)
     this.seasonWash.setFillStyle(calendar.season.wash, calendar.season.washAlpha)
     this.darkness.setAlpha(calendar.darkness)
+    this.raining = raining
+    for (const glow of this.campfireGlows) glow.setAlpha(Math.min(1, calendar.darkness * 1.5))
+  }
+
+  private syncGardenGate() {
+    const open = multiplayer.world?.gardenGateOpen ?? state.gardenGateOpen ?? false
+    this.gardenGateImage?.setVisible(open)
+    if (this.gardenGateCollider) this.gardenGateCollider.active = !open && !state.mounted
+  }
+
+  private syncCampfires() {
+    for (const marker of this.campfireMarkers) marker.destroy()
+    this.campfireMarkers = []
+    this.campfireGlows = []
+    for (const fire of (multiplayer.world?.campfires ?? state.campfires ?? []).filter(fire => fire.mapId === state.player.mapId)) {
+      const light = Math.min(1, (this.darkness?.alpha ?? 0) * 1.5)
+      const glow = this.add.circle(fire.x, fire.y, 145, 0xffbf66, .3).setDepth(41).setBlendMode(Phaser.BlendModes.ADD).setAlpha(light)
+      const inner = this.add.circle(fire.x, fire.y, 70, 0xffdf9a, .65).setDepth(41).setBlendMode(Phaser.BlendModes.ADD).setAlpha(light)
+      const logs = this.add.graphics().setPosition(fire.x, fire.y).setDepth(42)
+      logs.fillStyle(0x4b2b18).fillRect(-19, 9, 38, 7)
+      logs.fillStyle(0x8c552b).fillRect(-15, 10, 30, 4)
+      logs.fillStyle(0xffb02e).fillTriangle(-11, 10, 0, -22, 11, 10)
+      logs.fillStyle(0xffe28b).fillTriangle(-5, 8, 2, -12, 7, 8)
+      logs.fillStyle(0xfff4ca).fillCircle(1, 2, 3)
+      this.campfireMarkers.push(glow, inner, logs)
+      this.campfireGlows.push(glow, inner)
+    }
   }
 
   syncSharedWorld(full: boolean) {
     if (!this.player?.active) return
+    if (full) { this.syncGardenGate(); this.syncCampfires() }
     if (full && MAPS[state.player.mapId].resources) this.drawResources()
     if (full && state.player.mapId === 'farm') this.drawPlots()
     if (!mineFloor(state.player.mapId) || !multiplayer.world) return
@@ -944,6 +994,13 @@ class WorldScene extends Phaser.Scene {
 
   private useSelected() {
     if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
+    if (state.player.mapId === 'farm' && Math.hypot(this.player.x - 770, this.player.y - 780) < 108) {
+      this.interactionCooldown = this.time.now + 350
+      this.toggleGardenGate()
+      return
+    }
+    const nearbyFire = (multiplayer.world?.campfires ?? state.campfires ?? []).find(fire => fire.mapId === state.player.mapId && Math.hypot(this.player.x - fire.x, this.player.y - fire.y) < 82)
+    if (nearbyFire) { this.interactionCooldown = this.time.now + 350; this.removeCampfire(nearbyFire); return }
     const nearest = this.nearest()
     if (nearest?.interaction) { this.interactionCooldown = this.time.now + 250; this.interact(nearest.interaction); return }
     const held = state.hotbarExtras?.[(state.selectedSlot ?? 0) - 7]
@@ -951,6 +1008,7 @@ class WorldScene extends Phaser.Scene {
       if (state.mounted && MAPS[state.player.mapId].blocked.some(([x, y, w, h]) => this.player.x > x - 24 && this.player.x < x + w + 24 && this.player.y > y - 24 && this.player.y < y + h + 24)) return announce('บินออกจากสิ่งกีดขวางก่อนลงจากไม้กวาด')
       state.mounted = !state.mounted
       if (this.terrainCollider) this.terrainCollider.active = !state.mounted
+      this.syncGardenGate()
       this.broomMarker?.setVisible(!!state.mounted)
       this.flyingSprite?.setVisible(!!state.mounted)
       this.flyingShadow?.setVisible(!!state.mounted)
@@ -971,6 +1029,51 @@ class WorldScene extends Phaser.Scene {
     if (selectedSeedId()) return announce('เดินเข้าใกล้แปลงที่ขุดแล้วในฟาร์มเพื่อปลูก')
     if (activeActionSlot() >= 7) return announce('เดินเข้าใกล้สัตว์ แล้วเลือกดาบหรือธนูเพื่อใช้')
     announce('เดินเข้าใกล้แปลงหรือวัตถุที่ใช้เครื่องมือนี้')
+  }
+
+  private toggleGardenGate() {
+    const open = multiplayer.world?.gardenGateOpen ?? state.gardenGateOpen ?? false
+    if (open && Math.abs(this.player.x - 770) < 64 && Math.abs(this.player.y - 780) < 43) return announce('ขยับออกจากช่องประตูก่อนปิด')
+    if (multiplayer.world) {
+      multiplayer.action('garden-gate', {}, result => { if (!result.ok) announce(result.message ?? 'เปิดปิดประตูไม่ได้') })
+    } else {
+      state.gardenGateOpen = !open
+      this.syncGardenGate(); changed()
+      announce(state.gardenGateOpen ? 'เปิดประตูสวนแล้ว' : 'ปิดประตูสวนแล้ว')
+    }
+  }
+
+  private placeCampfire() {
+    const mapId = state.player.mapId
+    if (mapId === 'home' || mapId.startsWith('mine')) return announce('ก่อกองไฟได้เฉพาะกลางแจ้ง')
+    if (state.mounted) return announce('ลงจากไม้กวาดก่อนก่อกองไฟ')
+    if (count(state, 'wood') < 2 || count(state, 'stone') < 1) return announce('ก่อกองไฟต้องใช้ไม้ 2 และหิน 1')
+    const x = Math.round(this.player.x), y = Math.round(this.player.y + 25)
+    const fires = multiplayer.world?.campfires ?? state.campfires ?? []
+    if (x < 60 || x > 1476 || y < 60 || y > 964 || MAPS[mapId].blocked.some(([bx, by, w, h]) => x > bx - 35 && x < bx + w + 35 && y > by - 35 && y < by + h + 35)
+      || (mapId === 'farm' && (Math.hypot(x - 770, y - 780) < 110 || FARM_PLOTS.some(plot => Math.hypot(x - plot.x, y - plot.y) < 95)))
+      || fires.some(fire => fire.mapId === mapId && Math.hypot(x - fire.x, y - fire.y) < 125)
+      || fires.filter(fire => fire.mapId === mapId).length >= 3) return announce('เลือกที่โล่งห่างจากประตู แปลงผัก และกองไฟอื่น')
+    if (multiplayer.world) {
+      multiplayer.action('campfire', { operation: 'place' }, result => {
+        if (!result.ok) return announce(result.message ?? 'ก่อกองไฟไม่ได้')
+        remove(state, 'wood'); remove(state, 'wood'); remove(state, 'stone')
+        changed(); announce('ก่อกองไฟแล้ว บริเวณนี้สว่างขึ้น')
+      })
+    } else {
+      state.campfires ??= []
+      state.campfires.push({ mapId, x, y })
+      remove(state, 'wood'); remove(state, 'wood'); remove(state, 'stone')
+      this.syncCampfires(); changed(); announce('ก่อกองไฟแล้ว บริเวณนี้สว่างขึ้น')
+    }
+  }
+
+  private removeCampfire(fire: { mapId: string; x: number; y: number }) {
+    if (multiplayer.world) multiplayer.action('campfire', { operation: 'remove' }, result => { if (!result.ok) announce(result.message ?? 'ดับกองไฟไม่ได้') })
+    else {
+      state.campfires = (state.campfires ?? []).filter(item => item !== fire)
+      this.syncCampfires(); changed(); announce('ดับกองไฟแล้ว')
+    }
   }
 
   private showAction(row: number) {
@@ -1036,6 +1139,18 @@ class WorldScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number) {
+    if (this.rainGraphics) {
+      this.rainGraphics.clear().setVisible(this.raining)
+      if (this.raining) {
+        this.rainGraphics.lineStyle(2, 0xc8eaff, .58)
+        const width = this.scale.width + 100, height = this.scale.height + 100
+        for (let i = 0; i < 110; i++) {
+          const x = (i * 157 + time * .13) % width - 50
+          const y = (i * 241 + time * .82) % height - 50
+          this.rainGraphics.lineBetween(x, y, x - 8, y + 19)
+        }
+      }
+    }
     for (const objects of this.remoteSprites.values()) {
       const x = objects.sprite.getData('targetX'), y = objects.sprite.getData('targetY')
       objects.sprite.x = Phaser.Math.Linear(objects.sprite.x, x, .35)
@@ -1084,6 +1199,7 @@ class WorldScene extends Phaser.Scene {
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.two)) sell()
       return
     }
+    if (Phaser.Input.Keyboard.JustDown(this.f)) this.placeCampfire()
     this.hotbarKeys.forEach((key, index) => {
       if (Phaser.Input.Keyboard.JustDown(key)) { state.selectedSlot = index; changed(); announce(`เลือก${index < 7 ? HOTBAR_FIXED[index].name : state.hotbarExtras?.[index - 7] ? ITEMS[state.hotbarExtras[index - 7]!].name : 'ช่องว่าง'}`) }
     })
@@ -1114,14 +1230,18 @@ class WorldScene extends Phaser.Scene {
       }
     }
     const nearest = this.nearest()
-    if (nearest) {
-      let label = nearest.interaction?.label ?? ''
-      if (nearest.plot !== undefined) {
+    const nearGate = state.player.mapId === 'farm' && Math.hypot(this.player.x - 770, this.player.y - 780) < 108
+    const nearFire = (multiplayer.world?.campfires ?? state.campfires ?? []).some(fire => fire.mapId === state.player.mapId && Math.hypot(this.player.x - fire.x, this.player.y - fire.y) < 82)
+    if (nearest || nearGate || nearFire) {
+      let label = nearest?.interaction?.label ?? ''
+      if (nearest?.plot !== undefined) {
         const stateName = state.plots[nearest.plot].state
         label = { EMPTY: 'ขุดแปลงด้วยจอบ', TILLED: 'ปลูกด้วยเมล็ด', PLANTED: 'รดน้ำด้วยบัว', GROWING: 'ดูเวลาที่เหลือ', READY: 'เก็บด้วยเคียว', WITHERED: 'ขุดแปลงใหม่' }[stateName]
       }
-      if (nearest.resource) label = { tree: 'ตัดด้วยขวาน', rock: 'ทุบด้วยอีเต้อ', grass: 'ตัดด้วยเคียว', rabbit: 'ล่าด้วยดาบหรือธนู', boar: 'ล่าด้วยดาบหรือธนู', copper: 'ขุดด้วยอีเต้อ', iron: 'ขุดด้วยอีเต้อ' }[nearest.resource.kind]
-      if (nearest.monster) label = `โจมตี${{ slime: 'สไลม์', bat: 'ค้างคาว', golem: 'โกเลม' }[nearest.monster.kind]}`
+      if (nearest?.resource) label = { tree: 'ตัดด้วยขวาน', rock: 'ทุบด้วยอีเต้อ', grass: 'ตัดด้วยเคียว', rabbit: 'ล่าด้วยดาบหรือธนู', boar: 'ล่าด้วยดาบหรือธนู', copper: 'ขุดด้วยอีเต้อ', iron: 'ขุดด้วยอีเต้อ' }[nearest.resource.kind]
+      if (nearest?.monster) label = `โจมตี${{ slime: 'สไลม์', bat: 'ค้างคาว', golem: 'โกเลม' }[nearest.monster.kind]}`
+      if (nearFire) label = 'ดับกองไฟ'
+      if (nearGate) label = (multiplayer.world?.gardenGateOpen ?? state.gardenGateOpen) ? 'ปิดประตูสวน' : 'เปิดประตูสวน'
       ui.prompt.innerHTML = `<kbd>E</kbd> ${label}`
       ui.prompt.classList.remove('hidden')
     } else ui.prompt.classList.add('hidden')

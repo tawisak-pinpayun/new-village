@@ -1,14 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { calendarAt } from '../src/calendar.ts'
-import { DAY_MS, KEY, dayNumber, initialState, load } from '../src/domain.ts'
+import { DAY_MS, KEY, dayNumber, initialState, isRaining, load } from '../src/domain.ts'
 import { advanceWorld, makeWorld, publicWorld } from '../server/world.mjs'
 
-test('a day lasts 24 minutes and cycles through all four seasons', () => {
+test('a day lasts 24 minutes and cycles through five seasons including rain', () => {
   assert.equal(DAY_MS, 24 * 60_000)
-  assert.deepEqual([1, 7, 8, 15, 22, 29].map(day => calendarAt(day, 0).season.name),
-    ['ใบไม้ผลิ', 'ใบไม้ผลิ', 'ร้อน', 'ใบไม้ร่วง', 'หนาว', 'ใบไม้ผลิ'])
+  assert.deepEqual([1, 7, 8, 15, 22, 29, 36].map(day => calendarAt(day, 0).season.name),
+    ['ใบไม้ผลิ', 'ใบไม้ผลิ', 'ร้อน', 'ฝน', 'ใบไม้ร่วง', 'หนาว', 'ใบไม้ผลิ'])
   assert.equal(calendarAt(8, 0).dayInSeason, 1)
+  assert.equal(isRaining(15), true)
+  assert.equal(isRaining(16), true)
+  assert.equal(isRaining(9), false)
 })
 
 test('sunlight fades at sunset and returns before morning', () => {

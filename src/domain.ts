@@ -43,6 +43,8 @@ export type Save = {
   equipped?: Partial<Record<GearSlot, GearId>>
   festival?: { day: number; donated: number; completed: boolean }
   mounted?: boolean
+  gardenGateOpen?: boolean
+  campfires?: { mapId: MapId; x: number; y: number }[]
 }
 
 export const KEY = 'new-village.save.v2'
@@ -73,7 +75,9 @@ export const initialState = (): Save => ({
   ownedGear: [],
   equipped: {},
   festival: { day: 1, donated: 0, completed: false },
-  mounted: false
+  mounted: false,
+  gardenGateOpen: false,
+  campfires: []
 })
 
 export function equipmentStats(save: Save) {
@@ -154,7 +158,7 @@ export function dayNumber(save: Save, now = Date.now()): number {
   return Math.max(1, Math.floor((now - (save.dayStartedAt ?? now)) / DAY_MS) + 1)
 }
 
-export function isRaining(day: number): boolean { return day % 5 === 0 }
+export function isRaining(day: number): boolean { return Math.floor(((day - 1) % 35) / 7) === 2 || day % 5 === 0 }
 
 export function refreshGrowth(save: Save, now = Date.now()): boolean {
   let changed = false
@@ -164,7 +168,8 @@ export function refreshGrowth(save: Save, now = Date.now()): boolean {
     for (const id of Object.keys(save.nodeHp ?? {})) if (id.startsWith('river-') || id.startsWith('mine-') || id.startsWith('monster-')) delete save.nodeHp![id]
     for (const plot of save.plots) {
       if (plot.state !== 'PLANTED') continue
-      const firstRain = lastDay + ((5 - lastDay % 5) % 5 || 5)
+      let firstRain = lastDay + 1
+      while (firstRain <= day && !isRaining(firstRain)) firstRain++
       const rainBeforeWither = firstRain <= day && firstRain - lastDay <= 3 - (plot.dryDays ?? 0)
       if (rainBeforeWither) {
         plot.state = 'GROWING'
@@ -210,6 +215,8 @@ export function validate(value: unknown): value is Save {
     (s.ownedGear !== undefined && (!Array.isArray(s.ownedGear) || s.ownedGear.some(v => !GEAR_IDS.includes(v)))) ||
     (s.equipped !== undefined && (typeof s.equipped !== 'object' || s.equipped === null || Object.entries(s.equipped).some(([slot, id]) => !['hat', 'necklace', 'bracelet', 'boots', 'charm'].includes(slot) || !GEAR_IDS.includes(id as GearId) || GEAR[id as GearId].slot !== slot || !s.ownedGear?.includes(id as GearId)))) ||
     (s.mounted !== undefined && typeof s.mounted !== 'boolean') ||
+    (s.gardenGateOpen !== undefined && typeof s.gardenGateOpen !== 'boolean') ||
+    (s.campfires !== undefined && (!Array.isArray(s.campfires) || s.campfires.length > 20 || s.campfires.some(fire => !fire || !['village', 'farm', 'market', 'magic_city', 'riverside'].includes(fire.mapId) || !Number.isFinite(fire.x) || !Number.isFinite(fire.y) || fire.x < 32 || fire.x > 1504 || fire.y < 32 || fire.y > 992))) ||
     (s.festival !== undefined && (!Number.isInteger(s.festival.day) || s.festival.day < 1 || !Number.isInteger(s.festival.donated) || s.festival.donated < 0 || s.festival.donated > 3 || typeof s.festival.completed !== 'boolean')) ||
     (s.character !== undefined && !['a', 'b'].includes(s.character)) ||
     (s.recipeUnlocked !== undefined && typeof s.recipeUnlocked !== 'boolean') ||
@@ -289,6 +296,8 @@ export function load(): { state: Save; error?: string } {
     parsed.equipped ??= {}
     parsed.festival ??= { day: dayNumber(parsed), donated: 0, completed: false }
     parsed.mounted ??= false
+    parsed.gardenGateOpen ??= false
+    parsed.campfires ??= []
     for (const plot of parsed.plots) { plot.dryDays ??= 0; plot.wateredDay ??= null; if (plot.state === 'READY') plot.readyAt = null }
     refreshGrowth(parsed)
     return { state: parsed }

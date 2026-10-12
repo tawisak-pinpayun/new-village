@@ -17,6 +17,7 @@ const POINTS = [[700, 300], [950, 350], [760, 565], [1030, 670], [710, 720], [94
 const floors = { mine: 1, mine2: 2, mine3: 3 }
 const DAY_MS = 24 * 60_000
 const dayKey = () => Math.floor(Date.now() / DAY_MS)
+const rainingOn = day => { const dayNumber = day + 1; return dayNumber % 5 === 0 || Math.floor((dayNumber - 1) % 35 / 7) === 2 }
 function monstersFor(mapId, day) {
   const floor = floors[mapId]
   let seed = (day * 48271 + floor * 69621) >>> 0
@@ -32,10 +33,10 @@ function monstersFor(mapId, day) {
 }
 export function makeWorld() {
   const day = dayKey()
-  return { day, nodeHp: {}, plots: Array.from({ length: 6 }, (_, i) => ({ id: `plot-${i + 1}`, state: 'EMPTY', cropId: null, readyAt: null, dryDays: 0, wateredDay: null })), monsters: Object.fromEntries(Object.keys(floors).map(mapId => [mapId, monstersFor(mapId, day)])), quest: { stage: 0, harvested: 0, mined: 0, completed: false }, festival: { day, donated: 0, goal: 3, completed: false }, lastTick: Date.now() }
+  return { day, nodeHp: {}, plots: Array.from({ length: 6 }, (_, i) => ({ id: `plot-${i + 1}`, state: 'EMPTY', cropId: null, readyAt: null, dryDays: 0, wateredDay: null })), monsters: Object.fromEntries(Object.keys(floors).map(mapId => [mapId, monstersFor(mapId, day)])), quest: { stage: 0, harvested: 0, mined: 0, completed: false }, festival: { day, donated: 0, goal: 3, completed: false }, gardenGateOpen: false, campfires: [], lastTick: Date.now() }
 }
 export function publicWorld(world) {
-  return { type: 'world-state', day: world.day, serverNow: Date.now(), nodeHp: world.nodeHp, plots: world.plots, monsters: Object.fromEntries(Object.entries(world.monsters).map(([id, list]) => [id, list.map(({ homeX, homeY, targetX, targetY, nextTurn, maxHp, ...monster }) => ({ ...monster, hp: maxHp, remaining: monster.hp }))])), quest: world.quest, festival: world.festival }
+  return { type: 'world-state', day: world.day, serverNow: Date.now(), nodeHp: world.nodeHp, plots: world.plots, monsters: Object.fromEntries(Object.entries(world.monsters).map(([id, list]) => [id, list.map(({ homeX, homeY, targetX, targetY, nextTurn, maxHp, ...monster }) => ({ ...monster, hp: maxHp, remaining: monster.hp }))])), quest: world.quest, festival: world.festival, gardenGateOpen: world.gardenGateOpen, campfires: world.campfires }
 }
 export function advanceWorld(world, now = Date.now()) {
   let changed = false
@@ -44,6 +45,7 @@ export function advanceWorld(world, now = Date.now()) {
     world.day = day; world.nodeHp = {}
     world.monsters = Object.fromEntries(Object.keys(floors).map(mapId => [mapId, monstersFor(mapId, day)]))
     world.festival = { day, donated: 0, goal: 3, completed: false }
+    if (rainingOn(day)) for (const plot of world.plots) if (plot.state === 'PLANTED') Object.assign(plot, { state: 'GROWING', readyAt: now + 60_000 })
     changed = true
   }
   for (const plot of world.plots) if (plot.state === 'GROWING' && plot.readyAt <= now) { plot.state = 'READY'; plot.readyAt = null; changed = true }
@@ -84,7 +86,7 @@ export function actPlot(world, player, index, action, cropId, now = Date.now()) 
   const plot = world.plots[index], positions = [[610, 540], [770, 540], [925, 540], [610, 655], [770, 655], [925, 655]]
   if (!plot || player.mapId !== 'farm' || Math.hypot(player.x - positions[index][0], player.y - positions[index][1]) > 145) return { ok: false, message: 'อยู่ไกลจากแปลงเกินไป' }
   if (action === 'till' && ['EMPTY', 'WITHERED'].includes(plot.state)) Object.assign(plot, { state: 'TILLED', cropId: null, readyAt: null })
-  else if (action === 'plant' && plot.state === 'TILLED' && ['radish', 'carrot', 'tomato'].includes(cropId)) Object.assign(plot, { state: 'PLANTED', cropId, readyAt: null })
+  else if (action === 'plant' && plot.state === 'TILLED' && ['radish', 'carrot', 'tomato'].includes(cropId)) Object.assign(plot, { state: rainingOn(world.day) ? 'GROWING' : 'PLANTED', cropId, readyAt: rainingOn(world.day) ? now + 60_000 : null })
   else if (action === 'water' && plot.state === 'PLANTED') Object.assign(plot, { state: 'GROWING', readyAt: now + 60000 })
   else if (action === 'harvest' && plot.state === 'READY') { const crop = plot.cropId; Object.assign(plot, { state: 'TILLED', cropId: null, readyAt: null }); return { ok: true, plot, crop } }
   else return { ok: false, message: 'แปลงนี้เปลี่ยนไปแล้ว ลองอีกครั้ง' }

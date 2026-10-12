@@ -108,3 +108,33 @@ test('two clients receive one shared resource result and party mine reward', asy
   assert.equal((await kill).defeated, true)
   assert.ok((await reward).xp > 0)
 })
+
+test('garden gate and campfire changes reach everyone in the room', async t => {
+  const port = await freePort()
+  const child = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, PORT: String(port) }, stdio: ['ignore', 'pipe', 'pipe'] })
+  t.after(() => child.kill())
+  await Promise.race([new Promise(resolve => child.stdout.on('data', chunk => { if (chunk.toString().includes('listening')) resolve() })), new Promise((_, reject) => setTimeout(() => reject(new Error('Server did not start')), 5000))])
+  const sockets = []
+  t.after(() => sockets.forEach(socket => socket.close()))
+  for (const name of ['A', 'B']) {
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/multiplayer`)
+    sockets.push(socket)
+    await once(socket, 'open')
+    const joined = nextMessage(socket, 'joined'), world = nextMessage(socket, 'world-state')
+    socket.send(JSON.stringify({ type: 'join', room: 'GARDEN', name }))
+    await joined; await world
+  }
+  const [a, b] = sockets
+  a.send(JSON.stringify({ type: 'move', x: 770, y: 870, mapId: 'farm', character: 'a', facing: 0 }))
+  await new Promise(resolve => setTimeout(resolve, 190))
+  const gateResult = nextMessage(a, 'action-result'), gateWorld = nextMessage(b, 'world-state')
+  a.send(JSON.stringify({ type: 'world-action', seq: 1, action: 'garden-gate' }))
+  assert.equal((await gateResult).ok, true)
+  assert.equal((await gateWorld).gardenGateOpen, true)
+  a.send(JSON.stringify({ type: 'move', x: 600, y: 820, mapId: 'farm', character: 'a', facing: 0 }))
+  await new Promise(resolve => setTimeout(resolve, 190))
+  const fireResult = nextMessage(a, 'action-result'), fireWorld = nextMessage(b, 'world-state')
+  a.send(JSON.stringify({ type: 'world-action', seq: 2, action: 'campfire', operation: 'place' }))
+  assert.equal((await fireResult).ok, true)
+  assert.deepEqual((await fireWorld).campfires, [{ mapId: 'farm', x: 600, y: 845 }])
+})

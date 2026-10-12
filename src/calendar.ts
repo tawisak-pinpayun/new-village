@@ -3,6 +3,7 @@ export const DAYS_PER_SEASON = 7
 export const SEASONS = [
   { name: 'ใบไม้ผลิ', icon: '🌸', tint: 0xffeaf2, wash: 0xffd8e7, washAlpha: .045 },
   { name: 'ร้อน', icon: '☀️', tint: 0xffffff, wash: 0xffffff, washAlpha: 0 },
+  { name: 'ฝน', icon: '🌧️', tint: 0xc4d9e7, wash: 0x688ba4, washAlpha: .12 },
   { name: 'ใบไม้ร่วง', icon: '🍂', tint: 0xffd7ac, wash: 0xffa652, washAlpha: .085 },
   { name: 'หนาว', icon: '❄️', tint: 0xc9e0ff, wash: 0xe5f3ff, washAlpha: .13 }
 ] as const

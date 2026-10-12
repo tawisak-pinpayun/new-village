@@ -87,6 +87,25 @@ wss.on('connection', ws => {
       if (data.action === 'node') result = hitResource(world, player, String(data.id || ''), data.damage)
       else if (data.action === 'monster') result = hitMonster(world, player, String(data.id || ''), data.damage)
       else if (data.action === 'plot') result = actPlot(world, player, Number(data.index), data.plotAction, data.cropId)
+      else if (data.action === 'garden-gate') {
+        const doorwayOccupied = [...room.values()].some(peer => peer.mapId === 'farm' && Math.abs(peer.x - 770) < 64 && Math.abs(peer.y - 780) < 43)
+        result = player.mapId === 'farm' && Math.hypot(player.x - 770, player.y - 780) < 115 && (!world.gardenGateOpen || !doorwayOccupied)
+          ? { ok: true } : { ok: false, message: doorwayOccupied ? 'มีคนยืนอยู่ตรงช่องประตู' : 'อยู่ไกลจากประตูสวนเกินไป' }
+        if (result.ok) world.gardenGateOpen = !world.gardenGateOpen
+      } else if (data.action === 'campfire') {
+        const index = world.campfires.findIndex(fire => fire.mapId === player.mapId && Math.hypot(player.x - fire.x, player.y - fire.y) < 85)
+        if (data.operation === 'remove') {
+          result = index >= 0 ? { ok: true } : { ok: false, message: 'ไม่มีกองไฟอยู่ใกล้' }
+          if (result.ok) world.campfires.splice(index, 1)
+        } else {
+          const outdoors = ['village', 'farm', 'market', 'magic_city', 'riverside'].includes(player.mapId)
+          const valid = outdoors && player.x > 60 && player.x < 1476 && player.y > 60 && player.y < 964
+            && Math.hypot(player.x - 770, player.y - 780) > (player.mapId === 'farm' ? 110 : 0)
+            && world.campfires.filter(fire => fire.mapId === player.mapId).length < 3 && index < 0
+          result = valid ? { ok: true } : { ok: false, message: 'วางกองไฟตรงนี้ไม่ได้' }
+          if (result.ok) world.campfires.push({ mapId: player.mapId, x: Math.round(player.x), y: Math.round(player.y) + 25 })
+        }
+      }
       else if (data.action === 'quest-deliver') {
         result = player.mapId === 'village' && Math.hypot(player.x - 565, player.y - 790) < 140 && world.quest.stage === 2 && !world.quest.completed
           ? { ok: true, questReward: true } : { ok: false, message: 'เควสต์ยังไม่ถึงขั้นส่งของ' }
@@ -112,7 +131,7 @@ wss.on('connection', ws => {
       }
       if (data.action === 'quest-deliver') broadcast(room, { type: 'quest-reward', coins: 40, xp: 20 })
       if (data.action === 'festival' && world.festival.completed) broadcast(room, { type: 'festival-reward', coins: 35, xp: 15 })
-      broadcast(room, publicWorld(world))
+      for (const peer of room.values()) send(peer.ws, publicWorld(world))
     } else if (data.type === 'move' && ws.roomCode) {
       const room = rooms.get(ws.roomCode)
       const player = room?.get(ws.playerId)

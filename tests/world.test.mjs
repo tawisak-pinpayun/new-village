@@ -21,6 +21,7 @@ test('two players cannot collect the same shared resource twice', () => {
 
 test('farm plots have one authoritative growth and harvest state', () => {
   const world = makeWorld(), player = { mapId: 'farm', x: 610, y: 540 }, now = Date.now()
+  world.day = 0
   assert.equal(actPlot(world, player, 0, 'till', undefined, now).ok, true)
   assert.equal(actPlot(world, player, 0, 'till', undefined, now).ok, false)
   assert.equal(actPlot(world, player, 0, 'plant', 'radish', now).ok, true)
@@ -36,4 +37,23 @@ test('a shared monster can be defeated only once', () => {
   const player = { mapId: 'mine', x: monster.x, y: monster.y }
   assert.equal(hitMonster(world, player, monster.id, 5).defeated, true)
   assert.equal(hitMonster(world, player, monster.id, 5).ok, false)
+})
+
+test('shared world exposes the garden gate and campfires', () => {
+  const world = makeWorld()
+  assert.equal(publicWorld(world).gardenGateOpen, false)
+  assert.deepEqual(publicWorld(world).campfires, [])
+  world.gardenGateOpen = true
+  world.campfires.push({ mapId: 'farm', x: 600, y: 820 })
+  assert.equal(publicWorld(world).gardenGateOpen, true)
+  assert.deepEqual(publicWorld(world).campfires, [{ mapId: 'farm', x: 600, y: 820 }])
+})
+
+test('rainy season waters crops planted in a shared room', () => {
+  const world = makeWorld(), player = { mapId: 'farm', x: 610, y: 540 }, now = Date.now()
+  world.day = 14
+  assert.equal(actPlot(world, player, 0, 'till', undefined, now).ok, true)
+  assert.equal(actPlot(world, player, 0, 'plant', 'radish', now).ok, true)
+  assert.equal(world.plots[0].state, 'GROWING')
+  assert.equal(world.plots[0].readyAt, now + 60_000)
 })

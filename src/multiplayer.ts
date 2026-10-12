@@ -2,7 +2,7 @@ import type { GearId, GearSlot, MapId, OutfitId, Plot } from './domain'
 import type { Monster } from './monsters'
 
 export type RemotePlayer = { id: string; name: string; x: number; y: number; mapId: MapId; character: 'a' | 'b'; facing: number; moving: boolean; outfit?: OutfitId; equipped?: Partial<Record<GearSlot, GearId>>; mounted?: boolean; party?: boolean }
-export type SharedWorld = { day: number; serverNow: number; nodeHp: Record<string, number>; plots: Plot[]; monsters: Partial<Record<MapId, (Monster & { remaining: number })[]>>; quest: { stage: number; harvested: number; mined: number; completed: boolean }; festival: { day: number; donated: number; goal: number; completed: boolean } }
+export type SharedWorld = { day: number; serverNow: number; nodeHp: Record<string, number>; plots: Plot[]; monsters: Partial<Record<MapId, (Monster & { remaining: number })[]>>; quest: { stage: number; harvested: number; mined: number; completed: boolean }; festival: { day: number; donated: number; goal: number; completed: boolean }; gardenGateOpen: boolean; campfires: { mapId: MapId; x: number; y: number }[] }
 export type ActionResult = { ok: boolean; action?: string; message?: string; remaining?: number; defeated?: boolean; kind?: string; crop?: string; itemId?: string; monsterKind?: string; xp?: number; monsterHp?: number; maxMonsterHp?: number }
 export class Multiplayer {
   socket?: WebSocket
