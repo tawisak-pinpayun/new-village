@@ -15,7 +15,8 @@ const RESOURCE_ROWS = [
 export const RESOURCES = new Map(RESOURCE_ROWS.map(([mapId, id, x, y, kind, hp]) => [id, { mapId, id, x, y, kind, hp }]))
 const POINTS = [[700, 300], [950, 350], [760, 565], [1030, 670], [710, 720], [940, 560], [1140, 550]]
 const floors = { mine: 1, mine2: 2, mine3: 3 }
-const dayKey = () => Math.floor(Date.now() / 120000)
+const DAY_MS = 24 * 60_000
+const dayKey = () => Math.floor(Date.now() / DAY_MS)
 function monstersFor(mapId, day) {
   const floor = floors[mapId]
   let seed = (day * 48271 + floor * 69621) >>> 0
@@ -34,11 +35,11 @@ export function makeWorld() {
   return { day, nodeHp: {}, plots: Array.from({ length: 6 }, (_, i) => ({ id: `plot-${i + 1}`, state: 'EMPTY', cropId: null, readyAt: null, dryDays: 0, wateredDay: null })), monsters: Object.fromEntries(Object.keys(floors).map(mapId => [mapId, monstersFor(mapId, day)])), quest: { stage: 0, harvested: 0, mined: 0, completed: false }, festival: { day, donated: 0, goal: 3, completed: false }, lastTick: Date.now() }
 }
 export function publicWorld(world) {
-  return { type: 'world-state', day: world.day, nodeHp: world.nodeHp, plots: world.plots, monsters: Object.fromEntries(Object.entries(world.monsters).map(([id, list]) => [id, list.map(({ homeX, homeY, targetX, targetY, nextTurn, maxHp, ...monster }) => ({ ...monster, hp: maxHp, remaining: monster.hp }))])), quest: world.quest, festival: world.festival }
+  return { type: 'world-state', day: world.day, serverNow: Date.now(), nodeHp: world.nodeHp, plots: world.plots, monsters: Object.fromEntries(Object.entries(world.monsters).map(([id, list]) => [id, list.map(({ homeX, homeY, targetX, targetY, nextTurn, maxHp, ...monster }) => ({ ...monster, hp: maxHp, remaining: monster.hp }))])), quest: world.quest, festival: world.festival }
 }
 export function advanceWorld(world, now = Date.now()) {
   let changed = false
-  const day = Math.floor(now / 120000)
+  const day = Math.floor(now / DAY_MS)
   if (day !== world.day) {
     world.day = day; world.nodeHp = {}
     world.monsters = Object.fromEntries(Object.keys(floors).map(mapId => [mapId, monstersFor(mapId, day)]))

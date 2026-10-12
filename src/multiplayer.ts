@@ -2,7 +2,7 @@ import type { GearId, GearSlot, MapId, OutfitId, Plot } from './domain'
 import type { Monster } from './monsters'
 
 export type RemotePlayer = { id: string; name: string; x: number; y: number; mapId: MapId; character: 'a' | 'b'; facing: number; moving: boolean; outfit?: OutfitId; equipped?: Partial<Record<GearSlot, GearId>>; mounted?: boolean; party?: boolean }
-export type SharedWorld = { day: number; nodeHp: Record<string, number>; plots: Plot[]; monsters: Partial<Record<MapId, (Monster & { remaining: number })[]>>; quest: { stage: number; harvested: number; mined: number; completed: boolean }; festival: { day: number; donated: number; goal: number; completed: boolean } }
+export type SharedWorld = { day: number; serverNow: number; nodeHp: Record<string, number>; plots: Plot[]; monsters: Partial<Record<MapId, (Monster & { remaining: number })[]>>; quest: { stage: number; harvested: number; mined: number; completed: boolean }; festival: { day: number; donated: number; goal: number; completed: boolean } }
 export type ActionResult = { ok: boolean; action?: string; message?: string; remaining?: number; defeated?: boolean; kind?: string; crop?: string; itemId?: string; monsterKind?: string; xp?: number; monsterHp?: number; maxMonsterHp?: number }
 export class Multiplayer {
   socket?: WebSocket
@@ -10,6 +10,7 @@ export class Multiplayer {
   room = ''
   players = new Map<string, RemotePlayer>()
   world?: SharedWorld
+  serverOffsetMs: number | null = null
   onWorld: (full: boolean) => void = () => {}
   onReward: (kind: string, xp: number, coins: number, from?: string) => void = () => {}
   private sequence = 0
@@ -46,6 +47,7 @@ export class Multiplayer {
         this.notifyChange()
       } else if (data.type === 'world-state') {
         this.world = data as SharedWorld
+        if (Number.isFinite(data.serverNow)) this.serverOffsetMs = data.serverNow - Date.now()
         this.onWorld(true)
       } else if (data.type === 'monster-tick' && this.world) {
         const list = this.world.monsters[data.mapId as MapId]
@@ -78,7 +80,7 @@ export class Multiplayer {
     socket.onclose = () => {
       if (this.socket !== socket) return
       this.id = ''; this.room = ''; this.players.clear(); this.notifyChange()
-      this.world = undefined; this.pending.clear(); this.onWorld(true)
+      this.world = undefined; this.serverOffsetMs = null; this.pending.clear(); this.onWorld(true)
       this.onStatus('หลุดจากห้อง กดเข้าห้องอีกครั้ง')
     }
     socket.onerror = () => this.onStatus('เชื่อมต่อไม่ได้ ตรวจว่าเซิร์ฟเวอร์ออนไลน์อยู่')
@@ -102,6 +104,6 @@ export class Multiplayer {
   setParty(join: boolean) { if (this.room && this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify({ type: 'party', join })) }
   disconnect() {
     this.socket?.close()
-    this.socket = undefined; this.id = ''; this.room = ''; this.players.clear(); this.world = undefined; this.pending.clear(); this.onWorld(true); this.notifyChange()
+    this.socket = undefined; this.id = ''; this.room = ''; this.players.clear(); this.world = undefined; this.serverOffsetMs = null; this.pending.clear(); this.onWorld(true); this.notifyChange()
   }
 }

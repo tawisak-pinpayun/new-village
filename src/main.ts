@@ -1,15 +1,16 @@
 import Phaser from 'phaser'
 import './style.css'
-import { add, canAdd, count, craftArcaneSword, dayNumber, eat, equipmentStats, gainXp, GEAR, GEAR_IDS, GROW_MS, isRaining, load, maxHp, maxMana, MAX_ENERGY, MAX_WATER, persist, rareDrop, refreshGrowth, remove, xpNeeded, type CropId, type GearId, type GearSlot, type ItemId, type OutfitId } from './domain'
+import { add, canAdd, count, craftArcaneSword, DAY_MS, dayNumber, eat, equipmentStats, gainXp, GEAR, GEAR_IDS, GROW_MS, isRaining, load, maxHp, maxMana, MAX_ENERGY, MAX_WATER, persist, rareDrop, refreshGrowth, remove, xpNeeded, type CropId, type GearId, type GearSlot, type ItemId, type OutfitId } from './domain'
 import { collisionTiles, FARM_PLOTS, MAPS, TILE, WORLD_HEIGHT, WORLD_WIDTH, type Interaction, type ResourceNode } from './maps'
 import { Multiplayer } from './multiplayer'
 import { WorldChat } from './world-chat'
 import { mineFloor, monstersFor, type Monster } from './monsters'
 import { drawAppearance } from './appearance'
+import { calendarAt, type Calendar } from './calendar'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `<div id="game"></div><div class="vignette"></div>
-  <div class="topbar"><div class="brand"><span class="flower">✿</span><span>NEW VILLAGE</span></div><div class="location"><span class="location-label">CURRENT LOCATION</span><strong id="map-name">หมู่บ้าน</strong></div><div id="day-display" class="day-display">☀ วันที่ 1 · 09:00</div><button id="dress-toggle" title="แต่งตัวและดูสเตตัส">👗 แต่งตัว</button><button id="switch-character" title="เปลี่ยนตัวละคร">☺ <span id="character-label">Player A</span></button></div>
+  <div class="topbar"><div class="brand"><span class="flower">✿</span><span>NEW VILLAGE</span></div><div class="location"><span class="location-label">CURRENT LOCATION</span><strong id="map-name">หมู่บ้าน</strong></div><div id="day-display" class="day-display">🌸 ใบไม้ผลิ · วันที่ 1 · 06:00</div><button id="dress-toggle" title="แต่งตัวและดูสเตตัส">👗 แต่งตัว</button><button id="switch-character" title="เปลี่ยนตัวละคร">☺ <span id="character-label">Player A</span></button></div>
   <div class="status"><div class="coins"><span>✦</span><strong id="coins">50</strong></div><div class="energy"><span>⚡ ENERGY</span><strong id="energy-value">100 / 100</strong><div class="energy-track"><div id="energy-bar"></div></div></div><div class="vitals"><div><span>❤️ HP</span><b id="hp-value"></b></div><div class="vital-track"><i id="hp-bar"></i></div><div><span>✨ MANA</span><b id="mana-value"></b></div><div class="vital-track"><i id="mana-bar"></i></div><div><span id="level-value">LV 1</span><b id="xp-value"></b></div><div class="vital-track"><i id="xp-bar"></i></div></div></div>
   <div class="inventory"><div class="section-label">กระเป๋า <small>ลากของไปช่อง 8–10</small></div><div id="inventory-items"></div></div>
   <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span></div></div>
@@ -200,9 +201,15 @@ function hud() {
   ui.steps.innerHTML = `<div class="${state.player.mapId === 'village' ? 'active' : ''}">01 <span>หมู่บ้าน</span></div><div class="${state.player.mapId === 'farm' ? 'active' : ''}">02 <span>บ้านและฟาร์ม</span></div><div class="${state.player.mapId === 'home' ? 'active' : ''}">03 <span>ภายในบ้าน</span></div><div class="${state.player.mapId === 'market' ? 'active' : ''}">04 <span>ตลาด</span></div><div class="${state.player.mapId === 'magic_city' ? 'active' : ''}">05 <span>เมืองเวทมนตร์</span></div><div class="${state.player.mapId === 'riverside' ? 'active' : ''}">06 <span>ริมน้ำ</span></div><div class="${state.player.mapId.startsWith('mine') ? 'active' : ''}">07 <span>เหมือง 1–3</span></div>`
 }
 function clock() {
-  const day = dayNumber(state)
-  const minute = Math.floor(((Date.now() - (state.dayStartedAt ?? Date.now())) % 120000) / 120000 * 720)
-  ui.day.textContent = `${isRaining(day) ? '☂ ฝนตก' : '☀ วันฟ้าใส'} · วันที่ ${day} · ${String(6 + Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`
+  const now = Date.now()
+  const sharedTime = multiplayer.world && multiplayer.serverOffsetMs !== null
+    ? now + multiplayer.serverOffsetMs : null
+  const elapsed = sharedTime === null ? Math.max(0, now - (state.dayStartedAt ?? now)) : sharedTime
+  const day = sharedTime === null ? dayNumber(state, now) : Math.floor(elapsed / DAY_MS) + 1
+  const calendar = calendarAt(day, (elapsed % DAY_MS) / DAY_MS)
+  const time = `${String(calendar.hour).padStart(2, '0')}:${String(calendar.minute).padStart(2, '0')}`
+  ui.day.textContent = `${calendar.season.icon} ฤดู${calendar.season.name} · วันที่ ${calendar.dayInSeason} · ${calendar.night ? '🌙' : '☀️'} ${time}${isRaining(day) ? ' · ☂ ฝน' : ''}`
+  scene?.setAtmosphere(calendar)
 }
 function changed() {
   hud()
@@ -416,6 +423,9 @@ document.querySelector('#switch-character')!.addEventListener('click', () => {
 
 class WorldScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite
+  private background?: Phaser.GameObjects.Image
+  private seasonWash?: Phaser.GameObjects.Rectangle
+  private darkness?: Phaser.GameObjects.Rectangle
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private wasd!: Record<string, Phaser.Input.Keyboard.Key>
   private e!: Phaser.Input.Keyboard.Key
@@ -467,7 +477,10 @@ class WorldScene extends Phaser.Scene {
     this.monsterWander.clear()
     this.lastMonsterAttack = 0
     const imageKey = config.id.startsWith('mine') ? 'mine' : config.id
-    this.add.image(0, 0, imageKey).setOrigin(0).setDepth(0).setTint(config.id === 'mine2' ? 0xdbe6ff : config.id === 'mine3' ? 0xdac4f6 : 0xffffff)
+    this.background = this.add.image(0, 0, imageKey).setOrigin(0).setDepth(0).setTint(config.id === 'mine2' ? 0xdbe6ff : config.id === 'mine3' ? 0xdac4f6 : 0xffffff)
+    const outdoors = !config.id.startsWith('mine') && config.id !== 'home'
+    this.seasonWash = outdoors ? this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0xffffff).setDepth(1) : undefined
+    this.darkness = outdoors ? this.add.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 0x07152e).setDepth(40) : undefined
     if (!this.textures.exists('collision-tile')) {
       const tile = this.make.graphics({ x: 0, y: 0 })
       tile.fillStyle(0xffffff).fillRect(0, 0, TILE, TILE)
@@ -507,7 +520,7 @@ class WorldScene extends Phaser.Scene {
     if (config.id === 'farm') this.drawPlots()
     if (config.resources) this.drawResources()
     if (mineFloor(config.id)) {
-      this.lastMonsterDay = Math.floor(Date.now() / 120000)
+      this.lastMonsterDay = dayNumber(state)
       this.monsters = multiplayer.world?.monsters[config.id]?.map(({ remaining: _, ...monster }) => monster) ?? monstersFor(config.id, this.lastMonsterDay)
       this.drawMonsters()
       const labelStyle = { fontFamily: 'Nunito, sans-serif', fontSize: '19px', color: '#fff1ce', backgroundColor: '#352642', padding: { x: 10, y: 5 } }
@@ -544,6 +557,13 @@ class WorldScene extends Phaser.Scene {
     if (this.player?.active) this.player.setTexture(`player-${state.character ?? 'a'}`, this.facing)
     if (this.flyingSprite?.active) this.flyingSprite.setTexture(`player-${state.character ?? 'a'}`, this.facing)
     if (this.clothing?.active) drawAppearance(this.clothing, { outfit: state.outfit ?? 'default', equipped: state.equipped ?? {} }, this.facing)
+  }
+
+  setAtmosphere(calendar: Calendar) {
+    if (!this.seasonWash || !this.darkness) return
+    this.background?.setTint(calendar.season.tint)
+    this.seasonWash.setFillStyle(calendar.season.wash, calendar.season.washAlpha)
+    this.darkness.setAlpha(calendar.darkness)
   }
 
   syncSharedWorld(full: boolean) {
@@ -1047,8 +1067,8 @@ class WorldScene extends Phaser.Scene {
         break
       }
     }
-    if (!multiplayer.world && mineFloor(state.player.mapId) && Math.floor(Date.now() / 120000) !== this.lastMonsterDay) {
-      this.lastMonsterDay = Math.floor(Date.now() / 120000)
+    if (!multiplayer.world && mineFloor(state.player.mapId) && dayNumber(state) !== this.lastMonsterDay) {
+      this.lastMonsterDay = dayNumber(state)
       this.monsters = monstersFor(state.player.mapId, this.lastMonsterDay)
       this.monsterWander.clear()
       this.drawMonsters()

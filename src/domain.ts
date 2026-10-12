@@ -32,6 +32,7 @@ export type Save = {
   recipeUnlocked?: boolean
   water?: number
   dayStartedAt?: number
+  calendarVersion?: 2
   lastProcessedDay?: number
   selectedSlot?: number
   hotbarExtras?: (ItemId | null)[]
@@ -46,7 +47,8 @@ export type Save = {
 
 export const KEY = 'new-village.save.v2'
 export const GROW_MS = 60_000
-export const DAY_MS = 120_000
+export const DAY_MS = 24 * 60_000
+const LEGACY_DAY_MS = 120_000
 export const MAX_ENERGY = 100
 export const MAX_WATER = 10
 export const PLOT_COUNT = 6
@@ -61,6 +63,7 @@ export const initialState = (): Save => ({
   recipeUnlocked: false,
   water: MAX_WATER,
   dayStartedAt: Date.now(),
+  calendarVersion: 2,
   lastProcessedDay: 1,
   selectedSlot: 0,
   hotbarExtras: [null, null, null],
@@ -212,6 +215,7 @@ export function validate(value: unknown): value is Save {
     (s.recipeUnlocked !== undefined && typeof s.recipeUnlocked !== 'boolean') ||
     (s.water !== undefined && (!Number.isInteger(s.water) || s.water < 0 || s.water > MAX_WATER)) ||
     (s.dayStartedAt !== undefined && !Number.isFinite(s.dayStartedAt)) ||
+    (s.calendarVersion !== undefined && s.calendarVersion !== 2) ||
     (s.lastProcessedDay !== undefined && (!Number.isInteger(s.lastProcessedDay) || s.lastProcessedDay < 1)) ||
     (s.selectedSlot !== undefined && (!Number.isInteger(s.selectedSlot) || s.selectedSlot < 0 || s.selectedSlot > 9)) ||
     (s.hotbarExtras !== undefined && (!Array.isArray(s.hotbarExtras) || s.hotbarExtras.length !== 3 || s.hotbarExtras.some(item => item !== null && !ITEM_IDS.includes(item)))) ||
@@ -264,6 +268,13 @@ export function load(): { state: Save; error?: string } {
     parsed.player.y = Math.max(16, Math.min(1008, parsed.player.y))
     parsed.water ??= MAX_WATER
     parsed.dayStartedAt ??= Date.now()
+    if (parsed.calendarVersion !== 2) {
+      const now = Date.now()
+      const oldElapsed = Math.max(0, now - parsed.dayStartedAt)
+      parsed.dayStartedAt = now - Math.floor(oldElapsed / LEGACY_DAY_MS) * DAY_MS
+        - Math.floor((oldElapsed % LEGACY_DAY_MS) / LEGACY_DAY_MS * DAY_MS)
+      parsed.calendarVersion = 2
+    }
     parsed.lastProcessedDay ??= dayNumber(parsed)
     parsed.selectedSlot ??= 0
     parsed.hotbarExtras ??= [null, null, null]
