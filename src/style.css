@@ -109,8 +109,9 @@ kbd { display: inline-block; padding: 1px 4px; min-width: 16px; border-radius: 4
 #map-steps span { margin-left: 6px; }
 .hidden { display: none !important; }
 .multiplayer { position: fixed; top: 310px; right: 20px; z-index: 25; width: 215px; }
-#room-toggle, .room-panel { background: #23352bed; border: 2px solid #d5bd82a8; color: #fff9e9; box-shadow: 0 5px 0 #15221db3, 0 8px 22px #10201791; border-radius: 12px; }
-#room-toggle { width: 100%; padding: 9px 12px; font-weight: 900; }
+#room-toggle, #account-toggle, .room-panel { background: #23352bed; border: 2px solid #d5bd82a8; color: #fff9e9; box-shadow: 0 5px 0 #15221db3, 0 8px 22px #10201791; border-radius: 12px; }
+#room-toggle, #account-toggle { width: 100%; padding: 9px 12px; font-weight: 900; }
+#account-toggle { margin-bottom: 9px; }
 .room-panel { margin-top: 8px; padding: 12px; display: grid; gap: 7px; }
 .room-panel strong { font-size: 14px; }.room-panel p, .room-panel small { margin: 0; font-size: 10px; color: #d7e8c9; }
 .room-panel input { width: 100%; border: 1px solid #b2c29a; border-radius: 6px; padding: 7px; color: #243829; font: inherit; font-size: 12px; }
@@ -131,6 +132,17 @@ kbd { display: inline-block; padding: 1px 4px; min-width: 16px; border-radius: 4
 #chat-form button { border: 0; border-radius: 6px; padding: 6px 10px; background: #9fc47a; color: #203320; font-weight: 900; }
 .overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #14201bb0; backdrop-filter: blur(4px); }
 .dialog { width: min(390px, calc(100vw - 30px)); background: #f4ead0; color: #354a35; border: 5px solid #8b643e; border-radius: 16px; box-shadow: 0 13px 0 #4c3327, 0 25px 55px #101c15c7; padding: 18px; }
+.account-dialog label { display: grid; gap: 4px; margin: 10px 0; font-size: 12px; font-weight: 900; }
+.account-dialog input { width: 100%; padding: 10px; border: 2px solid #ad946b; border-radius: 8px; font: inherit; }
+.account-dialog small { color: #6e775e; font-size: 11px; }
+.account-actions { display: flex; gap: 8px; margin: 13px 0 6px; }
+.account-actions button, #save-choice button, #account-logout { border: 0; border-radius: 8px; padding: 10px 12px; background: #3b6c4e; color: #fff9e9; font-weight: 900; }
+.account-actions button { flex: 1; }
+#save-choice { display: grid; gap: 8px; margin: 12px 0; }
+#save-choice p { margin: 0; }
+#use-local { background: #866338 !important; }
+#account-logout { margin-top: 12px; background: #755345; }
+#cloud-status { min-height: 20px; }
 .market-dialog { max-height: calc(100vh - 36px); overflow-y: auto; }
 .market-divider { margin-top: 10px; color: #88704d; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
 .market-dialog .trade { padding: 9px 12px; margin: 6px 0; }

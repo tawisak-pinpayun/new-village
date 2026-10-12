@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import './style.css'
-import { add, canAdd, count, craftArcaneSword, DAY_MS, dayNumber, eat, equipmentStats, gainXp, GEAR, GEAR_IDS, GROW_MS, isRaining, load, maxHp, maxMana, MAX_ENERGY, MAX_WATER, persist, rareDrop, refreshGrowth, remove, xpNeeded, type CropId, type GearId, type GearSlot, type ItemId, type OutfitId } from './domain'
+import { add, canAdd, count, craftArcaneSword, DAY_MS, dayNumber, eat, equipmentStats, gainXp, GEAR, GEAR_IDS, GROW_MS, isRaining, load, maxHp, maxMana, MAX_ENERGY, MAX_WATER, persist, rareDrop, refreshGrowth, remove, validate, xpNeeded, type CropId, type GearId, type GearSlot, type ItemId, type OutfitId, type Save } from './domain'
 import { collisionTiles, FARM_PLOTS, MAPS, TILE, WORLD_HEIGHT, WORLD_WIDTH, type Interaction, type ResourceNode } from './maps'
 import { Multiplayer } from './multiplayer'
 import { WorldChat } from './world-chat'
@@ -16,7 +16,8 @@ app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span><span><kbd>F</kbd> ก่อกองไฟ (ไม้ 2 หิน 1)</span></div></div>
   <div id="hotbar" class="hotbar" aria-label="แถบเครื่องมือ"></div>
   <div class="map-guide"><span class="section-label">แผนที่</span><div id="map-steps"></div></div>
-  <div class="multiplayer"><button id="room-toggle" title="เล่นกับเพื่อน">👥 เล่นกับเพื่อน</button><div id="room-panel" class="room-panel hidden"><strong>เล่นกับเพื่อน</strong><p id="room-status">ยังไม่ได้เข้าห้อง</p><input id="player-name" maxlength="20" placeholder="ชื่อของคุณ" aria-label="ชื่อของคุณ"><input id="room-code" maxlength="16" placeholder="รหัสห้อง เช่น FARM123" aria-label="รหัสห้อง"><button id="join-room">เข้าห้อง / สร้างห้อง</button><button id="party-toggle" class="hidden">⚔️ เข้าปาร์ตี้เหมือง</button><button id="copy-room" class="hidden">คัดลอกลิงก์ชวนเพื่อน</button><button id="leave-room" class="hidden">ออกจากห้อง</button><small>เพื่อนที่ใช้รหัสเดียวกันจะเห็นกันบนแผนที่</small></div></div>
+  <div class="multiplayer"><button id="account-toggle" title="บัญชีและเซฟออนไลน์">☁️ บัญชี / เซฟออนไลน์</button><button id="room-toggle" title="เล่นกับเพื่อน">👥 เล่นกับเพื่อน</button><div id="room-panel" class="room-panel hidden"><strong>เล่นกับเพื่อน</strong><p id="room-status">ยังไม่ได้เข้าห้อง</p><input id="player-name" maxlength="20" placeholder="ชื่อของคุณ" aria-label="ชื่อของคุณ"><input id="room-code" maxlength="16" placeholder="รหัสห้อง เช่น FARM123" aria-label="รหัสห้อง"><button id="join-room">เข้าห้อง / สร้างห้อง</button><button id="party-toggle" class="hidden">⚔️ เข้าปาร์ตี้เหมือง</button><button id="copy-room" class="hidden">คัดลอกลิงก์ชวนเพื่อน</button><button id="leave-room" class="hidden">ออกจากห้อง</button><small>เพื่อนที่ใช้รหัสเดียวกันจะเห็นกันบนแผนที่</small></div></div>
+  <div id="account-panel" class="overlay hidden"><div class="dialog account-dialog"><div class="dialog-top"><span>ONLINE SAVE</span><button id="close-account" aria-label="ปิด">✕</button></div><h2>บัญชีและเซฟออนไลน์</h2><p id="account-status">กำลังตรวจสอบระบบ...</p><div id="account-form"><label>อีเมล<input id="account-email-input" type="email" maxlength="254" autocomplete="email"></label><label>รหัสผ่าน<input id="account-password" type="password" minlength="12" maxlength="128" autocomplete="current-password"></label><div class="account-actions"><button id="account-login" type="button">เข้าสู่ระบบ</button><button id="account-register" type="button">สร้างบัญชี</button></div><small>รหัสผ่านอย่างน้อย 12 ตัวอักษร</small></div><div id="account-signed" class="hidden"><strong id="account-email"></strong><p id="cloud-status"></p><div id="save-choice" class="hidden"><p>พบทั้งเซฟในเครื่องนี้และเซฟในบัญชี เลือกข้อมูลที่จะใช้:</p><button id="use-cloud">ใช้เซฟในบัญชี</button><button id="use-local">นำเซฟเครื่องนี้ขึ้นบัญชี</button></div><button id="account-logout">ออกจากระบบ</button></div></div></div>
   <div id="community-panel" class="community-panel hidden"><strong>🤝 เควสต์ร่วมในห้อง</strong><span id="community-quest"></span><small id="community-festival"></small></div>
   <div class="world-chat"><button id="chat-toggle">🌍 แชทโลก</button><div id="chat-panel" class="chat-panel hidden"><strong>แชทโลก</strong><small id="chat-status">กำลังเชื่อมต่อ...</small><div id="chat-log" role="log" aria-live="polite"></div><form id="chat-form"><input id="chat-input" maxlength="200" placeholder="พิมพ์ข้อความ..." aria-label="ข้อความแชท"><button type="submit">ส่ง</button></form></div></div>
   <div id="shop" class="overlay hidden"><div class="dialog"><div class="dialog-top"><span>GENERAL STORE</span><button id="close-shop">✕</button></div><h2>ร้านค้าหมู่บ้าน</h2><p>ซื้อเมล็ดไว้ปลูก หรือขายผลผลิตจากฟาร์ม</p><button id="buy" class="trade"><span>✿ เมล็ด Radish <small>ปลูกได้ 1 แปลง</small></span><strong>ซื้อ · 8 Coins</strong></button><button id="sell" class="trade"><span>❀ Radish <small>ผลผลิตจากสวน</small></span><strong>ขาย · 15 Coins</strong></button><div class="dialog-foot">กด <kbd>1</kbd> ซื้อ &nbsp; <kbd>2</kbd> ขาย &nbsp; <kbd>Esc</kbd> ปิด</div></div></div>
@@ -54,6 +55,155 @@ let scene: WorldScene | undefined
 let messageTimer: number | undefined
 const multiplayer = new Multiplayer()
 let soloWorldBackup: { plots: typeof state.plots; nodeHp: NonNullable<typeof state.nodeHp>; gardenGateOpen: boolean; campfires: NonNullable<typeof state.campfires> } | null = null
+const accountPanel = document.querySelector<HTMLElement>('#account-panel')!
+const accountStatus = document.querySelector<HTMLElement>('#account-status')!
+const cloudStatus = document.querySelector<HTMLElement>('#cloud-status')!
+const saveChoice = document.querySelector<HTMLElement>('#save-choice')!
+const accountForm = document.querySelector<HTMLElement>('#account-form')!
+const accountSigned = document.querySelector<HTMLElement>('#account-signed')!
+const accountEmailInput = document.querySelector<HTMLInputElement>('#account-email-input')!
+const accountPassword = document.querySelector<HTMLInputElement>('#account-password')!
+let accountEmail: string | null = null
+let cloudRevision: number | null = null
+let pendingCloudSave: { data: Save; revision: number } | null = null
+let cloudDirty = false
+let cloudUploading = false
+let cloudTimer: number | undefined
+
+async function accountRequest<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+  const response = await fetch(path, { method, credentials: 'same-origin', headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined })
+  const result = await response.json()
+  if (!response.ok) throw Object.assign(new Error(result.error ?? 'ระบบเซฟออนไลน์ขัดข้อง'), { status: response.status })
+  return result as T
+}
+
+function cloudSnapshot(): Save {
+  const copy = structuredClone(state)
+  if (multiplayer.world && soloWorldBackup) {
+    copy.plots = structuredClone(soloWorldBackup.plots)
+    copy.nodeHp = structuredClone(soloWorldBackup.nodeHp)
+    copy.gardenGateOpen = soloWorldBackup.gardenGateOpen
+    copy.campfires = structuredClone(soloWorldBackup.campfires)
+  }
+  return copy
+}
+
+function queueCloudSave() {
+  if (!accountEmail || cloudRevision === null || pendingCloudSave) return
+  cloudDirty = true
+  cloudStatus.textContent = 'กำลังรออัปโหลดเซฟ...'
+  if (cloudTimer) window.clearTimeout(cloudTimer)
+  cloudTimer = window.setTimeout(() => { void flushCloudSave() }, 1200)
+}
+
+async function flushCloudSave() {
+  if (cloudUploading || !cloudDirty || cloudRevision === null || !accountEmail) return
+  cloudUploading = true
+  cloudDirty = false
+  const revision = cloudRevision
+  try {
+    const saved = await accountRequest<{ revision: number }>('/api/save', 'PUT', { revision, data: cloudSnapshot() })
+    cloudRevision = saved.revision
+    cloudStatus.textContent = 'เซฟออนไลน์แล้ว'
+  } catch (error) {
+    const status = (error as { status?: number }).status
+    if (status === 409) {
+      cloudRevision = null
+      cloudStatus.textContent = 'เซฟถูกเปลี่ยนจากอีกเครื่อง กรุณาเลือกข้อมูลที่จะใช้'
+      await chooseCloudSave()
+    } else {
+      cloudDirty = true
+      cloudStatus.textContent = `ยังอัปโหลดไม่ได้: ${(error as Error).message} · เซฟในเครื่องยังอยู่`
+    }
+  } finally {
+    cloudUploading = false
+    if (cloudDirty && cloudRevision !== null) cloudTimer = window.setTimeout(() => { void flushCloudSave() }, 15_000)
+  }
+}
+
+async function chooseCloudSave() {
+  try {
+    const remote = await accountRequest<{ data: unknown; revision: number }>('/api/save')
+    if (remote.data === null) {
+      pendingCloudSave = null
+      cloudRevision = 0
+      saveChoice.classList.add('hidden')
+      queueCloudSave()
+    } else if (validate(remote.data)) {
+      pendingCloudSave = { data: remote.data, revision: remote.revision }
+      cloudRevision = null
+      saveChoice.classList.remove('hidden')
+      cloudStatus.textContent = 'พบเซฟในบัญชี เลือกเซฟที่จะใช้ก่อนเล่นต่อ'
+      accountPanel.classList.remove('hidden')
+    } else cloudStatus.textContent = 'เซฟออนไลน์ไม่ถูกต้อง เซฟในเครื่องยังปลอดภัย'
+  } catch (error) { cloudStatus.textContent = (error as Error).message }
+}
+
+async function signedIn(email: string) {
+  accountEmail = email
+  accountPassword.value = ''
+  accountForm.classList.add('hidden')
+  accountSigned.classList.remove('hidden')
+  document.querySelector<HTMLElement>('#account-email')!.textContent = email
+  document.querySelector<HTMLElement>('#account-toggle')!.textContent = '☁️ เซฟออนไลน์'
+  accountStatus.textContent = 'เข้าสู่ระบบแล้ว'
+  await chooseCloudSave()
+}
+
+async function authenticate(mode: 'login' | 'register') {
+  accountStatus.textContent = 'กำลังเชื่อมต่อ...'
+  try {
+    const result = await accountRequest<{ email: string }>(`/api/${mode}`, 'POST', { email: accountEmailInput.value.trim(), password: accountPassword.value })
+    await signedIn(result.email)
+  } catch (error) { accountStatus.textContent = (error as Error).message }
+}
+
+document.querySelector('#account-toggle')!.addEventListener('click', () => accountPanel.classList.remove('hidden'))
+document.querySelector('#close-account')!.addEventListener('click', () => accountPanel.classList.add('hidden'))
+accountPanel.addEventListener('click', event => { if (event.target === accountPanel) accountPanel.classList.add('hidden') })
+document.querySelector('#account-login')!.addEventListener('click', () => { void authenticate('login') })
+document.querySelector('#account-register')!.addEventListener('click', () => { void authenticate('register') })
+document.querySelector('#use-cloud')!.addEventListener('click', () => {
+  if (!pendingCloudSave) return
+  if (multiplayer.room) multiplayer.disconnect()
+  state = structuredClone(pendingCloudSave.data)
+  refreshGrowth(state)
+  saveBlocked = false
+  cloudRevision = pendingCloudSave.revision
+  pendingCloudSave = null
+  saveChoice.classList.add('hidden')
+  persist(state); hud(); scene?.scene.restart()
+  cloudStatus.textContent = 'ใช้เซฟจากบัญชีแล้ว'
+  accountPanel.classList.add('hidden')
+})
+document.querySelector('#use-local')!.addEventListener('click', () => {
+  if (!pendingCloudSave) return
+  cloudRevision = pendingCloudSave.revision
+  pendingCloudSave = null
+  saveChoice.classList.add('hidden')
+  queueCloudSave()
+  accountPanel.classList.add('hidden')
+})
+document.querySelector('#account-logout')!.addEventListener('click', async () => {
+  if (cloudTimer) window.clearTimeout(cloudTimer)
+  await flushCloudSave()
+  try { await accountRequest('/api/logout', 'POST') } catch { /* local save remains available */ }
+  accountEmail = null; cloudRevision = null; pendingCloudSave = null; cloudDirty = false
+  accountForm.classList.remove('hidden'); accountSigned.classList.add('hidden'); saveChoice.classList.add('hidden')
+  document.querySelector<HTMLElement>('#account-toggle')!.textContent = '☁️ บัญชี / เซฟออนไลน์'
+  accountStatus.textContent = 'ออกจากระบบแล้ว เซฟในเครื่องยังอยู่'
+})
+
+async function initializeAccount() {
+  try {
+    const result = await accountRequest<{ email: string | null }>('/api/me')
+    if (result.email) await signedIn(result.email)
+    else accountStatus.textContent = 'เข้าสู่ระบบเพื่อเก็บตัวละครและเล่นต่อจากเครื่องอื่น'
+  } catch (error) {
+    accountStatus.textContent = (error as Error).message
+    accountForm.classList.add('hidden')
+  }
+}
 const worldChat = new WorldChat()
 const roomPanel = document.querySelector<HTMLElement>('#room-panel')!
 const roomStatus = document.querySelector<HTMLElement>('#room-status')!
@@ -218,6 +368,7 @@ function clock() {
 function changed() {
   hud()
   if (!saveBlocked && !persist(state)) announce('บันทึกเกมไม่ได้ แต่ยังเล่นต่อได้')
+  queueCloudSave()
 }
 hud()
 ui.hotbar.addEventListener('click', event => {
@@ -263,7 +414,7 @@ function sell() {
 const specialShop = document.querySelector<HTMLElement>('#special-shop')!
 const wardrobe = document.querySelector<HTMLElement>('#wardrobe')!
 const festivalShop = document.querySelector<HTMLElement>('#festival-shop')!
-function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden') }
+function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden'); accountPanel.classList.add('hidden') }
 function festivalStatus() {
   if (multiplayer.world) return multiplayer.world.festival
   const day = dayNumber(state)
@@ -993,7 +1144,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   private useSelected() {
-    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || !accountPanel.classList.contains('hidden') || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
     if (state.player.mapId === 'farm' && Math.hypot(this.player.x - 770, this.player.y - 780) < 108) {
       this.interactionCooldown = this.time.now + 350
       this.toggleGardenGate()
@@ -1193,7 +1344,7 @@ class WorldScene extends Phaser.Scene {
       if (refreshGrowth(state)) { if (state.player.mapId === 'farm') this.drawPlots(); if (MAPS[state.player.mapId].resources) this.drawResources(); changed() }
     }
     if (Phaser.Input.Keyboard.JustDown(this.esc)) closeShop()
-    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || [chatInput, playerName, roomCode].includes(document.activeElement as HTMLInputElement)) {
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || !accountPanel.classList.contains('hidden') || [chatInput, playerName, roomCode].includes(document.activeElement as HTMLInputElement)) {
       this.player.setVelocity(0)
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.one)) buy()
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.two)) sell()
@@ -1249,6 +1400,7 @@ class WorldScene extends Phaser.Scene {
     if (time - this.lastSave > 15000) {
       this.lastSave = time
       if (!saveBlocked && !persist(state)) announce('บันทึกเกมไม่ได้ แต่ยังเล่นต่อได้')
+      queueCloudSave()
     }
   }
 }
@@ -1259,3 +1411,4 @@ new Phaser.Game({
   physics: { default: 'arcade', arcade: { debug: false } }, scene: [WorldScene],
   render: { pixelArt: true, antialias: false }
 })
+void initializeAccount()

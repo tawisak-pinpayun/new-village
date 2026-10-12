@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { resolve, sep, extname } from 'node:path'
 import { WebSocketServer, WebSocket } from 'ws'
 import { actPlot, advanceWorld, hitMonster, hitResource, makeWorld, publicWorld } from './world.mjs'
+import { createAccountApi, createAccountStore } from './accounts.mjs'
 
 const port = Number(process.env.PORT || 3000)
 const root = resolve('dist')
@@ -10,9 +11,22 @@ const rooms = new Map()
 const worlds = new Map()
 const chatClients = new Set()
 const chatHistory = []
+let accountApi = null
+if (process.env.MONGODB_URI) {
+  try {
+    const store = createAccountStore(process.env.MONGODB_URI)
+    await store.init()
+    accountApi = createAccountApi(store)
+  } catch (error) { console.error('Online saves unavailable:', error?.name ?? 'UnknownError') }
+}
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' }
 const server = createServer(async (req, res) => {
   if (req.url === '/health') { res.writeHead(200); res.end('ok'); return }
+  if ((req.url || '').startsWith('/api/')) {
+    if (accountApi) await accountApi(req, res)
+    else { res.writeHead(503, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify({ error: 'ระบบเซฟออนไลน์ยังไม่พร้อม' })) }
+    return
+  }
   let path
   try { path = decodeURIComponent((req.url || '/').split('?')[0]) } catch { res.writeHead(400); res.end(); return }
   const file = resolve(root, '.' + path)

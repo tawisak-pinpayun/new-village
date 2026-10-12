@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "mongodb": "^6.21.0",
     "phaser": "^3.90.0",
     "ws": "^8.22.0"
   },
