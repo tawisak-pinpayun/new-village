@@ -1,6 +1,45 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { add, canAdd, count, craftArcaneSword, DAY_MS, eat, equipmentStats, gainXp, initialState, isRaining, maxHp, maxMana, rareDrop, refreshGrowth, remove, validate } from '../src/domain.ts'
+import { add, canAdd, CHARACTER_IDS, characterQuestProgress, count, craftArcaneSword, DAY_MS, eat, equipmentStats, gainXp, initialState, isRaining, maxHp, maxMana, OUTFIT_IDS, rareDrop, refreshGrowth, remove, unlockCompletedCharacters, validate } from '../src/domain.ts'
+
+test('characters C through H unlock from their own quests and stay unlocked', () => {
+  const save = initialState()
+  assert.deepEqual(save.unlockedCharacters, ['a', 'b'])
+  save.questDone = true
+  save.player.coins = 120
+  save.player.level = 3
+  save.gardenGateOpen = true
+  add(save, 'arcane_sword')
+  save.festival.completed = true
+  assert.equal(characterQuestProgress(save, 'd'), 120)
+  assert.deepEqual(unlockCompletedCharacters(save), ['c', 'd', 'e', 'f', 'g', 'h'])
+  save.player.coins = 0
+  remove(save, 'arcane_sword')
+  assert.deepEqual(unlockCompletedCharacters(save), [])
+  assert.deepEqual(save.unlockedCharacters, CHARACTER_IDS)
+  assert.equal(validate(save), true)
+})
+
+test('new characters and outfits survive save validation', () => {
+  for (const character of CHARACTER_IDS) {
+    const save = initialState()
+    save.character = character
+    assert.equal(validate(save), true)
+  }
+  for (const outfit of OUTFIT_IDS) {
+    const save = initialState()
+    save.outfit = outfit
+    save.ownedOutfits.push(outfit)
+    assert.equal(validate(save), true)
+  }
+  const save = initialState()
+  save.outfit = 'explorer'
+  assert.equal(equipmentStats(save).speed, 18)
+  save.outfit = 'starlight'
+  assert.equal(maxMana(save), 68)
+  save.outfit = 'ceremonial'
+  assert.equal(equipmentStats(save).defense, 2)
+})
 
 test('owned clothing and accessories change stats and survive save validation', () => {
   const save = initialState()

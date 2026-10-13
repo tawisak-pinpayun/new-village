@@ -30,28 +30,12 @@ button { font: inherit; cursor: pointer; }
 .wardrobe-slot small { display: block; font-size: 11px; color: #e7d8b1; line-height: 1.2; }
 .wardrobe-slot b { justify-self: start; grid-column: 2; padding: 2px 9px; color: #fff7db; font-size: 10px; background: #76451f; border: 1px solid #d49a58; border-radius: 4px; }
 .wardrobe-preview { align-self: stretch; min-height: 370px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #644324; font-weight: 900; text-align: center; background: radial-gradient(ellipse at 50% 62%, #fff9e5 0, #fff0d3 53%, transparent 73%); }
-.avatar-character-switch { display: flex; gap: 5px; margin-top: 4px; }
+.avatar-character-switch { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 4px; }
 .avatar-character-switch button { border: 1px solid #b48a50; border-radius: 5px; background: #ecdbb9; color: #644324; padding: 3px 10px; font-size: 10px; font-weight: 900; }
 .avatar-character-switch button.active { background: #244e3b; color: #fff5dc; }
 .avatar-stage { position: relative; width: 280px; height: 335px; overflow: hidden; }
 .avatar-stage:after { content: ''; position: absolute; z-index: 0; width: 160px; height: 18px; bottom: 16px; left: 60px; background: #8a70494d; border-radius: 50%; }
 .avatar-sprite { position: absolute; z-index: 1; left: 0; top: 8px; width: 280px; height: 280px; background-image: url('/assets/player-a.png'); background-size: 1120px 1400px; background-position: 0 0; image-rendering: pixelated; transform: scale(1.08); transform-origin: center top; }
-.avatar-sprite.avatar-b { background-image: url('/assets/player-b.png'); }
-.avatar-sprite i { position: absolute; display: block; pointer-events: none; }
-.avatar-coat { display: none !important; left: 108px; top: 155px; width: 64px; height: 78px; border: 4px solid #234e39; border-radius: 9px 9px 17px 17px; background: #32906d; box-shadow: inset 0 0 0 4px #b9e7ad; }
-.outfit-forest .avatar-coat { display: block !important; }
-.outfit-royal .avatar-coat { display: block !important; background: #4169c4; border-color: #294d9a; box-shadow: inset 0 0 0 4px #f6d986; }
-.outfit-mage .avatar-coat { display: block !important; background: #7850af; border-color: #56347b; box-shadow: inset 0 0 0 4px #eac2f7; }
-.avatar-hat.hat-wizard_hat { left: 93px; top: -5px; width: 98px; height: 70px; background: #684195; border: 5px solid #442b68; clip-path: polygon(45% 0, 62% 0, 82% 75%, 100% 85%, 100% 100%, 0 100%, 0 84%, 24% 75%); }
-.avatar-hat.hat-flower_hat { left: 185px; top: 37px; width: 28px; height: 28px; border: 5px solid #ffc1d4; border-radius: 50%; background: #e977a5; }
-.avatar-necklace:not(.necklace-none) { left: 132px; top: 150px; width: 17px; height: 19px; border: 3px solid #e6c16c; border-radius: 50%; }
-.avatar-necklace.necklace-moon_amulet { background: #9fc8ff; }
-.avatar-bracelet:not(.bracelet-none) { left: 183px; top: 196px; width: 19px; height: 9px; background: #f3c95b; border: 2px solid #9d6e2c; border-radius: 4px; }
-.avatar-bracelet.bracelet-star_bracelet { background: #bca5ff; }
-.avatar-boots:not(.boots-none) { left: 99px; top: 247px; width: 83px; height: 24px; border-bottom: 10px solid #a3693b; border-radius: 8px; }
-.avatar-boots.boots-cloud_boots { border-color: #d4eaff; }
-.avatar-charm:not(.charm-none) { left: 92px; top: 205px; width: 16px; height: 16px; background: #96d16b; border: 3px solid #5b8e48; transform: rotate(45deg); }
-.avatar-charm.charm-crystal_charm { background: #a7cbff; border-color: #668cca; }
 .wardrobe-stats { display: grid; align-content: center; gap: 0; padding: 15px; color: #fff5de; background: #12382f; border: 4px solid #b48a50; border-radius: 7px; box-shadow: inset 0 0 0 2px #355d4c; }
 .wardrobe-stats strong { color: #fce6b4; font: bold 24px Georgia, serif; margin-bottom: 8px; text-align: center; }
 .wardrobe-stats span { display: flex; justify-content: space-between; gap: 8px; padding: 11px 1px; border-bottom: 1px dashed #9d87565c; font-size: 14px; font-weight: 900; white-space: nowrap; }
@@ -63,9 +47,60 @@ button { font: inherit; cursor: pointer; }
 .wardrobe-choice small { display: block; color: #c5dab4; margin-top: 3px; font-size: 10px; }
 .wardrobe-choice b { white-space: nowrap; color: #f8d687; font-size: 11px; }
 .wardrobe-choice.equipped { border-color: #d8a258; background: #536947; }
+.wardrobe-choice:disabled { opacity: .65; cursor: default; }
 .wardrobe-picker p { margin: 9px 0 0; color: #756a56; }
 @media (max-width: 760px) { .wardrobe-layout { grid-template-columns: 1fr 1.2fr; }.wardrobe-stats { grid-column: 1 / -1; grid-template-columns: repeat(2, 1fr); }.wardrobe-stats strong { grid-column: 1 / -1; }.wardrobe-preview { min-height: 350px; }.wardrobe-slot { min-height: 56px; }.wardrobe-slot-icon { width: 40px; height: 40px; font-size: 24px; } }
 @media (max-width: 540px) { .dialog.wardrobe-dialog { padding: 13px; }.wardrobe-layout { grid-template-columns: 1fr; }.wardrobe-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }.wardrobe-slot { grid-template-columns: 37px 1fr; gap: 2px 5px; }.wardrobe-slot-icon { width: 34px; height: 34px; font-size: 20px; }.wardrobe-slot strong { font-size: 11px; }.wardrobe-slot small, .wardrobe-slot b { font-size: 9px; }.wardrobe-preview { min-height: 310px; }.avatar-stage { height: 292px; }.wardrobe-stats { grid-column: 1; }.wardrobe-stats span { font-size: 12px; padding: 7px 1px; } }
+.dialog.wardrobe-dialog { width: min(1280px, calc(100vw - 20px)); max-height: calc(100vh - 20px); padding: 12px 15px 15px; border-color: #55341d; border-radius: 16px; background: repeating-linear-gradient(0deg, #573720 0 8px, #674226 9px 16px); box-shadow: inset 0 0 0 3px #b88446, 0 22px 50px #0c160de0; }
+.wardrobe-dialog .dialog-top { min-height: 28px; color: #f7dca0; }
+.dialog.wardrobe-dialog h2 { margin: 0 0 10px; padding: 5px 12px 8px; color: #ffebba; font-size: clamp(23px, 3vw, 34px); text-shadow: 2px 3px #2b1a12; background: linear-gradient(90deg,#3d291b,#694123 50%,#3d291b); border: 2px solid #956633; border-radius: 7px; }
+.wardrobe-showcase { min-width: 0; }
+.avatar-character-switch { display: flex; justify-content: center; gap: 5px; margin: 0 0 8px; padding: 5px; border: 2px solid #8d653c; border-radius: 9px; background: #2b211b; overflow-x: auto; }
+.avatar-character-switch button { position: relative; flex: 0 0 52px; height: 54px; padding: 0; overflow: hidden; border: 2px solid #9c703e; border-radius: 9px; background: #3c3528; }
+.avatar-character-switch button.active { border-color: #ffe49b; box-shadow: 0 0 0 2px #5cab74, 0 0 13px #ffdf79; }
+.wardrobe-character-face { display: block; width: 48px; height: 48px; background-size: 192px 240px; background-position: 0 0; image-rendering: pixelated; }
+.avatar-character-switch small { position: absolute; right: 2px; bottom: 0; color: #fff3cf; font-size: 9px; text-shadow: 1px 1px #2b211b; }
+.wardrobe-layout { grid-template-columns: minmax(145px, .75fr) minmax(280px, 1.35fr) minmax(230px, 1fr); gap: 10px; align-items: stretch; }
+.wardrobe-slots { align-content: start; padding: 10px; border: 2px solid #b08248; border-radius: 8px; background: linear-gradient(125deg,#123a2e,#204335 60%,#142e26); }
+.wardrobe-slot { min-height: 51px; grid-template-columns: 36px 1fr; grid-template-rows: 1fr; gap: 7px; padding: 4px 6px; border-width: 2px; background: #214637; box-shadow: inset 0 0 0 1px #d0ad68; }
+.wardrobe-slot.active { box-shadow: 0 0 0 2px #f8d976, 0 0 14px #ffe67e; }
+.wardrobe-slot-icon { grid-row: auto; width: 34px; height: 34px; font-size: 21px; }
+.wardrobe-slot strong { font-size: 12px; }
+.wardrobe-slot small { font-size: 9px; }
+.wardrobe-preview { position: relative; min-height: 372px; padding: 6px; border: 3px solid #9c7142; border-radius: 10px; background: radial-gradient(ellipse at 50% 54%,#f6dca2 0,#b98044 48%,#4d4129 84%), linear-gradient(#f3cf7e,#435d3d); box-shadow: inset 0 0 0 3px #edc681; }
+.wardrobe-scene-title { padding: 3px 12px; border-radius: 20px; background: #284737d9; color: #ffedbb; font-size: 11px; }
+.wardrobe-preview .avatar-stage { height: 288px; }
+.wardrobe-preview .avatar-sprite { top: 0; }
+.wardrobe-preview-name { position: relative; z-index: 2; padding: 4px 12px; border-radius: 20px; background: #244434e8; color: #fff1c8; font-size: 12px; }
+.wardrobe-directions { display: flex; gap: 3px; margin-top: 3px; }
+.wardrobe-directions span { padding: 2px 5px; color: #644522; font-size: 9px; background: #f7db9baf; border-radius: 4px; }
+.wardrobe-directions span { display: grid; justify-items: center; min-width: 61px; }
+.wardrobe-directions i { display: block; width: 58px; height: 58px; background-image: var(--wardrobe-sheet); background-size: 232px 290px; background-repeat: no-repeat; image-rendering: pixelated; }
+.wardrobe-stats { gap: 0; padding: 10px; color: #4b321a; border-color: #c89b57; background: linear-gradient(135deg,#fff1cf,#efd09a); box-shadow: inset 0 0 0 3px #fff5da; }
+.wardrobe-detail-heading { display: grid; gap: 3px; padding: 8px; border-bottom: 2px solid #d1ac73; }
+.wardrobe-detail-heading small { color: #795528; font-size: 10px; }
+.wardrobe-detail-heading strong { margin: 0; color: #4c3017; font: bold 23px Georgia,serif; text-align: left; }
+.wardrobe-detail-heading em { width: max-content; padding: 2px 8px; border-radius: 6px; background: #41764c; color: #fff5da; font-size: 11px; font-style: normal; }
+.wardrobe-stat-title { margin: 9px 0 3px; color: #6a411d; font-weight: 900; }
+.wardrobe-stats span { align-items: center; padding: 5px 4px; border-bottom: 1px solid #d1b282; font-size: 12px; }
+.wardrobe-stats span i { margin-right: 5px; font-style: normal; }
+.wardrobe-stats span b { margin-left: auto; color: #326947; }
+.wardrobe-wear-status { margin-top: 10px; padding: 9px; border: 2px solid #335f3a; border-radius: 7px; background: #467847; color: #fff6dd; font-size: 12px; font-weight: 900; text-align: center; }
+.wardrobe-picker { margin-top: 8px; padding: 8px; border-width: 3px; background: linear-gradient(#ffe8b9,#efd1a0); }
+.wardrobe-picker h3 { margin-bottom: 5px; font: bold 18px Georgia,serif; }
+.wardrobe-choices.wardrobe-outfit-choices { display: flex; gap: 8px; overflow-x: auto; padding: 4px 3px 8px; scrollbar-color: #b98645 #e8c899; }
+.wardrobe-outfit-card { flex: 0 0 132px; min-height: 178px; display: flex; flex-direction: column; justify-content: flex-start; padding: 4px; border: 3px solid #a87b43; border-radius: 9px; background: #1a3f33; }
+.wardrobe-outfit-card.equipped { border-color: #ffda68; box-shadow: 0 0 0 2px #fff2b2; }
+.wardrobe-card-art { display: grid; place-items: center; width: 100%; height: 112px; overflow: hidden; border-radius: 5px; background: radial-gradient(#b1bf83,#557762 55%,#23433d); }
+.wardrobe-card-sprite { width: 112px; height: 112px; background-size: 448px 560px; background-position: 0 0; image-rendering: pixelated; }
+.wardrobe-card-copy { display: grid; justify-items: center; width: 100%; gap: 2px; padding: 3px; font-size: 11px; }
+.wardrobe-card-copy strong { font-size: 11px; white-space: nowrap; }
+.wardrobe-card-copy small { color: #f5cf86; font-size: 10px; }
+.wardrobe-card-copy em { color: #f8e6c0; font-size: 9px; font-style: normal; }
+.wardrobe-picker p { margin: 4px 3px 0; font-size: 10px; }
+.wardrobe-dialog .dialog-foot { color: #e9d1a6; }
+@media (max-width: 760px) { .wardrobe-layout { grid-template-columns: 145px minmax(240px,1fr); }.wardrobe-stats { grid-column: 1 / -1; display: block; }.wardrobe-stats span { display: inline-flex; width: 49%; }.wardrobe-stats span b { margin-left: 8px; }.wardrobe-preview { min-height: 360px; } }
+@media (max-width: 520px) { .wardrobe-layout { grid-template-columns: 1fr; }.wardrobe-slots { display: flex; overflow-x: auto; padding: 5px; }.wardrobe-slot { flex: 0 0 120px; }.wardrobe-slot-icon { display: none; }.wardrobe-preview { min-height: 330px; }.wardrobe-stats { grid-column: 1; }.wardrobe-stats span { width: 100%; }.avatar-character-switch { justify-content: flex-start; } }
 .status { position: fixed; top: 86px; right: 20px; min-width: 210px; border-radius: 13px; padding: 11px; }
 .coins { display: flex; align-items: center; justify-content: space-between; gap: 30px; color: #f9da80; font-size: 18px; }
 .coins span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #d5a44c; color: #fff2ad; }
@@ -93,7 +128,11 @@ button { font: inherit; cursor: pointer; }
 .message { font-size: 11px; font-weight: 800; color: #dbecce; min-height: 21px; margin-top: 3px; }.message.visible { color: #ffe0a0; }
 .controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 13px; font-size: 9px; color: #bbcaad; border-top: 1px solid #f9ecc62b; padding-top: 6px; margin-top: 5px; }
 kbd { display: inline-block; padding: 1px 4px; min-width: 16px; border-radius: 4px; background: #e8d6aa; color: #344638; font: 900 10px 'Nunito', sans-serif; box-shadow: 0 2px 0 #ad9870; }
-.map-guide { position: fixed; right: 20px; bottom: 22px; min-width: 175px; border-radius: 14px; padding: 12px; }
+.map-guide { position: fixed; right: 20px; bottom: 22px; width: 245px; border-radius: 14px; padding: 10px; }
+.camera-controls { position: fixed; z-index: 20; right: 20px; bottom: 255px; display: grid; grid-template-columns: 38px 58px 38px; gap: 4px; padding: 6px; border: 2px solid #d5bd82a8; border-radius: 12px; background: #23352bed; box-shadow: 0 5px 0 #15221db3,0 8px 22px #10201791; }
+.camera-controls button { min-width: 0; height: 34px; padding: 0; border: 1px solid #879c76; border-radius: 7px; background: #486148; color: #fff1c8; font: 900 18px Nunito,sans-serif; }
+.camera-controls button:hover { background: #68855c; }
+#camera-zoom-reset { font-size: 11px; }
 .hotbar { position: fixed; bottom: 17px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; padding: 7px; border-radius: 14px; max-width: calc(100vw - 480px); overflow-x: auto; scrollbar-width: thin; }
 .hotbar-slot { flex: 0 0 65px; height: 78px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: #f8edce; background: #486148; border: 2px solid #7f946c; border-radius: 8px; box-shadow: inset 0 0 0 2px #2b4434; padding: 3px; }
 .hotbar-slot:hover { background: #5d7b53; }
@@ -102,11 +141,38 @@ kbd { display: inline-block; padding: 1px 4px; min-width: 16px; border-radius: 4
 .slot-icon { font-size: 27px; line-height: 1.1; min-height: 30px; }
 .slot-name { font-size: 9px; font-weight: 900; white-space: nowrap; max-width: 60px; overflow: hidden; text-overflow: ellipsis; }
 .slot-count { position: absolute; right: 3px; top: 2px; font-size: 9px; font-weight: 900; color: #ffe48f; background: #263e2c; border-radius: 4px; padding: 0 3px; }
-.map-guide .section-label { display: block; margin-bottom: 7px; }
-#map-steps { display: grid; gap: 3px; }
-#map-steps div { font-size: 10px; color: #b7c9ae; padding: 4px 6px; border-radius: 6px; }
-#map-steps div.active { background: #779f62; color: white; font-weight: 900; }
-#map-steps span { margin-left: 6px; }
+.map-guide .section-label { display: block; margin: 0 0 6px 3px; color: #f4dfa5; font-size: 11px; }
+.map-guide #map-expand { width: 100%; margin-top: 7px; padding: 6px; border: 1px solid #bca568; border-radius: 7px; background: #4f704d; color: #fff3ce; font-size: 10px; font-weight: 900; }
+.map-guide #map-expand:hover { background: #6d925f; }
+#map-steps { display: block; }
+.terrain-map { position: relative; height: 178px; overflow: hidden; border: 2px solid #9b8256; border-radius: 10px; background: radial-gradient(circle at 52% 45%,#b8cf7a 0 7%,transparent 8%),linear-gradient(145deg,#658d52,#98b867 44%,#718d50 70%,#486f4a); box-shadow: inset 0 0 20px #213e2a9e; }
+.terrain-map::before { content: ''; position: absolute; inset: 0; opacity: .3; background-image: radial-gradient(#f2dc95 1px,transparent 1px); background-size: 11px 11px; }
+.terrain-map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.terrain-river { fill: none; stroke: #6fc2d4; stroke-width: 12; stroke-linecap: round; filter: drop-shadow(0 2px #315b6c); }
+.terrain-road { fill: none; stroke: #e4c789; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 4 3; }
+.terrain-road.minor { stroke-width: 3; }
+.terrain-forest,.terrain-hills { position: absolute; color: #315d36; font-size: 15px; letter-spacing: -4px; opacity: .75; text-shadow: 0 1px #b9d484; }
+.forest-a { left: 4px; top: 89px; transform: rotate(-12deg); }.forest-b { right: 10px; top: 82px; }.terrain-hills { right: 14px; bottom: 7px; color: #655c49; letter-spacing: 2px; }
+.terrain-node { position: absolute; z-index: 2; display: grid; justify-items: center; transform: translate(-50%,-50%); color: #fff5d0; font-size: 8px; font-weight: 900; text-align: center; text-shadow: 1px 1px 2px #17251a; }
+.terrain-node i { display: grid; place-items: center; width: 25px; height: 25px; border: 2px solid #d6bd7f; border-radius: 50%; background: #314d36e6; font-size: 14px; font-style: normal; box-shadow: 0 2px 4px #152418aa; }
+.terrain-node span { margin-top: 1px; padding: 0 3px; border-radius: 4px; background: #233929c9; white-space: nowrap; }
+.terrain-node.active { z-index: 4; color: #fff3a2; }
+.terrain-node.active i { width: 31px; height: 31px; border-color: #ffe36f; background: #507b45; font-size: 18px; box-shadow: 0 0 0 3px #fff2a659,0 0 14px #ffe873; animation: map-pin-pulse 1.8s ease-in-out infinite; }
+.terrain-node b { position: absolute; top: -13px; padding: 2px 5px; border-radius: 5px; background: #7b3d2e; color: #fff1c4; font-size: 7px; white-space: nowrap; }
+.terrain-friend { position: absolute; z-index: 6; display: grid; justify-items: center; transform: translate(-50%,-50%); color: #e8f6ff; font-size: 7px; font-weight: 900; text-shadow: 1px 1px 2px #15202a; }
+.terrain-friend i { display: grid; place-items: center; width: 19px; height: 19px; border: 2px solid #8dd6ff; border-radius: 50%; background: #315f7b; font-size: 10px; font-style: normal; box-shadow: 0 0 8px #77cbff; }
+.terrain-friend span { max-width: 62px; overflow: hidden; padding: 1px 3px; border-radius: 4px; background: #23445ed9; text-overflow: ellipsis; white-space: nowrap; }
+.dialog.world-map-dialog { width: min(900px,calc(100vw - 30px)); padding: 14px; background: #efe0bd; }
+.world-map-dialog h2 { margin: 0; color: #4c3821; text-align: center; }
+.world-map-dialog > p { margin: 4px 0 9px; color: #705837; text-align: center; }
+#world-map-large .terrain-map { height: min(610px,calc(100vh - 180px)); min-height: 380px; border-width: 5px; }
+#world-map-large .terrain-node i { width: 44px; height: 44px; font-size: 25px; }
+#world-map-large .terrain-node span { padding: 3px 8px; font-size: 13px; }
+#world-map-large .terrain-node.active i { width: 55px; height: 55px; font-size: 31px; }
+#world-map-large .terrain-node b { top: -24px; padding: 4px 8px; font-size: 11px; }
+#world-map-large .terrain-friend i { width: 34px; height: 34px; font-size: 19px; }
+#world-map-large .terrain-friend span { max-width: 120px; padding: 2px 7px; font-size: 11px; }
+@keyframes map-pin-pulse { 50% { transform: scale(1.12); } }
 .hidden { display: none !important; }
 .multiplayer { position: fixed; top: 310px; right: 20px; z-index: 25; width: 215px; }
 #room-toggle, #account-toggle, .room-panel { background: #23352bed; border: 2px solid #d5bd82a8; color: #fff9e9; box-shadow: 0 5px 0 #15221db3, 0 8px 22px #10201791; border-radius: 12px; }
@@ -117,6 +183,11 @@ kbd { display: inline-block; padding: 1px 4px; min-width: 16px; border-radius: 4
 .room-panel input { width: 100%; border: 1px solid #b2c29a; border-radius: 6px; padding: 7px; color: #243829; font: inherit; font-size: 12px; }
 .room-panel button { border: 0; border-radius: 7px; background: #8ab46b; color: #1d321f; padding: 7px; font-size: 11px; font-weight: 900; }
 .room-panel button:hover { background: #b0d28d; }
+.party-members { position: fixed; top: 315px; left: 20px; z-index: 21; width: min(235px, calc(100vw - 40px)); padding: 11px 13px; color: #fff3d4; background: #23352bed; border: 2px solid #d5bd82a8; border-radius: 12px; box-shadow: 0 5px 0 #15221db3; }
+.party-members strong { display: block; color: #f5d78b; font-size: 13px; }
+.party-members small { color: #d7e8c9; font-size: 10px; }
+.party-members ol { margin: 8px 0 0; padding-left: 22px; display: grid; gap: 5px; max-height: 180px; overflow-y: auto; font-size: 12px; }
+.party-members li { overflow-wrap: anywhere; }
 .world-chat { position: fixed; top: 187px; left: 20px; z-index: 25; width: min(285px, calc(100vw - 40px)); }
 .community-panel { position: fixed; top: 248px; left: 20px; z-index: 20; width: min(265px, calc(100vw - 40px)); display: grid; gap: 5px; padding: 11px 13px; color: #fff3d4; background: #23352bed; border: 2px solid #d5bd82a8; border-radius: 12px; box-shadow: 0 5px 0 #15221db3; font-size: 12px; }
 .community-panel strong { color: #f5d78b; }.community-panel small { font-size: 11px; color: #d7e8c9; }
@@ -127,13 +198,17 @@ kbd { display: inline-block; padding: 1px 4px; min-width: 16px; border-radius: 4
 #chat-log { height: 150px; overflow-y: auto; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
 #chat-log > div { padding: 3px 0; border-bottom: 1px solid #ffffff20; }
 #chat-log b { color: #f3d485; }
+#chat-log .chat-notice { color: #f5d78b; font-style: italic; }
+.online-list { font-size: 11px; color: #d7e8c9; }
+.online-list summary { cursor: pointer; font-weight: 900; }
+.online-list ul { max-height: 95px; overflow-y: auto; margin: 5px 0; padding-left: 20px; }
 #chat-form { display: flex; gap: 5px; }
 #chat-input { width: 100%; min-width: 0; border: 1px solid #9eaf89; border-radius: 6px; padding: 7px; font: inherit; font-size: 11px; }
 #chat-form button { border: 0; border-radius: 6px; padding: 6px 10px; background: #9fc47a; color: #203320; font-weight: 900; }
 .overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #14201bb0; backdrop-filter: blur(4px); }
 .dialog { width: min(390px, calc(100vw - 30px)); background: #f4ead0; color: #354a35; border: 5px solid #8b643e; border-radius: 16px; box-shadow: 0 13px 0 #4c3327, 0 25px 55px #101c15c7; padding: 18px; }
 .account-dialog label { display: grid; gap: 4px; margin: 10px 0; font-size: 12px; font-weight: 900; }
-.account-dialog input { width: 100%; padding: 10px; border: 2px solid #ad946b; border-radius: 8px; font: inherit; }
+.account-dialog input, .account-dialog select { width: 100%; padding: 10px; border: 2px solid #ad946b; border-radius: 8px; font: inherit; }
 .account-dialog small { color: #6e775e; font-size: 11px; }
 .account-actions { display: flex; gap: 8px; margin: 13px 0 6px; }
 .account-actions button, #save-choice button, #account-logout { border: 0; border-radius: 8px; padding: 10px 12px; background: #3b6c4e; color: #fff9e9; font-weight: 900; }
@@ -153,9 +228,145 @@ kbd { display: inline-block; padding: 1px 4px; min-width: 16px; border-radius: 4
 .trade:hover { color: white; }.trade span { font-weight: 900; }.trade small { display: block; font-size: 10px; font-weight: 500; margin-top: 4px; }.trade strong { white-space: nowrap; font-size: 12px; }
 .trade:disabled { opacity: .55; cursor: default; }
 .dialog-foot { text-align: center; margin-top: 16px; color: #8e826e; font-size: 10px; }
+
+/* Pastel farmers' market storefronts */
+.dialog.shop-dialog { position: relative; width: min(1040px,calc(100vw - 28px)); max-height: calc(100vh - 28px); overflow-y: auto; padding: 0 18px 16px; border: 7px solid #8d5b35; border-radius: 22px; background: linear-gradient(90deg,#f4d9a3 0 20%,#fff4d7 20%); color: #59391f; box-shadow: inset 0 0 0 3px #d9a867,0 18px 0 #573820,0 28px 65px #17120dc9; scrollbar-color: #b77942 #f1dbad; }
+.shop-dialog::before { content: ''; display: block; height: 48px; margin: 0 -18px 6px; border-radius: 13px 13px 5px 5px; background: repeating-linear-gradient(90deg,#df6f55 0 65px,#fff0d6 65px 130px); box-shadow: inset 0 -7px #9b4f3e,0 5px 8px #4b2e1f59; }
+.shop-dialog .dialog-top { position: sticky; z-index: 5; top: 0; height: 0; overflow: visible; color: #7c4b25; }
+.shop-dialog .dialog-top > span { position: absolute; top: -39px; left: 10px; padding: 4px 10px; border-radius: 8px; background: #fff0ceeb; letter-spacing: .12em; }
+.shop-dialog .dialog-top > button { position: absolute; top: -43px; right: 2px; width: 38px; height: 38px; border: 3px solid #895c35; border-radius: 9px; background: #ffe4ad; font-size: 20px; }
+.shop-coins { position: absolute; top: -41px; right: 53px; padding: 8px 15px; border: 2px solid #f3cb72; border-radius: 20px; background: #3d2b22; color: #fff7dc; font-size: 13px; letter-spacing: 0; white-space: nowrap; }
+.shop-coins::first-letter { color: #ffc83e; }
+.shop-dialog > h2 { position: relative; margin: 8px 0 0; padding: 18px 145px 8px 20px; color: #663718; font: 900 clamp(27px,4vw,43px) Georgia,serif; text-shadow: 0 2px #fff6dc; }
+.shop-dialog > h2::after { content: '🧺🌿'; position: absolute; right: 35px; bottom: -6px; font-size: 57px; filter: drop-shadow(0 4px 2px #825a3570); }
+.shop-dialog > p { margin: 0 0 13px; padding: 0 150px 15px 22px; border-bottom: 2px solid #d6b476; color: #775531; font-size: 13px; }
+.shop-toolbar { display: flex; align-items: center; gap: 8px; margin: 8px 0 14px; padding: 9px 13px; border: 2px solid #dfc69a; border-radius: 11px; background: #fffaf0; color: #8b6c47; font-size: 24px; }
+.shop-toolbar input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #5b4329; font: 800 13px Nunito,sans-serif; }
+.shop-products { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.shop-products.compact { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.shop-dialog .market-divider { display: flex; align-items: center; gap: 9px; margin: 16px 0 8px; color: #60411f; font: 900 19px Georgia,serif; letter-spacing: 0; }
+.shop-dialog .market-divider::after { content: ''; flex: 1; height: 2px; background: #d8bd83; }
+.shop-dialog .trade { position: relative; min-height: 154px; display: grid; align-content: end; gap: 8px; margin: 0; padding: 74px 10px 10px; overflow: hidden; border: 3px solid #e0c89b; border-radius: 14px; background: linear-gradient(#b8d997 0 64%,#fffaf0 64%); color: #4b351f; box-shadow: 0 4px 0 #c6a878,inset 0 0 0 2px #fffbed; }
+.shop-dialog .trade::before { content: '🧺'; position: absolute; inset: 8px 8px auto; font-size: 48px; line-height: 1.1; text-align: center; filter: drop-shadow(0 5px 1px #5c432f45); }
+.shop-dialog .trade[data-buy="radish_seed"]::before { content: '🌱'; }
+.shop-dialog .trade[data-buy="carrot_seed"]::before { content: '🥕'; }
+.shop-dialog .trade[data-buy="tomato_seed"]::before { content: '🍅'; }
+.shop-dialog .trade[data-buy="rice_meal"]::before { content: '🍱'; }
+.shop-dialog .trade[data-buy="sword"]::before { content: '⚔️'; }
+.shop-dialog .trade[data-buy="bow"]::before { content: '🏹'; }
+.shop-dialog .trade[data-sell="carrot"]::before { content: '🥕'; }
+.shop-dialog .trade[data-sell="tomato"]::before { content: '🍅'; }
+.shop-dialog .trade[data-sell="meat"]::before { content: '🥩'; }
+.shop-dialog .trade[data-sell="hide"]::before { content: '🦬'; }
+.shop-dialog .trade[data-sell="copper"]::before { content: '🟠'; }
+.shop-dialog .trade[data-sell="iron"]::before { content: '⚪'; }
+.shop-dialog .trade[data-sell="moonstone"]::before { content: '💎'; }
+.shop-dialog .trade[data-special-buy="wand"]::before { content: '🪄'; }
+.shop-dialog .trade[data-special-buy="broom"]::before { content: '🧹'; }
+.shop-dialog .trade[data-special-buy="mana_potion"]::before { content: '🧪'; }
+.shop-dialog .trade[data-craft]::before { content: '🗡️'; }
+.shop-dialog .trade[data-outfit]::before { content: '👗'; }
+.shop-dialog .trade[data-gear-buy]::before { content: '✨'; }
+.shop-dialog .trade[data-open-wardrobe]::before { content: '🪞'; }
+.shop-dialog .trade[data-festival-item="radish"]::before { content: '🌱'; }
+.shop-dialog .trade[data-festival-item="carrot"]::before { content: '🥕'; }
+.shop-dialog .trade[data-festival-item="tomato"]::before { content: '🍅'; }
+.shop-dialog .trade:nth-child(3n+2) { background: linear-gradient(#c3dce4 0 64%,#fffaf0 64%); }
+.shop-dialog .trade:nth-child(3n) { background: linear-gradient(#e9c68d 0 64%,#fffaf0 64%); }
+.shop-dialog .trade:hover { transform: translateY(-2px); border-color: #e1a94b; color: #4b351f; box-shadow: 0 7px 0 #bb8d4d,0 0 15px #ffcd69; }
+.shop-dialog .trade span { position: relative; z-index: 1; font-size: 15px; line-height: 1.25; }
+.shop-dialog .trade small { color: #826c50; font-size: 10px; }
+.shop-dialog .trade strong { position: relative; z-index: 1; justify-self: stretch; padding: 8px; border-radius: 8px; background: linear-gradient(#68a548,#438237); color: white; font-size: 12px; text-align: center; }
+.shop-dialog .trade.sell-card strong,.shop-dialog .sell-products .trade strong { background: linear-gradient(#cf9446,#a9682c); }
+.shop-dialog .trade[hidden] { display: none; }
+.shop-dialog #special-list > .market-divider { grid-column: 1 / -1; }
+.shop-dialog .dialog-foot { margin-top: 15px; color: #765735; }
+@media (max-width: 760px) { .dialog.shop-dialog { background: #fff1cf; }.shop-products { grid-template-columns: repeat(2,minmax(0,1fr)); }.shop-dialog > h2 { padding-right: 80px; font-size: 27px; }.shop-dialog > h2::after { right: 15px; font-size: 38px; }.shop-dialog > p { padding-right: 10px; }.shop-coins { right: 48px; padding: 7px 9px; font-size: 10px; } }
+@media (max-width: 460px) { .shop-products,.shop-products.compact { grid-template-columns: 1fr; }.shop-dialog .trade { min-height: 130px; }.shop-dialog .dialog-top > span { display: none; }.shop-dialog > h2 { font-size: 23px; } }
 @media (max-width: 1050px) { .day-display { position: fixed; top: 82px; left: 20px; min-height: 36px; font-size: 10px; z-index: 21; }.inventory { bottom: 109px; }.map-guide { display: none; }.hotbar { max-width: calc(100vw - 20px); width: max-content; }.bottom-center { bottom: 200px; width: min(440px, calc(100vw - 25px)); } }
+@media (min-width: 801px) and (max-width: 1050px) { .map-guide { display: block; left: 20px; right: auto; top: 245px; bottom: auto; width: 190px; padding: 8px; z-index: 20; }.map-guide .terrain-map { height: 128px; }.map-guide .section-label { font-size: 10px; }.map-guide #map-expand { margin-top: 5px; padding: 5px; }.terrain-node span { font-size: 7px; } }
 @media (max-width: 800px) { .brand { font-size: 11px; padding-right: 10px; }.brand .flower { width: 28px; height: 28px; font-size: 18px; }.location { min-width: 110px; }.location strong { font-size: 13px; }.location-label { font-size: 7px; }.topbar { top: 10px; left: 10px; right: 10px; gap: 6px; }.status { top: 72px; right: 10px; }.inventory { left: 10px; bottom: 106px; width: 165px; }.inventory .section-label small, .item small, #switch-character span { display: none; }.item strong { font-size: 9px; }.hotbar-slot { flex-basis: 58px; height: 70px; } }
 @media (max-width: 600px) { #dress-toggle { padding: 9px 7px; font-size: 10px; }.location { display: none; } }
 @media (max-width: 800px) { .day-display { top: 58px; left: 10px; max-width: calc(100vw - 200px); white-space: normal; padding: 5px 9px; line-height: 1.3; }.multiplayer { top: 275px; right: 10px; width: 170px; } .world-chat { top: 150px; left: 10px; width: 225px; } .status { min-width: 170px; } }
 @media (max-width: 800px) { .community-panel { left: 10px; top: 205px; width: 225px; } }
+@media (max-width: 800px) { .party-members { left: 10px; top: 275px; width: 225px; } }
 @media (max-width: 480px) { .brand { height: 41px; }.location { padding: 5px 8px; }.status { top: 58px; }.inventory { width: 150px; max-height: 125px; overflow: hidden; }.bottom-center { bottom: 188px; }.controls { display: none; }.hotbar-slot { flex-basis: 52px; } .slot-name { font-size: 8px; } }
+
+/* Full farmers' market composition */
+.dialog.shop-dialog { padding: 0 22px 22px 224px; background: linear-gradient(90deg,#f5dba5 0 200px,#fff4d8 200px); }
+.shop-dialog::after { content: '☘  ทั้งหมด\A\A🌱  เมล็ดพันธุ์\A\A🍱  อาหารและอาวุธ\A\A⚔️  อาวุธ\A\A💍  เครื่องประดับ\A\A👜  รับซื้อของ'; white-space: pre; position: absolute; z-index: 2; top: 72px; bottom: 20px; left: 18px; width: 158px; padding: 18px 12px; border: 3px solid #ddb873; border-radius: 18px; background: linear-gradient(#fff0c8,#f3d49c); color: #5b3a1e; font: 900 14px/2.65 Nunito,sans-serif; box-shadow: inset 0 0 0 2px #fff5d9,0 4px 0 #b27b43; }
+#special-shop[data-kind="forge"] .shop-dialog::after { content: '⚔  อาวุธ\A\A🛡  เกราะ\A\A⚒  เครื่องมือ\A\A◆  วัสดุอัปเกรด'; }
+#special-shop[data-kind="tailor"] .shop-dialog::after { content: '👗  เสื้อผ้า\A\A🎩  หมวก\A\A👢  รองเท้า\A\A💍  เครื่องประดับ\A\A◇  อัญมณี'; }
+#special-shop[data-kind="magic_shop"] .shop-dialog::after { content: '✦  คาถา\A\A🧪  โพชั่น\A\A◆  คริสตัล\A\A🪄  อุปกรณ์เวท'; }
+#special-shop[data-kind="animal_shop"] .shop-dialog::after { content: '♞  สัตว์เลี้ยง\A\A🌾  อาหารสัตว์\A\A🔔  อุปกรณ์สัตว์'; }
+#special-shop[data-kind="furniture_shop"] .shop-dialog::after { content: '▣  เฟอร์นิเจอร์\A\A✤  ของตกแต่ง\A\A▰  วัสดุงานไม้'; }
+.shop-dialog > h2 { min-height: 190px; margin: 9px 0 0; padding: 28px 44% 58px 24px; border: 4px solid #c58b49; border-radius: 17px 17px 0 0; background: linear-gradient(100deg,#ffe5ae 0 48%,#a5c179 48% 100%); box-shadow: inset 0 0 0 3px #fff5d4; font-size: clamp(26px,3.4vw,42px); }
+.shop-dialog.illustrated-shop > h2 { min-height: 190px; padding-right: 52%; background-image: linear-gradient(90deg,#3b2418cc 0 42%,#3b241833 58%,transparent 74%),var(--illustrated-shop-banner); background-position: center,center; background-size: cover; color: #fff5d9; text-shadow: 0 3px 2px #30190f,0 0 12px #30190f; }
+.shop-dialog.illustrated-shop > h2::before,.shop-dialog.illustrated-shop > h2::after { display: none; }
+.shop-dialog.illustrated-shop > p { margin-top: -55px; max-width: 43%; padding: 0 0 12px 25px; color: #fff5d9; text-shadow: 0 2px 2px #30190f; }
+.shop-dialog.illustrated-shop .trade::before { content: ''; height: 92px; background-image: url('/assets/ui/shop-item-atlas.png'); background-repeat: no-repeat; background-size: 400% 400%; }
+.shop-dialog.illustrated-shop .trade[data-craft]::before { background-position: 33.333% 0; }
+.shop-dialog.illustrated-shop .trade[data-special-buy="wand"]::before { background-position: 66.666% 0; }
+.shop-dialog.illustrated-shop .trade[data-special-buy="broom"]::before { background-position: 100% 0; }
+.shop-dialog.illustrated-shop .trade[data-special-buy="mana_potion"]::before { background-position: 0 33.333%; }
+.shop-dialog.illustrated-shop .trade[data-local-buy="meat"]::before { background-position: 33.333% 33.333%; }
+.shop-dialog.illustrated-shop .trade[data-local-buy="stew"]::before { background-position: 66.666% 33.333%; }
+.shop-dialog.illustrated-shop .trade[data-local-buy="wood"]::before { background-position: 0 66.666%; }
+.shop-dialog.illustrated-shop .trade[data-local-buy="stone"]::before { background-position: 33.333% 66.666%; }
+.shop-dialog.illustrated-shop .trade[data-outfit]::before { background-position: 0 100%; }
+.shop-dialog.illustrated-shop .trade[data-gear-buy]::before { background-position: 66.666% 100%; }
+.shop-dialog.illustrated-shop .trade[data-open-wardrobe]::before { background-position: 100% 100%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="iron_sword"]::before { background-position: 0 0; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="arcane_sword"]::before { background-position: 33.333% 0; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="wand"]::before { background-position: 66.666% 0; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="broom"]::before { background-position: 100% 0; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="mana_potion"]::before { background-position: 0 33.333%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="animal_feed"]::before { background-position: 33.333% 33.333%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="pet_basket"]::before { background-position: 66.666% 33.333%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="bell_collar"]::before { background-position: 100% 33.333%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="carved_chair"]::before { background-position: 0 66.666%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="walnut_cabinet"]::before { background-position: 33.333% 66.666%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="flower_table"]::before { background-position: 66.666% 66.666%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="hanging_lantern"]::before { background-position: 100% 66.666%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="plum_dress"]::before { background-position: 0 100%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="constellation_hat"]::before { background-position: 33.333% 100%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="amethyst_bracelet"]::before { background-position: 66.666% 100%; }
+.shop-dialog.illustrated-shop .trade[data-shop-art="moon_necklace"]::before { background-position: 100% 100%; }
+.shop-dialog .trade.display-only { cursor: default; }
+.shop-dialog .trade.display-only strong { display: block; font-size: 0; }
+.shop-dialog .trade.display-only strong::before { display: none; }
+.shop-dialog .trade.display-only strong::after { content: 'เร็ว ๆ นี้'; display: block; font-size: 12px; background: linear-gradient(#9c8d79,#786956); box-shadow: inset 0 0 0 1px #b8aa95; }
+.shop-dialog .trade.display-only:hover { transform: none; border-color: #e0c89b; box-shadow: 0 4px 0 #c6a878,inset 0 0 0 2px #fffbed; }
+.shop-dialog > h2::before { content: ''; position: absolute; z-index: 1; right: 4%; bottom: -12px; width: 210px; height: 160px; background: url('/assets/npcs.png') 50% 44% / 630px auto no-repeat; filter: drop-shadow(0 6px 3px #5c3b244f); }
+.shop-dialog > h2::after { content: 'ยินดีต้อนรับจ้า!'; right: 25%; bottom: 77px; padding: 11px 15px; border: 3px solid #d3a66b; border-radius: 22px 22px 5px 22px; background: #fff8e5; color: #6a4828; font: 900 12px Nunito,sans-serif; filter: none; }
+.shop-dialog > p { margin: -58px 48% 14px 25px; min-height: 44px; padding: 0; border: 0; position: relative; z-index: 1; line-height: 1.45; }
+.shop-toolbar { margin-top: 17px; }
+.shop-dialog .market-divider { margin-top: 19px; }
+.shop-dialog .trade { min-height: 194px; padding-top: 110px; background: linear-gradient(#aacd87 0 59%,#fffaf0 59%); }
+.shop-dialog .trade::before { top: 20px; font-size: 67px; }
+.shop-dialog .trade span { padding-right: 2px; font-size: 15px; }
+.shop-dialog .trade strong { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 7px; padding: 0; background: transparent; color: #77512b; text-align: left; }
+.shop-dialog .trade strong::before { content: '−  1  ＋'; display: block; padding: 8px 4px; border: 2px solid #dfcba4; border-radius: 8px; background: #fff7e5; color: #725334; text-align: center; }
+.shop-dialog .trade strong::after { content: 'ซื้อ'; padding: 9px 7px; border-radius: 8px; background: linear-gradient(#70ad4e,#438437); color: #fff; text-align: center; box-shadow: inset 0 0 0 1px #9bd078; }
+.shop-dialog .trade.sell-card strong::after,.shop-dialog .sell-products .trade strong::after { content: 'ขาย'; background: linear-gradient(#d79b4c,#ae6d2d); box-shadow: inset 0 0 0 1px #efbd76; }
+.shop-dialog .trade[data-outfit] strong::after,.shop-dialog .trade[data-gear-buy] strong::after,.shop-dialog .trade[data-open-wardrobe] strong::after { content: 'เลือก'; }
+.shop-dialog .trade[data-craft] strong::after { content: 'หลอม'; }
+.shop-dialog .trade[data-festival-item] strong::after { content: 'ร่วมงาน'; }
+.shop-dialog .sell-products { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.shop-dialog .sell-products .trade { min-height: 170px; padding-top: 90px; }
+.shop-dialog .sell-products .trade::before { font-size: 54px; }
+.shop-dialog .trade:hover strong { color: #77512b; }
+.shop-dialog #special-list > .market-divider { width: 100%; }
+@media (max-width: 850px) {
+  .dialog.shop-dialog { padding-left: 18px; background: #fff1cf; }
+  .shop-dialog::after { display: none; }
+  .shop-dialog > h2 { padding-right: 43%; }
+  .shop-dialog > h2::before { right: 1%; }
+  .shop-dialog > h2::after { display: none; }
+}
+@media (max-width: 540px) {
+  .shop-dialog > h2 { min-height: 130px; padding: 18px 38% 42px 15px; }
+  .shop-dialog > h2::before { width: 145px; height: 112px; background-size: 435px auto; }
+  .shop-dialog > p { margin: -43px 40% 13px 16px; font-size: 10px; }
+  .shop-dialog .sell-products { grid-template-columns: 1fr; }
+}

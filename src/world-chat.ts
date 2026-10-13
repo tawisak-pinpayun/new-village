@@ -1,14 +1,25 @@
-export type ChatMessage = { name: string; text: string; time: number }
+export type ChatMessage = { name: string; text: string; time: number; notice?: boolean }
+export type OnlinePlayer = { id: string; name: string }
 
 export class WorldChat {
   private socket?: WebSocket
   private retry?: number
   private closed = false
   messages: ChatMessage[] = []
+  players: OnlinePlayer[] = []
+  server = 1
   onMessages: (messages: ChatMessage[]) => void = () => {}
+  onPlayers: (players: OnlinePlayer[]) => void = () => {}
   onStatus: (text: string) => void = () => {}
 
-  connect() {
+  connect(server = this.server) {
+    if (this.retry) window.clearTimeout(this.retry)
+    this.socket?.close()
+    this.server = server
+    this.messages = []
+    this.players = []
+    this.onMessages(this.messages)
+    this.onPlayers(this.players)
     this.closed = false
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
     const host = import.meta.env.DEV ? `${location.hostname}:3000` : location.host
@@ -16,14 +27,16 @@ export class WorldChat {
     this.socket = socket
     this.onStatus('กำลังเชื่อมต่อแชทโลก')
     socket.onopen = () => {
-      socket.send(JSON.stringify({ type: 'chat-join', name: localStorage.getItem('new-village.player-name') || 'ชาวบ้าน' }))
+      socket.send(JSON.stringify({ type: 'chat-join', name: localStorage.getItem('new-village.player-name') || 'ชาวบ้าน', server: this.server }))
       this.onStatus('แชทโลกออนไลน์')
     }
     socket.onmessage = event => {
       let data: any
       try { data = JSON.parse(event.data) } catch { return }
+      if (data.type === 'online-players' && Array.isArray(data.players)) { this.players = data.players; this.onPlayers(this.players); return }
       if (data.type === 'chat-history' && Array.isArray(data.messages)) this.messages = data.messages.slice(-40)
       else if (data.type === 'chat') this.messages.push({ name: String(data.name), text: String(data.text), time: Number(data.time) })
+      else if (data.type === 'chat-notice') this.messages.push({ name: '', text: String(data.text), time: Number(data.time), notice: true })
       else return
       this.messages = this.messages.slice(-40)
       this.onMessages(this.messages)
@@ -31,7 +44,7 @@ export class WorldChat {
     socket.onclose = () => {
       if (this.socket !== socket || this.closed) return
       this.onStatus('แชทหลุด กำลังเชื่อมต่อใหม่')
-      this.retry = window.setTimeout(() => this.connect(), 3000)
+      this.retry = window.setTimeout(() => this.connect(this.server), 3000)
     }
   }
 

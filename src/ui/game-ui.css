@@ -1,0 +1,86 @@
+.game-window { font-family: var(--game-font-ui); color: var(--game-color-ink); }
+.dialog.game-market { display: grid; grid-template-columns: 190px 1fr; grid-template-rows: auto auto 1fr; padding: 0; background: var(--game-color-parchment); border: var(--game-border-frame); border-radius: var(--game-radius-lg); box-shadow: var(--game-shadow-window); }
+.game-market::before,.game-market::after { display: none; }
+.game-market .game-awning { grid-column: 1 / -1; position: relative; height: 52px; padding: 0 18px; background: repeating-linear-gradient(90deg,#df6f55 0 66px,#fff0d6 66px 132px); border-bottom: 7px solid #9b4f3e; }
+.game-market .game-awning > span { position: static; padding: 5px 12px; border-radius: 8px; background: #fff2d5; color: var(--game-color-ink); }
+.game-market .shop-coins { top: 7px; right: 62px; display: flex; align-items: center; gap: 6px; }
+.game-market .game-awning > button { top: 5px; right: 10px; }
+.game-shop-nav { grid-row: 2 / 4; display: grid; align-content: start; gap: 10px; padding: 18px 14px; background: linear-gradient(#f9e4b7,#efd09a); border-right: var(--game-border-thin); }
+.game-shop-nav button { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border: var(--game-border-thin); border-radius: var(--game-radius-md); background: #fff0c9; color: var(--game-color-ink); font: 900 13px var(--game-font-ui); text-align: left; transition: transform var(--game-motion-fast),background var(--game-motion-fast); }
+.game-shop-nav button::before { content: ''; flex: 0 0 28px; height: 28px; background-image: url('/assets/ui/market-item-atlas.png'); background-size: 400% 400%; background-repeat: no-repeat; filter: drop-shadow(0 2px 1px #5c3a2355); }
+.game-shop-nav button:nth-child(1)::before { background-position: 100% 100%; }
+.game-shop-nav button:nth-child(2)::before { background-position: 0 0; }
+.game-shop-nav button:nth-child(3)::before { background-position: 100% 0; }
+.game-shop-nav button:nth-child(4)::before { background-position: 0 33.333%; }
+.game-shop-nav button:nth-child(5)::before { background-position: 66.666% 100%; }
+.game-shop-nav button:hover { transform: translateX(3px); background: #fff7de; }
+.game-shop-nav button.active { background: linear-gradient(#72a952,#4f8d3e); color: #fff; box-shadow: inset 0 0 0 2px #aad18c,0 3px 0 #386a31; }
+#market-shop[data-active-tab="sell"] .game-shop-nav button:not(:first-child) { display: none; }
+.game-shop-hero { position: relative; width: 100%; max-width: 100%; height: 170px; min-height: 0; overflow: hidden; background: var(--shop-banner) var(--shop-banner-position,center 48%) / cover no-repeat; border-bottom: 5px solid var(--game-color-wood); }
+.game-wood-sign { position: absolute; left: 3%; top: 10%; width: 45%; min-height: 78%; display: grid; align-content: center; padding: 18px 25px; border: 3px solid #b97839; border-radius: 13px; background: linear-gradient(100deg,#ffd990f2,#f7c878f2); box-shadow: inset 0 0 0 3px #ffe9b7,0 6px 0 #7b4c29,0 10px 20px #50311e42; }
+.game-wood-sign::before,.game-wood-sign::after { content: ''; position: absolute; width: 23px; height: 23px; background: url('/assets/ui/market-item-atlas.png') 100% 100% / 400% 400% no-repeat; filter: drop-shadow(0 2px 1px #5a3b2480); }
+.game-wood-sign::before { left: -10px; top: -9px; transform: rotate(-28deg); }
+.game-wood-sign::after { right: -9px; bottom: -8px; transform: rotate(24deg); }
+.game-shop-hero small { color: #8c5d2e; font-weight: 900; letter-spacing: .14em; }
+.game-shop-hero h2 { margin: 3px 0; color: #603718; font: 900 clamp(23px,2.7vw,34px)/1.04 var(--game-font-display); text-shadow: 0 2px #fff8dc; }
+.game-shop-hero p { margin: 6px 0 0; color: var(--game-color-ink-muted); font-size: 11px; }
+.game-speech { position: absolute; z-index: 2; right: 4%; top: 40px; padding: 11px 15px; border: 3px solid #d3a66b; border-radius: 20px 20px 5px 20px; background: var(--game-color-cream); font-size: 11px; font-weight: 900; box-shadow: 0 4px 10px #56371935; }
+.game-shop-content { min-width: 0; padding: 14px 18px 20px; }
+.game-shop-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; padding: 5px; border: var(--game-border-thin); border-radius: 13px; background: #efd7a8; }
+.game-shop-tabs button { min-height: 42px; border: 0; border-radius: 9px; background: transparent; color: var(--game-color-ink-muted); font: 900 14px var(--game-font-ui); }
+.game-shop-tabs button.active { background: linear-gradient(var(--game-color-leaf-hover),var(--game-color-leaf)); color: #fff; box-shadow: inset 0 0 0 2px #a9d38f,0 3px 0 #35662f; }
+.game-shop-feedback { min-height: 0; overflow: hidden; padding: 0 12px; border-radius: 8px; color: #fff; font-size: 12px; font-weight: 900; transition: min-height var(--game-motion-fast),padding var(--game-motion-fast); }
+.game-shop-feedback.visible { min-height: 34px; margin-bottom: 8px; padding: 8px 12px; background: #4f7d3e; }.game-shop-feedback.error { background: #9a4e3d; }
+.game-shop-empty { display: grid; justify-items: center; gap: 5px; margin: 18px 0 8px; padding: 28px 20px; border: 2px dashed #c9a66c; border-radius: var(--game-radius-md); background: linear-gradient(#fff8e7,#f4e2bd); color: var(--game-color-ink-muted); text-align: center; }
+.game-shop-empty[hidden] { display: none; }
+.game-shop-empty strong { color: var(--game-color-ink); font: 900 17px var(--game-font-display); }
+.game-empty-art { width: 54px; height: 54px; background: url('/assets/ui/market-item-atlas.png') 100% 100% / 400% 400% no-repeat; filter: sepia(.15) drop-shadow(0 3px 2px #6b492c40); }
+.game-market-tools { display: grid; grid-template-columns: 1fr 220px; gap: 10px; }
+.game-shop-content .shop-toolbar { margin: 0 0 15px; }
+.game-sort { height: 48px; display: flex; align-items: center; gap: 7px; padding: 0 10px; border: var(--game-border-thin); border-radius: 11px; background: var(--game-color-cream); color: var(--game-color-ink-muted); font-size: 10px; font-weight: 900; }
+.game-sort select { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--game-color-ink); font: 900 11px var(--game-font-ui); }
+.game-shop-section h3 { display: flex; align-items: center; gap: 10px; margin: 16px 0 9px; font: 900 18px var(--game-font-display); }
+.game-shop-section h3::before { content: ''; width: 22px; height: 22px; background: url('/assets/ui/market-item-atlas.png') 100% 100% / 400% 400% no-repeat; }
+.game-shop-section h3::after { content: ''; flex: 1; height: 2px; background: #d8bd83; }
+.game-market .shop-products { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.game-item-card.trade { min-height: 225px; grid-template-columns: 78px 1fr; grid-template-rows: 132px auto 38px; align-content: stretch; padding: 0 10px 10px; background: var(--game-color-cream); border: 3px solid #dfc79a; box-shadow: var(--game-shadow-card); transition: transform var(--game-motion-fast),box-shadow var(--game-motion-fast),border-color var(--game-motion-fast); }
+.game-item-card.trade:hover { transform: translateY(-4px); border-color: #d5a35a; box-shadow: 0 8px 0 #b98c54,0 14px 24px #60401e30; }
+.game-item-card.trade:active { transform: translateY(-1px); box-shadow: 0 4px 0 #b98c54; }
+.game-item-card.trade::before { display: none; }
+.game-item-art { grid-column: 1 / -1; width: calc(100% + 20px); height: 132px; margin-left: -10px; border-bottom: var(--game-border-thin); background-color: #b4d492; background-image: var(--asset-url); background-repeat: no-repeat; background-size: 400% 400%; background-position: calc(var(--asset-x) * 100% / 3) calc(var(--asset-y) * 100% / 3); }
+.game-item-card:nth-child(3n+2) .game-item-art { background-color: #c6dfe5; }
+.game-item-card:nth-child(3n) .game-item-art { background-color: #edca8f; }
+.game-item-copy { grid-column: 1 / -1; display: grid; align-content: start; gap: 2px; padding-top: 7px; }
+.game-item-copy b { font-size: 14px; }
+.game-item-copy small { color: var(--game-color-ink-muted); }
+.game-item-copy .game-owned { color: var(--game-color-leaf); font-weight: 900; }
+.game-item-copy em { display: flex; align-items: center; gap: 5px; color: var(--game-color-ink); font-style: normal; font-weight: 900; }
+.game-coin-icon { display: inline-block; width: 18px; height: 18px; background: url('/assets/ui/market-item-atlas.png') 33.333% 100% / 400% 400% no-repeat; }
+.game-item-card .game-quantity { display: grid; grid-template-columns: 1fr 1fr 1fr; place-items: center; height: 36px; overflow: hidden; border: var(--game-border-thin); border-radius: var(--game-radius-sm); background: #fff7e5; }
+.game-quantity button { width: 100%; height: 100%; padding: 0; border: 0; background: transparent; color: var(--game-color-ink); font-size: 16px; font-weight: 900; }
+.game-quantity button:hover { background: #eed6a7; }
+.game-quantity output { font-weight: 900; }
+.game-item-card .game-purchase { align-self: stretch; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--game-radius-sm); background: linear-gradient(var(--game-color-leaf-hover),var(--game-color-leaf)); color: #fff; font-weight: 900; box-shadow: inset 0 0 0 1px #a8d68b,0 3px 0 #356b2d; transition: filter var(--game-motion-fast),transform var(--game-motion-fast); }
+.game-item-card .game-purchase:hover { filter: brightness(1.12); }
+.game-item-card .game-purchase:active { transform: translateY(2px); box-shadow: inset 0 0 0 1px #a8d68b,0 1px 0 #356b2d; }
+.game-item-card.sell-card .game-purchase { background: linear-gradient(#d39a4d,var(--game-color-sell)); box-shadow: inset 0 0 0 1px #efc180,0 3px 0 #8c5323; }
+.game-sell-section .shop-products { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.game-sell-section .game-item-card.trade { min-height: 190px; grid-template-rows: 102px auto 38px; }
+.game-sell-section .game-item-art { height: 102px; }
+@media (max-width: 850px) {
+  .game-market { grid-template-columns: 1fr; }
+  .game-shop-nav { grid-row: auto; display: flex; overflow-x: auto; border-right: 0; border-bottom: var(--game-border-thin); }
+  .game-shop-nav button { flex: 0 0 auto; }
+  .game-shop-hero { padding-right: 42%; }
+  .game-market .shop-products,.game-sell-section .shop-products { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 520px) {
+  .game-shop-hero { height: 128px; min-height: 128px; background-position: 57% 48%; }
+  .game-wood-sign { left: 2%; top: 8%; width: 57%; min-height: 82%; padding: 10px 13px; }
+  .game-shop-hero h2 { font-size: 20px; }
+  .game-shop-hero p,.game-shop-hero small { display: none; }
+  .game-shopkeeper { right: -18px; width: 160px; height: 137px; background-size: 480px auto; }
+  .game-speech { display: none; }
+  .game-market-tools { grid-template-columns: 1fr; }
+  .game-market .shop-products,.game-sell-section .shop-products { grid-template-columns: 1fr; }
+}

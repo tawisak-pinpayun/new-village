@@ -1,0 +1,31 @@
+:root {
+  --game-color-ink: #51361f;
+  --game-color-ink-muted: #7b6040;
+  --game-color-parchment: #fff4d8;
+  --game-color-parchment-deep: #f1d49c;
+  --game-color-cream: #fffaf0;
+  --game-color-wood: #8d5b35;
+  --game-color-wood-dark: #583820;
+  --game-color-wood-light: #d7a463;
+  --game-color-leaf: #4f8d3e;
+  --game-color-leaf-hover: #67a64d;
+  --game-color-sell: #b87732;
+  --game-color-gold: #f5bd42;
+  --game-color-danger: #a95042;
+  --game-border-thin: 2px solid #ddc18a;
+  --game-border-frame: 6px solid var(--game-color-wood);
+  --game-radius-sm: 8px;
+  --game-radius-md: 14px;
+  --game-radius-lg: 22px;
+  --game-shadow-card: 0 4px 0 #c2a16f, 0 8px 18px #5c3c2024;
+  --game-shadow-window: 0 16px 0 var(--game-color-wood-dark), 0 30px 70px #17120dcc;
+  --game-font-ui: Nunito, Tahoma, sans-serif;
+  --game-font-display: Georgia, 'Noto Serif Thai', serif;
+  --game-space-1: 4px;
+  --game-space-2: 8px;
+  --game-space-3: 12px;
+  --game-space-4: 16px;
+  --game-space-5: 24px;
+  --game-control-height: 40px;
+  --game-motion-fast: 140ms ease;
+}

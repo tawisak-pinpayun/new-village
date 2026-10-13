@@ -100,7 +100,7 @@ test('two clients receive one shared resource result and party mine reward', asy
   const monster = firstWorld.monsters.mine[0]
   for (const socket of clients) {
     socket.send(JSON.stringify({ type: 'move', x: monster.x, y: monster.y, mapId: 'mine', character: 'a', facing: 0 }))
-    socket.send(JSON.stringify({ type: 'party', join: true }))
+    socket.send(JSON.stringify({ type: 'party', code: 'TEAM01' }))
   }
   await new Promise(resolve => setTimeout(resolve, 190))
   const reward = nextMessage(b, 'party-reward'), kill = nextMessage(a, 'action-result')
@@ -137,4 +137,46 @@ test('garden gate and campfire changes reach everyone in the room', async t => {
   a.send(JSON.stringify({ type: 'world-action', seq: 2, action: 'campfire', operation: 'place' }))
   assert.equal((await fireResult).ok, true)
   assert.deepEqual((await fireWorld).campfires, [{ mapId: 'farm', x: 600, y: 845 }])
+})
+
+test('servers isolate rooms and world chat presence', async t => {
+  const port = await freePort()
+  const child = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, PORT: String(port) }, stdio: ['ignore', 'pipe', 'pipe'] })
+  t.after(() => child.kill())
+  await Promise.race([new Promise(resolve => child.stdout.on('data', chunk => { if (chunk.toString().includes('listening')) resolve() })), new Promise((_, reject) => setTimeout(() => reject(new Error('Server did not start')), 5000))])
+  const sockets = []
+  t.after(() => sockets.forEach(socket => socket.close()))
+  for (const [server, oldRoom, expectedPeers] of [[1, 'OLDROOM', 0], [1, 'ANOTHER', 1], [2, 'OLDROOM', 0]]) {
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/multiplayer`)
+    sockets.push(socket)
+    await once(socket, 'open')
+    const joined = nextMessage(socket, 'joined')
+    socket.send(JSON.stringify({ type: 'join', room: oldRoom, server, name: `Player${server}` }))
+    const result = await joined
+    assert.equal(result.server, server)
+    assert.equal(result.players.length, expectedPeers)
+  }
+  const appearance = nextMessage(sockets[1], 'player')
+  sockets[0].send(JSON.stringify({ type: 'move', x: 700, y: 800, mapId: 'village', character: 'h', outfit: 'starlight', facing: 0 }))
+  assert.equal((await appearance).player.character, 'h')
+  const appearanceAgain = nextMessage(sockets[1], 'player')
+  sockets[0].send(JSON.stringify({ type: 'move', x: 701, y: 800, mapId: 'farm', character: 'h', outfit: 'starlight', facing: 0 }))
+  assert.equal((await appearanceAgain).player.outfit, 'starlight')
+  const chats = []
+  for (const server of [1, 2]) {
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/multiplayer`)
+    chats.push(socket); sockets.push(socket)
+    await once(socket, 'open')
+    const online = nextMessage(socket, 'online-players')
+    socket.send(JSON.stringify({ type: 'chat-join', server, name: `Chatter${server}` }))
+    assert.deepEqual((await online).players.map(player => player.name), [`Chatter${server}`])
+  }
+  const message = nextMessage(chats[1], 'chat')
+  chats[1].send(JSON.stringify({ type: 'chat', text: 'server two only' }))
+  assert.equal((await message).text, 'server two only')
+  const extra = new WebSocket(`ws://127.0.0.1:${port}/multiplayer`)
+  sockets.push(extra); await once(extra, 'open')
+  const history = nextMessage(extra, 'chat-history')
+  extra.send(JSON.stringify({ type: 'chat-join', server: 1, name: 'Extra' }))
+  assert.deepEqual((await history).messages, [])
 })

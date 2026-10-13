@@ -2,7 +2,19 @@ export type PlotState = 'EMPTY' | 'TILLED' | 'PLANTED' | 'GROWING' | 'READY' | '
 export type CropId = 'radish' | 'carrot' | 'tomato'
 export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion'
 export type MapId = 'village' | 'farm' | 'home' | 'market' | 'magic_city' | 'riverside' | 'mine' | 'mine2' | 'mine3'
-export type OutfitId = 'default' | 'forest' | 'royal' | 'mage'
+export type CharacterId = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h'
+export const CHARACTER_IDS: CharacterId[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+export const STARTER_CHARACTERS: CharacterId[] = ['a', 'b']
+export const CHARACTER_QUESTS: Partial<Record<CharacterId, { title: string; description: string; location: string; steps: string[]; goal: number }>> = {
+  c: { title: 'เมล็ดพันธุ์แห่งมิตรภาพ', description: 'ปลูก Radish แล้วนำไปมอบให้ไกด์หมู่บ้าน', location: 'หมู่บ้านและฟาร์ม', steps: ['ปลูกและเก็บเกี่ยว Radish 1 ชิ้น', 'กลับไปหาไกด์บริเวณกลางหมู่บ้าน', 'ยืนใกล้ไกด์แล้วกด E หรือ Space เพื่อส่งของ'], goal: 1 },
+  d: { title: 'ทุนของนักบัญชี', description: 'หาเงินจากการทำฟาร์มและออกสำรวจให้ครบ 120 Coins', location: 'ร้านค้าและตลาด', steps: ['ขาย Radish ที่ร้านหมู่บ้าน', 'ขายแครอท มะเขือเทศ หรือแร่ที่ตลาด', 'ถือเงินให้ครบ 120 Coins เพื่อปลดล็อกทันที'], goal: 120 },
+  e: { title: 'บทเรียนของนักผจญภัย', description: 'สะสม XP และเพิ่มตัวละครให้ถึงเลเวล 3', location: 'ฟาร์ม ริมน้ำ และเหมือง', steps: ['เก็บเกี่ยวผลผลิตหรือทำกิจกรรมในโลก', 'ต่อสู้กับมอนสเตอร์ในเหมืองเพื่อรับ XP', 'เพิ่มระดับให้ถึงเลเวล 3'], goal: 3 },
+  f: { title: 'ความลับหลังฟาร์ม', description: 'ค้นหาและเปิดประตูไม้ของสวนที่อยู่ด้านบนของแผนที่ฟาร์ม', location: 'บ้านและฟาร์ม', steps: ['เดินทางไปแผนที่ “บ้านและฟาร์ม”', 'จากจุดเกิด เดินขึ้นเหนือไปยังประตูไม้ตรงกลางรั้วสวน', 'ยืนชิดประตูจนขึ้นข้อความ “เปิดประตูสวน”', 'กด E หรือ Space หนึ่งครั้ง ไม่ต้องใช้ไอเทม'], goal: 1 },
+  g: { title: 'คมดาบแห่งจันทรา', description: 'รวบรวมแร่และหลอมดาบจันทราที่เตาหลอม', location: 'เหมืองชั้น 1–3', steps: ['ขุดแร่เหล็กให้ได้ 2 ชิ้น', 'หาจันทราศิลา 1 ชิ้นจากเหมืองชั้นลึก', 'ไปที่เตาหลอมในเหมืองชั้น 1 แล้วหลอมดาบจันทรา'], goal: 1 },
+  h: { title: 'ดาวเด่นแห่งเทศกาล', description: 'นำผลผลิตเข้าร่วมงานเทศกาลจนครบเป้าหมาย', location: 'ตลาด', steps: ['ปลูกและเก็บ Radish แครอท หรือมะเขือเทศ', 'ไปยังงานเทศกาลเก็บเกี่ยวบริเวณกลางตลาด', 'บริจาคผลผลิตรวม 3 ชิ้นให้งานสำเร็จ'], goal: 1 }
+}
+export type OutfitId = 'default' | 'forest' | 'royal' | 'mage' | 'explorer' | 'starlight' | 'ceremonial'
+export const OUTFIT_IDS: OutfitId[] = ['default', 'forest', 'royal', 'mage', 'explorer', 'starlight', 'ceremonial']
 export type GearId = 'flower_hat' | 'wizard_hat' | 'silver_necklace' | 'moon_amulet' | 'leather_boots' | 'cloud_boots' | 'gold_bracelet' | 'star_bracelet' | 'lucky_charm' | 'crystal_charm'
 export type GearSlot = 'hat' | 'necklace' | 'bracelet' | 'boots' | 'charm'
 export const GEAR: Record<GearId, { name: string; icon: string; slot: GearSlot; price: number; hp?: number; mana?: number; attack?: number; defense?: number; speed?: number }> = {
@@ -28,7 +40,8 @@ export type Save = {
   inventory: Slot[]
   plots: Plot[]
   questDone: boolean
-  character?: 'a' | 'b'
+  character?: CharacterId
+  unlockedCharacters?: CharacterId[]
   recipeUnlocked?: boolean
   water?: number
   dayStartedAt?: number
@@ -62,6 +75,7 @@ export const initialState = (): Save => ({
   plots: Array.from({ length: PLOT_COUNT }, (_, i) => ({ id: `plot-${i + 1}`, state: 'EMPTY', cropId: null, readyAt: null, dryDays: 0, wateredDay: null })),
   questDone: false,
   character: 'a',
+  unlockedCharacters: [...STARTER_CHARACTERS],
   recipeUnlocked: false,
   water: MAX_WATER,
   dayStartedAt: Date.now(),
@@ -82,7 +96,7 @@ export const initialState = (): Save => ({
 
 export function equipmentStats(save: Save) {
   const stats = { hp: 0, mana: 0, attack: 0, defense: 0, speed: 0 }
-  const outfit: Partial<typeof stats> = { default: {}, forest: { hp: 10 }, royal: { defense: 1 }, mage: { mana: 12 } }[save.outfit ?? 'default']
+  const outfit: Partial<typeof stats> = { default: {}, forest: { hp: 10 }, royal: { defense: 1 }, mage: { mana: 12 }, explorer: { speed: 18 }, starlight: { mana: 18 }, ceremonial: { defense: 2 } }[save.outfit ?? 'default']
   for (const key of Object.keys(stats) as (keyof typeof stats)[]) stats[key] += outfit[key] ?? 0
   for (const id of Object.values(save.equipped ?? {})) {
     if (!id || !GEAR[id]) continue
@@ -122,6 +136,30 @@ export function craftArcaneSword(save: Save): boolean {
   return true
 }
 export function rareDrop(floor: number, roll: number): boolean { return roll < [0, .07, .16, .3][Math.max(1, Math.min(3, floor))] }
+
+export function characterQuestProgress(save: Save, id: CharacterId): number {
+  if (id === 'c') return save.questDone ? 1 : 0
+  if (id === 'd') return Math.min(120, save.player.coins)
+  if (id === 'e') return Math.min(3, save.player.level ?? 1)
+  if (id === 'f') return save.gardenGateOpen ? 1 : 0
+  if (id === 'g') return count(save, 'arcane_sword') > 0 ? 1 : 0
+  if (id === 'h') return save.festival?.completed ? 1 : 0
+  return 1
+}
+
+export function unlockCompletedCharacters(save: Save): CharacterId[] {
+  save.unlockedCharacters ??= [...STARTER_CHARACTERS]
+  for (const id of STARTER_CHARACTERS) if (!save.unlockedCharacters.includes(id)) save.unlockedCharacters.push(id)
+  const unlocked: CharacterId[] = []
+  for (const id of CHARACTER_IDS.slice(2)) {
+    const quest = CHARACTER_QUESTS[id]!
+    if (!save.unlockedCharacters.includes(id) && characterQuestProgress(save, id) >= quest.goal) {
+      save.unlockedCharacters.push(id)
+      unlocked.push(id)
+    }
+  }
+  return unlocked
+}
 
 export function count(save: Save, itemId: ItemId): number {
   return save.inventory.find(s => s.itemId === itemId)?.quantity ?? 0
@@ -210,15 +248,16 @@ export function validate(value: unknown): value is Save {
     (p.mana !== undefined && (!Number.isInteger(p.mana) || p.mana < 0 || p.mana > maxMana(s as Save))) ||
     (p.level !== undefined && (!Number.isInteger(p.level) || p.level < 1 || p.level > 100)) ||
     (p.xp !== undefined && (!Number.isInteger(p.xp) || p.xp < 0 || p.xp > 10000)) ||
-    (s.outfit !== undefined && !['default', 'forest', 'royal', 'mage'].includes(s.outfit)) ||
-    (s.ownedOutfits !== undefined && (!Array.isArray(s.ownedOutfits) || s.ownedOutfits.some(v => !['default', 'forest', 'royal', 'mage'].includes(v)))) ||
+    (s.outfit !== undefined && !OUTFIT_IDS.includes(s.outfit)) ||
+    (s.ownedOutfits !== undefined && (!Array.isArray(s.ownedOutfits) || s.ownedOutfits.some(v => !OUTFIT_IDS.includes(v)))) ||
     (s.ownedGear !== undefined && (!Array.isArray(s.ownedGear) || s.ownedGear.some(v => !GEAR_IDS.includes(v)))) ||
     (s.equipped !== undefined && (typeof s.equipped !== 'object' || s.equipped === null || Object.entries(s.equipped).some(([slot, id]) => !['hat', 'necklace', 'bracelet', 'boots', 'charm'].includes(slot) || !GEAR_IDS.includes(id as GearId) || GEAR[id as GearId].slot !== slot || !s.ownedGear?.includes(id as GearId)))) ||
     (s.mounted !== undefined && typeof s.mounted !== 'boolean') ||
     (s.gardenGateOpen !== undefined && typeof s.gardenGateOpen !== 'boolean') ||
     (s.campfires !== undefined && (!Array.isArray(s.campfires) || s.campfires.length > 20 || s.campfires.some(fire => !fire || !['village', 'farm', 'market', 'magic_city', 'riverside'].includes(fire.mapId) || !Number.isFinite(fire.x) || !Number.isFinite(fire.y) || fire.x < 32 || fire.x > 1504 || fire.y < 32 || fire.y > 992))) ||
     (s.festival !== undefined && (!Number.isInteger(s.festival.day) || s.festival.day < 1 || !Number.isInteger(s.festival.donated) || s.festival.donated < 0 || s.festival.donated > 3 || typeof s.festival.completed !== 'boolean')) ||
-    (s.character !== undefined && !['a', 'b'].includes(s.character)) ||
+    (s.character !== undefined && !CHARACTER_IDS.includes(s.character)) ||
+    (s.unlockedCharacters !== undefined && (!Array.isArray(s.unlockedCharacters) || s.unlockedCharacters.some(id => !CHARACTER_IDS.includes(id)) || new Set(s.unlockedCharacters).size !== s.unlockedCharacters.length)) ||
     (s.recipeUnlocked !== undefined && typeof s.recipeUnlocked !== 'boolean') ||
     (s.water !== undefined && (!Number.isInteger(s.water) || s.water < 0 || s.water > MAX_WATER)) ||
     (s.dayStartedAt !== undefined && !Number.isFinite(s.dayStartedAt)) ||
@@ -291,6 +330,9 @@ export function load(): { state: Save; error?: string } {
     parsed.player.hp ??= maxHp(parsed)
     parsed.player.mana ??= maxMana(parsed)
     parsed.outfit ??= 'default'
+    parsed.unlockedCharacters ??= [...STARTER_CHARACTERS]
+    unlockCompletedCharacters(parsed)
+    if (!parsed.unlockedCharacters.includes(parsed.character ?? 'a')) parsed.character = 'a'
     parsed.ownedOutfits ??= ['default']
     parsed.ownedGear ??= []
     parsed.equipped ??= {}

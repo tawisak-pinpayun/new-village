@@ -10,7 +10,7 @@ const root = resolve('dist')
 const rooms = new Map()
 const worlds = new Map()
 const chatClients = new Set()
-const chatHistory = []
+const chatHistory = new Map()
 let accountApi = null
 if (process.env.MONGODB_URI) {
   try {
@@ -41,14 +41,16 @@ const wss = new WebSocketServer({ server, path: '/multiplayer', maxPayload: 1024
 let nextId = 1
 function send(ws, value) { if (ws.readyState === WebSocket.OPEN && ws.bufferedAmount < 128_000) ws.send(JSON.stringify(value)) }
 function broadcast(room, value, except) { for (const peer of room.values()) if (peer.ws !== except) send(peer.ws, value) }
-function broadcastChat(value) { for (const ws of chatClients) send(ws, value) }
+function broadcastChat(server, value) { for (const ws of chatClients) if (ws.chatServer === server) send(ws, value) }
+function onlinePlayers(server) { return [...chatClients].filter(ws => ws.chatServer === server).map(ws => ({ id: ws.playerId, name: ws.chatName })) }
+function announcePresence(server, name, action) { broadcastChat(server, { type: 'chat-notice', text: `${name}${action === 'join' ? ' เข้าสู่แชทโลก' : ' ออกจากแชทโลก'}`, time: Date.now() }); broadcastChat(server, { type: 'online-players', players: onlinePlayers(server) }) }
 function leave(ws) {
-  const room = rooms.get(ws.roomCode)
+  const room = rooms.get(ws.roomKey)
   if (!room) return
   room.delete(ws.playerId)
   broadcast(room, { type: 'left', id: ws.playerId })
-  if (!room.size) { rooms.delete(ws.roomCode); worlds.delete(ws.roomCode) }
-  ws.roomCode = undefined
+  if (!room.size) { rooms.delete(ws.roomKey); worlds.delete(ws.roomKey) }
+  ws.roomKey = undefined
 }
 wss.on('connection', ws => {
   ws.playerId = String(nextId++)
@@ -56,9 +58,12 @@ wss.on('connection', ws => {
     let data
     try { data = JSON.parse(raw.toString()) } catch { return }
     if (data.type === 'chat-join') {
+      if (chatClients.has(ws)) return
       ws.chatName = String(data.name || 'ชาวบ้าน').trim().slice(0, 20) || 'ชาวบ้าน'
+      ws.chatServer = [1, 2, 3].includes(data.server) ? data.server : 1
       chatClients.add(ws)
-      send(ws, { type: 'chat-history', messages: chatHistory })
+      send(ws, { type: 'chat-history', messages: chatHistory.get(ws.chatServer) || [] })
+      announcePresence(ws.chatServer, ws.chatName, 'join')
     } else if (data.type === 'chat-name' && chatClients.has(ws)) {
       ws.chatName = String(data.name || 'ชาวบ้าน').trim().slice(0, 20) || 'ชาวบ้าน'
     } else if (data.type === 'chat' && chatClients.has(ws)) {
@@ -67,30 +72,34 @@ wss.on('connection', ws => {
       if (!message) return
       ws.lastChat = Date.now()
       const entry = { type: 'chat', name: ws.chatName, text: message, time: Date.now() }
-      chatHistory.push(entry)
-      if (chatHistory.length > 40) chatHistory.shift()
-      broadcastChat(entry)
+      const history = chatHistory.get(ws.chatServer) || []
+      history.push(entry)
+      if (history.length > 40) history.shift()
+      chatHistory.set(ws.chatServer, history)
+      broadcastChat(ws.chatServer, entry)
     } else if (data.type === 'join') {
-      const code = String(data.room || '').trim().toUpperCase()
-      if (!/^[A-Z0-9-]{3,16}$/.test(code)) return send(ws, { type: 'error', message: 'รหัสห้องต้องมี 3–16 ตัวอักษร' })
+      const selectedServer = [1, 2, 3].includes(data.server) ? data.server : 1
+      const key = String(selectedServer)
       leave(ws)
-      const room = rooms.get(code) || new Map()
-      if (room.size >= 20) return send(ws, { type: 'error', message: 'ห้องเต็มแล้ว' })
-      rooms.set(code, room)
-      if (!worlds.has(code)) worlds.set(code, makeWorld())
-      ws.roomCode = code
-      const player = { id: ws.playerId, name: String(data.name || 'เพื่อน').trim().slice(0, 20) || 'เพื่อน', x: 768, y: 800, mapId: 'village', character: data.character === 'b' ? 'b' : 'a', facing: 0, moving: false, outfit: 'default', mounted: false, party: false, ws }
+      const room = rooms.get(key) || new Map()
+      rooms.set(key, room)
+      if (!worlds.has(key)) worlds.set(key, makeWorld())
+      ws.roomKey = key
+      const player = { id: ws.playerId, name: String(data.name || 'เพื่อน').trim().slice(0, 20) || 'เพื่อน', x: 768, y: 800, mapId: 'village', character: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].includes(data.character) ? data.character : 'a', facing: 0, moving: false, outfit: 'default', mounted: false, partyCode: '', ws }
       room.set(ws.playerId, player)
-      send(ws, { type: 'joined', id: ws.playerId, room: code, players: [...room.values()].filter(p => p !== player).map(({ ws: _, ...p }) => p) })
-      send(ws, publicWorld(worlds.get(code)))
+      send(ws, { type: 'joined', id: ws.playerId, server: selectedServer, players: [...room.values()].filter(p => p !== player).map(({ ws: _, ...p }) => p) })
+      send(ws, publicWorld(worlds.get(key)))
       broadcast(room, { type: 'player', player: { ...player, ws: undefined } }, ws)
-    } else if (data.type === 'party' && ws.roomCode) {
-      const room = rooms.get(ws.roomCode), player = room?.get(ws.playerId)
+    } else if (data.type === 'party' && ws.roomKey) {
+      const room = rooms.get(ws.roomKey), player = room?.get(ws.playerId)
       if (!player) return
-      player.party = !!data.join
+      const partyCode = String(data.code || '').trim().toUpperCase()
+      if (partyCode && !/^[A-Z0-9]{6}$/.test(partyCode)) return send(ws, { type: 'party-error', message: 'รหัสปาร์ตี้ต้องมีตัวอักษรหรือตัวเลข 6 ตัว' })
+      player.partyCode = partyCode
+      send(ws, { type: 'party-state', code: partyCode })
       for (const peer of room.values()) send(peer.ws, { type: 'player', player: { ...player, ws: undefined } })
-    } else if (data.type === 'world-action' && ws.roomCode) {
-      const room = rooms.get(ws.roomCode), world = worlds.get(ws.roomCode), player = room?.get(ws.playerId)
+    } else if (data.type === 'world-action' && ws.roomKey) {
+      const room = rooms.get(ws.roomKey), world = worlds.get(ws.roomKey), player = room?.get(ws.playerId)
       if (!room || !world || !player) return
       const seq = Number(data.seq)
       if (!Number.isInteger(seq) || seq < 1) return
@@ -140,14 +149,14 @@ wss.on('connection', ws => {
       }
       const { node, monster, plot, ...reply } = result
       send(ws, { type: 'action-result', seq, action: data.action, ...reply, kind: node?.kind, crop: result.crop, monsterKind: monster?.kind, xp: monster?.xp, monsterHp: monster?.hp, maxMonsterHp: monster?.maxHp })
-      if (data.action === 'monster' && result.defeated && player.party) {
-        for (const peer of room.values()) if (peer !== player && peer.party && peer.mapId === player.mapId && Math.hypot(peer.x - monster.x, peer.y - monster.y) < 300) send(peer.ws, { type: 'party-reward', xp: Math.ceil(monster.xp / 2), coins: 5, from: player.name })
+      if (data.action === 'monster' && result.defeated && player.partyCode) {
+        for (const peer of room.values()) if (peer !== player && peer.partyCode === player.partyCode && peer.mapId === player.mapId && Math.hypot(peer.x - monster.x, peer.y - monster.y) < 300) send(peer.ws, { type: 'party-reward', xp: Math.ceil(monster.xp / 2), coins: 5, from: player.name })
       }
       if (data.action === 'quest-deliver') broadcast(room, { type: 'quest-reward', coins: 40, xp: 20 })
       if (data.action === 'festival' && world.festival.completed) broadcast(room, { type: 'festival-reward', coins: 35, xp: 15 })
       for (const peer of room.values()) send(peer.ws, publicWorld(world))
-    } else if (data.type === 'move' && ws.roomCode) {
-      const room = rooms.get(ws.roomCode)
+    } else if (data.type === 'move' && ws.roomKey) {
+      const room = rooms.get(ws.roomKey)
       const player = room?.get(ws.playerId)
       if (!player) return
       if (!Number.isFinite(data.x) || !Number.isFinite(data.y) || !['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'mine', 'mine2', 'mine3'].includes(data.mapId)) return
@@ -157,10 +166,10 @@ wss.on('connection', ws => {
       player.x = Math.max(16, Math.min(1520, data.x))
       player.y = Math.max(16, Math.min(1008, data.y))
       player.mapId = data.mapId
-      player.character = data.character === 'b' ? 'b' : 'a'
+      player.character = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].includes(data.character) ? data.character : 'a'
       player.facing = [0, 1, 2, 3].includes(data.facing) ? data.facing : 0
       player.moving = !!data.moving
-      player.outfit = ['default', 'forest', 'royal', 'mage'].includes(data.outfit) ? data.outfit : 'default'
+      player.outfit = ['default', 'forest', 'royal', 'mage', 'explorer', 'starlight', 'ceremonial'].includes(data.outfit) ? data.outfit : 'default'
       const allowedGear = { hat: ['flower_hat', 'wizard_hat'], necklace: ['silver_necklace', 'moon_amulet'], bracelet: ['gold_bracelet', 'star_bracelet'], boots: ['leather_boots', 'cloud_boots'], charm: ['lucky_charm', 'crystal_charm'] }
       player.equipped = Object.fromEntries(Object.entries(allowedGear).filter(([slot, ids]) => ids.includes(data.equipped?.[slot])).map(([slot]) => [slot, data.equipped[slot]]))
       player.mounted = !!data.mounted
@@ -168,7 +177,7 @@ wss.on('connection', ws => {
       for (const peer of room.values()) if (peer.ws !== ws && (peer.mapId === player.mapId || peer.mapId === previousMap)) send(peer.ws, { type: 'player', player: { ...player, ws: undefined } })
     }
   })
-  ws.on('close', () => { leave(ws); chatClients.delete(ws) })
+  ws.on('close', () => { leave(ws); if (chatClients.delete(ws)) announcePresence(ws.chatServer, ws.chatName, 'leave') })
 })
 setInterval(() => {
   for (const [code, world] of worlds) {
