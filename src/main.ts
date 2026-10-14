@@ -13,7 +13,7 @@ import { characterSignature } from './appearance'
 import { makeOutfitSheet } from './outfit-sprites'
 import { calendarAt, type Calendar } from './calendar'
 import { renderCatalogCard, renderFarmersMarket } from './ui/game-ui'
-import { SHOP_ITEM_ASSETS, itemAssetStyle, shopItemAssetStyle, type ItemAssetKey, type ShopItemAssetKey } from './ui/item-assets'
+import { SHOP_ITEM_ASSETS, TAILOR_ITEM_ASSETS, TAILOR_OUTFIT_ART, TAILOR_GEAR_ART, itemAssetStyle, shopItemAssetStyle, tailorItemAssetStyle, type ItemAssetKey, type ShopItemAssetKey, type TailorItemAssetKey } from './ui/item-assets'
 import { NPCS, SHOPS, lilyGreeting, type DialogueExpression } from './shops'
 import { NPCAnimationController } from './npc-system'
 
@@ -879,16 +879,26 @@ function openSpecial(kind: SpecialShopKind) {
   const categoryArt: Record<string, string> = {
     food: 'rice_meal', supplies: 'radish_seed', weapons: 'iron_sword', craft: 'arcane_sword',
     magic: 'wand', potions: 'mana_potion', feed: 'animal_feed', care: 'pet_basket',
-    furniture: 'carved_chair', materials: 'walnut_cabinet', outfits: 'plum_dress', gear: 'constellation_hat'
+    furniture: 'carved_chair', materials: 'walnut_cabinet', outfits: 'tailor_forest', gear: 'tailor_moon_amulet'
   }
   document.querySelector('#special-categories')!.innerHTML = shop.categories.map((category, index) => {
     const art = categoryArt[category.id]
-    const style = art in SHOP_ITEM_ASSETS ? shopItemAssetStyle(art as ShopItemAssetKey) : art ? itemAssetStyle(art as ItemAssetKey) : ''
+    const style = art in TAILOR_ITEM_ASSETS ? tailorItemAssetStyle(art as TailorItemAssetKey) : art in SHOP_ITEM_ASSETS ? shopItemAssetStyle(art as ShopItemAssetKey) : art ? itemAssetStyle(art as ItemAssetKey) : ''
     return '<button class="' + (index === 0 ? 'active' : '') + '" type="button" data-special-category="' + category.id + '" style="' + style + '">' + category.label + '</button>'
   }).join('')
   specialShop.querySelectorAll<HTMLElement>('[data-special-tab]').forEach(button => button.classList.toggle('active', button.dataset.specialTab === specialTab))
   specialShop.querySelector<HTMLInputElement>('[data-shop-search]')!.value = ''
   specialShop.querySelector<HTMLSelectElement>('[data-special-sort]')!.value = 'default'
+  let wardrobeButton = specialShop.querySelector<HTMLButtonElement>('[data-open-wardrobe]')
+  if (!wardrobeButton) {
+    wardrobeButton = document.createElement('button')
+    wardrobeButton.type = 'button'
+    wardrobeButton.className = 'game-wardrobe-link'
+    wardrobeButton.dataset.openWardrobe = ''
+    wardrobeButton.textContent = 'ลองชุดและจัดเครื่องประดับในห้องแต่งตัว'
+    document.querySelector('#special-list')!.before(wardrobeButton)
+  }
+  wardrobeButton.hidden = kind !== 'tailor' || specialTab !== 'buy'
   const stock = shop.stock.map(product => renderCatalogCard({
     id: product.id, name: ITEMS[product.id].name, description: product.description,
     price: product.price, art: product.art, category: product.category,
@@ -898,13 +908,12 @@ function openSpecial(kind: SpecialShopKind) {
   if (kind === 'tailor') {
     stock.push(...OUTFIT_IDS.filter(id => id !== 'default').map(id => renderCatalogCard({
       id, name: outfitNames[id], description: outfitBonuses[id], price: state.ownedOutfits?.includes(id) ? 0 : outfitPrices[id] ?? 0,
-      art: '', imageUrl: scene?.outfitPreview(state.character ?? 'a', id), category: 'outfits', action: 'outfit', actionText: state.ownedOutfits?.includes(id) ? 'สวมใส่' : 'ซื้อ'
+      art: TAILOR_OUTFIT_ART[id] ?? '', category: 'outfits', action: 'outfit', actionText: state.ownedOutfits?.includes(id) ? 'สวมใส่' : 'ซื้อ'
     })))
     stock.push(...GEAR_IDS.map(id => renderCatalogCard({
       id, name: GEAR[id].name, description: gearBonus(id), price: state.ownedGear?.includes(id) ? 0 : GEAR[id].price,
-      art: '', category: 'gear', action: 'gear', actionText: state.ownedGear?.includes(id) ? 'สวมใส่' : 'ซื้อ'
+      art: TAILOR_GEAR_ART[id], category: 'gear', action: 'gear', actionText: state.ownedGear?.includes(id) ? 'สวมใส่' : 'ซื้อ'
     })))
-    stock.push(renderCatalogCard({ id: 'wardrobe', name: 'ห้องแต่งตัว', description: 'ดูชุดและอุปกรณ์ที่มี', price: 0, art: '', category: 'outfits', action: 'wardrobe' }))
   }
   const sellArt: Partial<Record<ItemId, string>> = { radish: '', carrot: 'carrot', tomato: 'tomato', meat: 'meat', hide: 'hide', copper: 'copper', iron: 'iron', moonstone: 'moonstone' }
   const sell = Object.entries(shop.sellPrices).filter(([id]) => count(state, id as ItemId) > 0).map(([id, price]) => renderCatalogCard({

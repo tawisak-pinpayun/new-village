@@ -1,3 +1,5 @@
+import type { GearId, OutfitId } from '../domain'
+
 export type GameAsset = {
   src: string
   atlasColumn: number
@@ -55,5 +57,46 @@ export type ShopItemAssetKey = keyof typeof SHOP_ITEM_ASSETS
 
 export function shopItemAssetStyle(key: ShopItemAssetKey): string {
   const item = SHOP_ITEM_ASSETS[key]
+  return `--asset-url:url('${item.src}');--asset-x:${item.atlasColumn};--asset-y:${item.atlasRow}`
+}
+
+const tailorAtlas = '/assets/ui/tailor-item-atlas.png'
+const tailorAsset = (atlasColumn: number, atlasRow: number, alt: string): GameAsset => ({ src: tailorAtlas, atlasColumn, atlasRow, alt, status: 'production' })
+
+/** Exact 4 × 4 grid for Aria's six outfits and ten wearable accessories. */
+export const TAILOR_ITEM_ASSETS = {
+  tailor_forest: tailorAsset(0, 0, 'ชุดนักผจญภัยสีเขียว'),
+  tailor_royal: tailorAsset(1, 0, 'ชุดราชสำนักสีน้ำเงิน'),
+  tailor_mage: tailorAsset(2, 0, 'ชุดจอมเวทสีม่วง'),
+  tailor_explorer: tailorAsset(3, 0, 'ชุดนักสำรวจสีน้ำตาล'),
+  tailor_starlight: tailorAsset(0, 1, 'ชุดจอมเวทดวงดาว'),
+  tailor_ceremonial: tailorAsset(1, 1, 'ชุดราชสำนักหรูสีแดง'),
+  tailor_flower_hat: tailorAsset(2, 1, 'หมวกฟางประดับดอกไม้'),
+  tailor_wizard_hat: tailorAsset(3, 1, 'หมวกจอมเวท'),
+  tailor_silver_necklace: tailorAsset(0, 2, 'สร้อยเงิน'),
+  tailor_moon_amulet: tailorAsset(1, 2, 'จี้จันทรา'),
+  tailor_leather_boots: tailorAsset(2, 2, 'รองเท้าหนัง'),
+  tailor_cloud_boots: tailorAsset(3, 2, 'รองเท้าเมฆ'),
+  tailor_gold_bracelet: tailorAsset(0, 3, 'กำไลทอง'),
+  tailor_star_bracelet: tailorAsset(1, 3, 'กำไลดาว'),
+  tailor_lucky_charm: tailorAsset(2, 3, 'เครื่องรางโชคดีรูปใบโคลเวอร์'),
+  tailor_crystal_charm: tailorAsset(3, 3, 'เครื่องรางคริสตัล')
+} as const
+
+export type TailorItemAssetKey = keyof typeof TAILOR_ITEM_ASSETS
+
+export const TAILOR_OUTFIT_ART: Partial<Record<OutfitId, TailorItemAssetKey>> = {
+  forest: 'tailor_forest', royal: 'tailor_royal', mage: 'tailor_mage', explorer: 'tailor_explorer',
+  starlight: 'tailor_starlight', ceremonial: 'tailor_ceremonial'
+}
+
+export const TAILOR_GEAR_ART: Record<GearId, TailorItemAssetKey> = {
+  flower_hat: 'tailor_flower_hat', wizard_hat: 'tailor_wizard_hat', silver_necklace: 'tailor_silver_necklace', moon_amulet: 'tailor_moon_amulet',
+  leather_boots: 'tailor_leather_boots', cloud_boots: 'tailor_cloud_boots', gold_bracelet: 'tailor_gold_bracelet', star_bracelet: 'tailor_star_bracelet',
+  lucky_charm: 'tailor_lucky_charm', crystal_charm: 'tailor_crystal_charm'
+}
+
+export function tailorItemAssetStyle(key: TailorItemAssetKey): string {
+  const item = TAILOR_ITEM_ASSETS[key]
   return `--asset-url:url('${item.src}');--asset-x:${item.atlasColumn};--asset-y:${item.atlasRow}`
 }

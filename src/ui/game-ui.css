@@ -91,6 +91,9 @@
 #special-shop .game-awning { background: repeating-linear-gradient(90deg,var(--shop-primary) 0 66px,var(--game-color-cream) 66px 132px); border-color: var(--shop-primary); }
 #special-shop .game-shop-nav button.active { background: var(--shop-primary); }
 #special-shop .game-shop-nav button[style]::before { background-image: var(--asset-url); background-position: calc(var(--asset-x) * 100% / 3) calc(var(--asset-y) * 100% / 3); }
+#special-shop .game-wardrobe-link { width: 100%; margin: 0 0 12px; padding: 10px 14px; border: var(--game-border-thin); border-radius: var(--game-radius-md); background: #f7e9ce; color: var(--game-color-ink); font: 900 13px var(--game-font-ui); text-align: center; }
+#special-shop .game-wardrobe-link:hover { background: #fff4df; }
+#special-shop .game-wardrobe-link[hidden] { display: none; }
 #special-shop .game-wood-sign { border-color: var(--shop-accent); }
 #special-shop .special-game-market::before,#special-shop .special-game-market::after { display: none; }
 #special-shop[data-active-tab="sell"] .game-shop-nav button:not(:first-child) { display: none; }
@@ -98,7 +101,6 @@
 #special-shop .game-item-card.trade::before { display: none; }
 #special-shop .game-item-card .game-item-art { position: static; grid-column: 1 / -1; width: calc(100% + 20px); height: 132px; margin-left: -10px; border-bottom: var(--game-border-thin); background-image: var(--asset-url); background-size: 400% 400%; background-position: calc(var(--asset-x) * 100% / 3) calc(var(--asset-y) * 100% / 3); background-repeat: no-repeat; }
 #special-shop .game-item-card .game-item-art.game-missing-art { display: grid; place-items: center; padding: 15px; background: #dfd4bc; color: var(--game-color-ink-muted); font-size: 12px; font-weight: 800; text-align: center; }
-#special-shop .game-item-card .game-item-art.game-outfit-art { background-size: auto 142px; background-position: center top; background-color: #ead9c4; }
 #special-shop .game-item-card .game-item-copy { grid-column: 1 / -1; display: grid; align-content: start; gap: 3px; padding: 7px 0; }
 #special-shop .game-item-card .game-item-copy b { font-size: 14px; }
 #special-shop .game-item-card .game-item-copy small { color: var(--game-color-ink-muted); font-size: 11px; }

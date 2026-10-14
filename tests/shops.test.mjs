@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { NPCS, SHOPS, lilyGreeting } from '../src/shops.ts'
+import { GEAR_IDS, OUTFIT_IDS } from '../src/domain.ts'
+import { TAILOR_GEAR_ART, TAILOR_ITEM_ASSETS, TAILOR_OUTFIT_ART } from '../src/ui/item-assets.ts'
 
 test('seed shop and Lily form a complete linked vertical slice', () => {
   const shop = SHOPS.seed_shop, lily = NPCS.lily
@@ -45,4 +47,16 @@ test('Lily greeting selects time and weather dialogue without UI changes', () =>
   assert.equal(lilyGreeting(14, true, false).id, 'rain')
   assert.equal(lilyGreeting(22, false, false).id, 'night')
   assert.equal(lilyGreeting(14, false, true).id, 'first')
+})
+
+test('Aria has exact illustrated cards for every purchasable outfit and accessory', () => {
+  const outfits = OUTFIT_IDS.filter(id => id !== 'default')
+  const artKeys = [...outfits.map(id => TAILOR_OUTFIT_ART[id]), ...GEAR_IDS.map(id => TAILOR_GEAR_ART[id])]
+  assert.equal(artKeys.length, 16)
+  assert.equal(new Set(artKeys).size, 16)
+  for (const art of artKeys) {
+    assert.ok(TAILOR_ITEM_ASSETS[art])
+    assert.match(TAILOR_ITEM_ASSETS[art].src, /tailor-item-atlas\.png$/)
+    assert.ok(TAILOR_ITEM_ASSETS[art].alt.length > 2)
+  }
 })

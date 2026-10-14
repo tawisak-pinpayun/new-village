@@ -18,6 +18,7 @@ Use one hand-painted cozy fantasy style for DOM UI artwork. Keep warm lighting, 
 | --- | --- | --- |
 | `market-item-atlas.png` | 16 Farmers' Market item, currency, and decoration illustrations | Production |
 | `shop-item-atlas.png` | 16 illustrated items for Blacksmith, Magic, Animal, Furniture, and Tailor shops | Production |
+| `tailor-item-atlas.png` | 16 exact outfit and accessory cards for Aria's shop; see `TAILOR_ITEM_ATLAS.md` | Production |
 | `farmers-market-header.png` | Hand-painted market booth, shopkeeper, produce, awning, and sign background | Production |
 | `shops/general-store-header.png` | Mira and the General Store interior banner | Production |
 | `shops/blacksmith-header.png` | Borin and the Blacksmith interior banner | Production |
@@ -46,7 +47,7 @@ The following are intentionally reported as missing and must be created before t
 - Standalone market decorations for screens outside the Farmers' Market header
 - Button cap textures for normal, hover, pressed, and disabled states
 - Dedicated wooden corner ornaments and list/grid view icons
-- Equipment icons for every wearable item
+- Equipment icons outside Aria's 16 illustrated outfit and accessory cards
 - Crafting material and recipe illustrations beyond the current market set
 - Auction House category and status art
 - Housing furniture thumbnails
