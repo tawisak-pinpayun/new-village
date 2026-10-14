@@ -41,6 +41,13 @@ test('new characters and outfits survive save validation', () => {
   assert.equal(equipmentStats(save).defense, 2)
 })
 
+test('new animal and furniture products survive save validation', () => {
+  const save = initialState()
+  for (const item of ['animal_feed', 'pet_basket', 'carved_chair', 'flower_table']) add(save, item)
+  assert.equal(validate(JSON.parse(JSON.stringify(save))), true)
+  for (const item of ['animal_feed', 'pet_basket', 'carved_chair', 'flower_table']) assert.equal(count(save, item), 1)
+})
+
 test('owned clothing and accessories change stats and survive save validation', () => {
   const save = initialState()
   save.ownedOutfits.push('mage')

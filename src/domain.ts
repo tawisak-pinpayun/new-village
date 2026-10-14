@@ -1,6 +1,6 @@
 export type PlotState = 'EMPTY' | 'TILLED' | 'PLANTED' | 'GROWING' | 'READY' | 'WITHERED'
 export type CropId = 'radish' | 'carrot' | 'tomato'
-export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion'
+export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion' | 'animal_feed' | 'pet_basket' | 'carved_chair' | 'flower_table'
 export type MapId = 'village' | 'farm' | 'home' | 'market' | 'magic_city' | 'riverside' | 'mine' | 'mine2' | 'mine3'
 export type CharacterId = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h'
 export const CHARACTER_IDS: CharacterId[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -30,7 +30,7 @@ export const GEAR: Record<GearId, { name: string; icon: string; slot: GearSlot; 
   crystal_charm: { name: 'เครื่องรางคริสตัล', icon: '🔮', slot: 'charm', price: 95, mana: 15, speed: 15 }
 }
 export const GEAR_IDS = Object.keys(GEAR) as GearId[]
-export const ITEM_IDS: ItemId[] = ['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber', 'sword', 'bow', 'meat', 'hide', 'copper', 'iron', 'moonstone', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion']
+export const ITEM_IDS: ItemId[] = ['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber', 'sword', 'bow', 'meat', 'hide', 'copper', 'iron', 'moonstone', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion', 'animal_feed', 'pet_basket', 'carved_chair', 'flower_table']
 export type Slot = { slot: number; itemId: ItemId; quantity: number }
 export type Plot = { id: string; state: PlotState; cropId: CropId | null; readyAt: number | null; dryDays?: number; wateredDay?: number | null }
 export type Save = {

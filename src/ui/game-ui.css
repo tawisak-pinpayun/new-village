@@ -16,7 +16,7 @@
 .game-shop-nav button:hover { transform: translateX(3px); background: #fff7de; }
 .game-shop-nav button.active { background: linear-gradient(#72a952,#4f8d3e); color: #fff; box-shadow: inset 0 0 0 2px #aad18c,0 3px 0 #386a31; }
 #market-shop[data-active-tab="sell"] .game-shop-nav button:not(:first-child) { display: none; }
-.game-shop-hero { position: relative; width: 100%; max-width: 100%; height: 170px; min-height: 0; overflow: hidden; background: var(--shop-banner) var(--shop-banner-position,center 48%) / cover no-repeat; border-bottom: 5px solid var(--game-color-wood); }
+.game-shop-hero { grid-column: 2; grid-row: 2; position: relative; width: 100%; max-width: 100%; height: 170px; min-height: 0; overflow: hidden; background: var(--shop-banner) var(--shop-banner-position,center 48%) / cover no-repeat; border-bottom: 5px solid var(--game-color-wood); }
 .game-wood-sign { position: absolute; left: 3%; top: 10%; width: 45%; min-height: 78%; display: grid; align-content: center; padding: 18px 25px; border: 3px solid #b97839; border-radius: 13px; background: linear-gradient(100deg,#ffd990f2,#f7c878f2); box-shadow: inset 0 0 0 3px #ffe9b7,0 6px 0 #7b4c29,0 10px 20px #50311e42; }
 .game-wood-sign::before,.game-wood-sign::after { content: ''; position: absolute; width: 23px; height: 23px; background: url('/assets/ui/market-item-atlas.png') 100% 100% / 400% 400% no-repeat; filter: drop-shadow(0 2px 1px #5a3b2480); }
 .game-wood-sign::before { left: -10px; top: -9px; transform: rotate(-28deg); }
@@ -25,7 +25,7 @@
 .game-shop-hero h2 { margin: 3px 0; color: #603718; font: 900 clamp(23px,2.7vw,34px)/1.04 var(--game-font-display); text-shadow: 0 2px #fff8dc; }
 .game-shop-hero p { margin: 6px 0 0; color: var(--game-color-ink-muted); font-size: 11px; }
 .game-speech { position: absolute; z-index: 2; right: 4%; top: 40px; padding: 11px 15px; border: 3px solid #d3a66b; border-radius: 20px 20px 5px 20px; background: var(--game-color-cream); font-size: 11px; font-weight: 900; box-shadow: 0 4px 10px #56371935; }
-.game-shop-content { min-width: 0; padding: 14px 18px 20px; }
+.game-shop-content { grid-column: 2; grid-row: 3; min-width: 0; padding: 14px 18px 20px; }
 .game-shop-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; padding: 5px; border: var(--game-border-thin); border-radius: 13px; background: #efd7a8; }
 .game-shop-tabs button { min-height: 42px; border: 0; border-radius: 9px; background: transparent; color: var(--game-color-ink-muted); font: 900 14px var(--game-font-ui); }
 .game-shop-tabs button.active { background: linear-gradient(var(--game-color-leaf-hover),var(--game-color-leaf)); color: #fff; box-shadow: inset 0 0 0 2px #a9d38f,0 3px 0 #35662f; }
@@ -68,8 +68,9 @@
 .game-sell-section .game-item-card.trade { min-height: 190px; grid-template-rows: 102px auto 38px; }
 .game-sell-section .game-item-art { height: 102px; }
 @media (max-width: 850px) {
-  .game-market { grid-template-columns: 1fr; }
+  .dialog.game-market { grid-template-columns: minmax(0,1fr); }
   .game-shop-nav { grid-row: auto; display: flex; overflow-x: auto; border-right: 0; border-bottom: var(--game-border-thin); }
+  .game-shop-hero,.game-shop-content { grid-column: 1; grid-row: auto; }
   .game-shop-nav button { flex: 0 0 auto; }
   .game-shop-hero { padding-right: 42%; }
   .game-market .shop-products,.game-sell-section .shop-products { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -84,3 +85,31 @@
   .game-market-tools { grid-template-columns: 1fr; }
   .game-market .shop-products,.game-sell-section .shop-products { grid-template-columns: 1fr; }
 }
+
+/* Shared shop cards and themes for every merchant. */
+#special-shop .special-game-market { --shop-primary: var(--game-color-leaf); --shop-accent: var(--game-color-sell); }
+#special-shop .game-awning { background: repeating-linear-gradient(90deg,var(--shop-primary) 0 66px,var(--game-color-cream) 66px 132px); border-color: var(--shop-primary); }
+#special-shop .game-shop-nav button.active { background: var(--shop-primary); }
+#special-shop .game-shop-nav button[style]::before { background-image: var(--asset-url); background-position: calc(var(--asset-x) * 100% / 3) calc(var(--asset-y) * 100% / 3); }
+#special-shop .game-wood-sign { border-color: var(--shop-accent); }
+#special-shop .special-game-market::before,#special-shop .special-game-market::after { display: none; }
+#special-shop[data-active-tab="sell"] .game-shop-nav button:not(:first-child) { display: none; }
+#special-shop .game-item-card.trade { display: grid; min-height: 225px; grid-template-columns: 78px 1fr; grid-template-rows: 132px auto 38px; align-content: stretch; padding: 0 10px 10px; border: 3px solid #dfc79a; background: var(--game-color-cream); text-align: left; box-shadow: var(--game-shadow-card); }
+#special-shop .game-item-card.trade::before { display: none; }
+#special-shop .game-item-card .game-item-art { position: static; grid-column: 1 / -1; width: calc(100% + 20px); height: 132px; margin-left: -10px; border-bottom: var(--game-border-thin); background-image: var(--asset-url); background-size: 400% 400%; background-position: calc(var(--asset-x) * 100% / 3) calc(var(--asset-y) * 100% / 3); background-repeat: no-repeat; }
+#special-shop .game-item-card .game-item-art.game-missing-art { display: grid; place-items: center; padding: 15px; background: #dfd4bc; color: var(--game-color-ink-muted); font-size: 12px; font-weight: 800; text-align: center; }
+#special-shop .game-item-card .game-item-art.game-outfit-art { background-size: auto 142px; background-position: center top; background-color: #ead9c4; }
+#special-shop .game-item-card .game-item-copy { grid-column: 1 / -1; display: grid; align-content: start; gap: 3px; padding: 7px 0; }
+#special-shop .game-item-card .game-item-copy b { font-size: 14px; }
+#special-shop .game-item-card .game-item-copy small { color: var(--game-color-ink-muted); font-size: 11px; }
+#special-shop .game-item-card .game-item-copy em { display: flex; align-items: center; gap: 5px; color: var(--game-color-ink); font-style: normal; font-weight: 900; }
+#special-shop .game-item-card .game-quantity { display: grid; grid-template-columns: 1fr 1fr 1fr; place-items: center; height: 36px; border: var(--game-border-thin); border-radius: var(--game-radius-sm); background: #fff7e5; }
+#special-shop .game-item-card .game-purchase { display: grid; align-self: stretch; place-items: center; min-height: 38px; padding: 0; border: 0; border-radius: var(--game-radius-sm); background: var(--shop-primary); color: #fff; font: 900 13px var(--game-font-ui); }
+#special-shop .game-item-card.sell-card .game-purchase { background: var(--game-color-sell); }
+#special-shop .game-item-card .game-purchase:disabled { background: #897d6a; cursor: not-allowed; }
+#special-shop .game-item-card[hidden] { display: none; }
+.game-atlas-icon { display: inline-block; flex: none; background-image: var(--asset-url); background-size: 400% 400%; background-position: calc(var(--asset-x) * 100% / 3) calc(var(--asset-y) * 100% / 3); background-repeat: no-repeat; }
+.item-icon.game-atlas-icon { width: 34px; height: 34px; }
+.slot-icon.game-atlas-icon { width: 40px; height: 40px; margin-inline: auto; }
+@media (max-width: 850px) { #special-shop .game-market .shop-products { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 520px) { #special-shop .game-market .shop-products { grid-template-columns: 1fr; } }

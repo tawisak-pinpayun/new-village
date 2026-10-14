@@ -52,3 +52,8 @@ export const SHOP_ITEM_ASSETS = {
 } as const
 
 export type ShopItemAssetKey = keyof typeof SHOP_ITEM_ASSETS
+
+export function shopItemAssetStyle(key: ShopItemAssetKey): string {
+  const item = SHOP_ITEM_ASSETS[key]
+  return `--asset-url:url('${item.src}');--asset-x:${item.atlasColumn};--asset-y:${item.atlasRow}`
+}
