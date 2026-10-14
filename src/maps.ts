@@ -9,7 +9,7 @@ export type Interaction = {
   x: number
   y: number
   label: string
-  kind: 'door' | 'shop' | 'market_shop' | 'tailor' | 'magic_shop' | 'forge' | 'animal_shop' | 'furniture_shop' | 'quest' | 'festival' | 'rest' | 'cook' | 'storage' | 'future' | 'refill'
+  kind: 'door' | 'warp' | 'shop' | 'market_shop' | 'tailor' | 'magic_shop' | 'forge' | 'animal_shop' | 'furniture_shop' | 'quest' | 'festival' | 'rest' | 'cook' | 'storage' | 'future' | 'refill'
   destination?: MapId
   arrival?: { x: number; y: number }
 }
@@ -47,6 +47,7 @@ export const MAPS: Record<MapId, MapConfig> = {
       { id: 'shop', x: 530, y: 420, label: 'คุยกับเจ้าของร้าน', kind: 'shop' },
       { id: 'quest', x: 565, y: 790, label: 'คุยกับไกด์หมู่บ้าน', kind: 'quest' },
       { id: 'forest', x: 560, y: 145, label: 'ทางไปป่า', kind: 'future' },
+      { id: 'city', x: 965, y: 145, label: 'ไปเมืองหลวง', kind: 'door', destination: 'city', arrival: { x: 768, y: 900 } },
       { id: 'river', x: 1375, y: 520, label: 'ไปริมน้ำ', kind: 'door', destination: 'riverside', arrival: { x: 235, y: 520 } },
       { id: 'market', x: 175, y: 520, label: 'ไปตลาด', kind: 'door', destination: 'market', arrival: { x: 1280, y: 520 } }
     ]
@@ -102,6 +103,7 @@ export const MAPS: Record<MapId, MapConfig> = {
     ],
     interactions: [
       { id: 'to-market', x: 770, y: 105, label: 'กลับตลาด', kind: 'door', destination: 'market', arrival: { x: 770, y: 810 } },
+      { id: 'grand-warp-altar', x: 770, y: 585, label: 'ใช้แท่นวาร์ปน้ำพุแห่งดวงดาว', kind: 'warp' },
       { id: 'arcane-shop', x: 635, y: 290, label: 'ร้านเวทมนตร์', kind: 'magic_shop' },
       { id: 'mage-tailor', x: 905, y: 290, label: 'ร้านชุดจอมเวท', kind: 'tailor' }
     ]
@@ -164,6 +166,18 @@ export const MAPS: Record<MapId, MapConfig> = {
       { id: 'mine3-iron-2', x: 1230, y: 390, kind: 'iron', hp: 3 },
       { id: 'mine3-iron-3', x: 250, y: 560, kind: 'iron', hp: 3 },
       { id: 'mine3-iron-4', x: 1260, y: 735, kind: 'iron', hp: 3 }
+    ]
+  },
+  city: {
+    id: 'city', name: 'เมืองหลวง', image: '/assets/city.png', spawn: { x: 768, y: 900 },
+    blocked: [
+      [0, 0, 590, 420], [945, 0, 591, 420], [0, 420, 360, 604], [1175, 420, 361, 604],
+      [390, 445, 165, 160], [980, 445, 165, 160], [450, 760, 135, 160], [950, 760, 135, 160],
+      [0, 950, 610, 74], [925, 950, 611, 74]
+    ],
+    interactions: [
+      { id: 'to-village', x: 768, y: 930, label: 'กลับหมู่บ้าน', kind: 'door', destination: 'village', arrival: { x: 965, y: 245 } },
+      { id: 'castle', x: 768, y: 205, label: 'ประตูปราสาท', kind: 'future' }
     ]
   },
   home: {

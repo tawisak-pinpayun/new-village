@@ -16,6 +16,7 @@ import { renderCatalogCard, renderFarmersMarket } from './ui/game-ui'
 import { SHOP_ITEM_ASSETS, TAILOR_ITEM_ASSETS, TAILOR_OUTFIT_ART, TAILOR_GEAR_ART, itemAssetStyle, shopItemAssetStyle, tailorItemAssetStyle, type ItemAssetKey, type ShopItemAssetKey, type TailorItemAssetKey } from './ui/item-assets'
 import { NPCS, SHOPS, lilyGreeting, type DialogueExpression } from './shops'
 import { NPCAnimationController } from './npc-system'
+import { renderWorldMap, WorldMapController, type WorldMapLocation } from './world-map'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `<div id="game"></div><div class="vignette"></div>
@@ -24,8 +25,8 @@ app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   <div class="inventory"><div class="section-label">กระเป๋า <small>ลากของไปช่อง 8–10</small></div><div id="inventory-items"></div></div>
   <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span><span><kbd>F</kbd> ก่อกองไฟ (ไม้ 2 หิน 1)</span></div></div>
   <div id="hotbar" class="hotbar" aria-label="แถบเครื่องมือ"></div>
-  <div class="map-guide"><span class="section-label">🧭 แผนที่ภูมิประเทศ</span><div id="map-steps"></div><button id="map-expand">🗺️ เปิดแผนที่ใหญ่</button></div>
-  <div id="world-map-overlay" class="overlay hidden"><div class="dialog world-map-dialog"><div class="dialog-top"><span>WORLD MAP</span><button id="close-world-map" aria-label="ปิดแผนที่">✕</button></div><h2>แผนที่ New Village</h2><p>ตำแหน่งของคุณและเพื่อนใน Server เดียวกัน</p><div id="world-map-large"></div></div></div>
+  <div class="map-guide"><span class="section-label">แผนที่ภูมิประเทศ</span><div id="map-steps"></div><button id="map-expand">เปิดแผนที่โลก</button></div>
+  <div id="world-map-overlay" class="overlay hidden"><div class="dialog world-map-dialog"><header class="world-map-header"><div><small>WORLD MAP</small><h2>แผนที่ New Village</h2><p>ตำแหน่งของคุณและเพื่อนใน Server เดียวกัน</p></div><button id="close-world-map" aria-label="ปิดแผนที่">×</button></header><div id="world-map-large"></div></div></div>
   <button id="mobile-interact" class="mobile-interact hidden" aria-label="คุยกับ NPC">E · คุย</button>
   <div id="npc-dialogue" class="overlay npc-dialogue-overlay hidden"><section class="npc-dialogue-panel" role="dialog" aria-modal="true" aria-labelledby="npc-dialogue-name"><button id="close-npc-dialogue" class="npc-dialogue-close" aria-label="ปิดบทสนทนา">✕</button><div id="npc-portrait" class="npc-portrait expression-happy" role="img" aria-label="ภาพลิลลี่"></div><div class="npc-dialogue-copy"><header><span id="npc-dialogue-role">แม่ค้าเมล็ดพันธุ์</span><h2 id="npc-dialogue-name">ลิลลี่</h2></header><p id="npc-dialogue-text" aria-live="polite"></p><small id="npc-dialogue-hint">คลิกข้อความเพื่อแสดงทันที</small><div id="npc-dialogue-choices" class="npc-dialogue-choices"></div></div></section></div>
   <div class="camera-controls" aria-label="ควบคุมมุมกล้อง"><button id="camera-zoom-out" title="ซูมออก" aria-label="ซูมออก">−</button><button id="camera-zoom-reset" title="คืนค่ามุมกล้อง"><span id="camera-zoom-value">1.0×</span></button><button id="camera-zoom-in" title="ซูมเข้า" aria-label="ซูมเข้า">＋</button></div>
@@ -425,29 +426,8 @@ function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!)
 }
 function renderTerrainMap() {
-  const mapLocations = [
-    { ids: ['home'], x: 13, y: 17, icon: '🏠', label: 'บ้าน' },
-    { ids: ['farm'], x: 28, y: 29, icon: '🌾', label: 'ฟาร์ม' },
-    { ids: ['village'], x: 49, y: 48, icon: '🏘️', label: 'หมู่บ้าน' },
-    { ids: ['market'], x: 74, y: 25, icon: '⛺', label: 'ตลาด' },
-    { ids: ['magic_city'], x: 87, y: 47, icon: '🔮', label: 'เมืองเวท' },
-    { ids: ['riverside'], x: 27, y: 76, icon: '🌊', label: 'ริมน้ำ' },
-    { ids: ['mine', 'mine2', 'mine3'], x: 76, y: 79, icon: '⛰️', label: state.player.mapId.startsWith('mine') ? `เหมืองชั้น ${state.player.mapId === 'mine' ? 1 : state.player.mapId === 'mine2' ? 2 : 3}` : 'เหมือง' }
-  ]
-  const mapNodes = mapLocations.map(place => {
-    const active = place.ids.includes(state.player.mapId)
-    return `<div class="terrain-node ${active ? 'active' : ''}" style="left:${place.x}%;top:${place.y}%" title="${place.label}" aria-label="${place.label}${active ? ' ตำแหน่งปัจจุบัน' : ''}"><i>${place.icon}</i><span>${place.label}</span>${active ? '<b>● คุณอยู่ที่นี่</b>' : ''}</div>`
-  }).join('')
-  const friendPins = [...multiplayer.players.values()].map((peer, index) => {
-    const place = mapLocations.find(location => location.ids.includes(peer.mapId))
-    if (!place) return ''
-    const offsetX = (index % 3 - 1) * 4, offsetY = (Math.floor(index / 3) % 2 ? 1 : -1) * 6
-    const name = escapeHtml(peer.name)
-    return `<div class="terrain-friend" style="left:${place.x + offsetX}%;top:${place.y + offsetY}%" title="${name} · ${MAPS[peer.mapId].name}"><i>👤</i><span>${name}</span></div>`
-  }).join('')
-  const markup = `<div class="terrain-map"><svg viewBox="0 0 220 170" aria-hidden="true"><path class="terrain-river" d="M4 116 C42 94 60 132 92 112 S142 88 162 113 S198 140 218 119"/><path class="terrain-road" d="M28 35 Q68 56 108 82 T181 44 M108 82 Q81 121 59 133 M108 82 Q151 115 170 135"/><path class="terrain-road minor" d="M28 35 L57 49 M181 44 L191 80"/></svg><span class="terrain-forest forest-a">♣♣♣</span><span class="terrain-forest forest-b">♣♣</span><span class="terrain-hills">▲ ▲</span>${mapNodes}${friendPins}</div>`
-  ui.steps.innerHTML = markup
-  if (worldMapOpen) worldMapLarge.innerHTML = markup
+  const peers = [...multiplayer.players.values()].map(peer => ({ name: peer.name, mapId: peer.mapId }))
+  ui.steps.innerHTML = renderWorldMap(state.player.mapId, peers, playerName.value || 'คุณ', true)
 }
 function hud() {
   characterLabel.textContent = `Player ${(state.character ?? 'a').toUpperCase()}`
@@ -572,7 +552,19 @@ const specialShop = document.querySelector<HTMLElement>('#special-shop')!
 const wardrobe = document.querySelector<HTMLElement>('#wardrobe')!
 const festivalShop = document.querySelector<HTMLElement>('#festival-shop')!
 function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; worldMapOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden'); worldMapOverlay.classList.add('hidden'); accountPanel.classList.add('hidden'); if (dialogueOpen) closeNpcDialogue() }
-document.querySelector('#map-expand')!.addEventListener('click', () => { closeShop(); worldMapOpen = true; worldMapLarge.innerHTML = ui.steps.innerHTML; worldMapOverlay.classList.remove('hidden') })
+function travelFromWorldMap(location: WorldMapLocation) {
+  state.player.mapId = location.destination
+  state.player.x = location.arrival.x; state.player.y = location.arrival.y
+  closeShop(); changed(); scene?.scene.restart(); announce(`เดินทางถึง${location.name}`)
+  multiplayer.send(state.player.x, state.player.y, state.player.mapId, state.character ?? 'a', 0, false, true, state.outfit ?? 'default', !!state.mounted, state.equipped ?? {})
+}
+function openWorldMap(warpMode = false) {
+  closeShop(); worldMapOpen = true
+  const peers = [...multiplayer.players.values()].map(peer => ({ name: peer.name, mapId: peer.mapId }))
+  new WorldMapController(worldMapLarge, state.player.mapId, peers, playerName.value || 'คุณ', travelFromWorldMap, warpMode)
+  worldMapOverlay.classList.remove('hidden')
+}
+document.querySelector('#map-expand')!.addEventListener('click', () => openWorldMap(false))
 document.querySelector('#close-world-map')!.addEventListener('click', closeShop)
 worldMapOverlay.addEventListener('click', event => { if (event.target === worldMapOverlay) closeShop() })
 function festivalStatus() {
@@ -1258,6 +1250,34 @@ class WorldScene extends Phaser.Scene {
       this.add.text(635, 255, '🪄 ร้านเวทมนตร์', labelStyle).setOrigin(.5).setDepth(12)
       this.add.text(905, 255, '🧙 ร้านชุดจอมเวท', labelStyle).setOrigin(.5).setDepth(12)
       this.add.text(770, 145, '⬆ กลับตลาด', labelStyle).setOrigin(.5).setDepth(12)
+      const altar = this.add.container(770, 455).setDepth(8)
+      const glow = this.add.ellipse(0, 8, 285, 120, 0x72dfff, .18).setBlendMode(Phaser.BlendModes.ADD)
+      const base = this.add.ellipse(0, 18, 238, 96, 0x49306d, .12).setStrokeStyle(5, 0xbddfff, .76)
+      const ring = this.add.ellipse(0, 4, 190, 72, 0x552b8c, .12).setStrokeStyle(4, 0x8ff5ff, .92)
+      const core = this.add.ellipse(0, -2, 118, 45, 0x77e9ff, .28).setStrokeStyle(2, 0xf5e5ff, .9)
+      const crystalLeft = this.add.triangle(-100, -20, 0, 38, 14, 0, 28, 38, 0x9b6cff, .82).setStrokeStyle(2, 0xe9d3ff, .9)
+      const crystalRight = this.add.triangle(100, -20, 0, 38, 14, 0, 28, 38, 0x74dfff, .82).setStrokeStyle(2, 0xe3fbff, .9)
+      const beam = this.add.triangle(0, -52, -44, 72, 44, 72, 0, -145, 0x9befff, .2).setBlendMode(Phaser.BlendModes.ADD)
+      const title = this.add.text(0, 112, 'น้ำพุวาร์ปแห่งดวงดาว', { fontFamily: 'Nunito, sans-serif', fontSize: '20px', color: '#fff4ff', backgroundColor: '#34234dcf', padding: { x: 11, y: 5 } }).setOrigin(.5)
+      altar.add([glow, base, beam, ring, core, crystalLeft, crystalRight, title])
+      this.tweens.add({ targets: [glow, core], alpha: { from: .45, to: 1 }, scaleX: { from: .94, to: 1.08 }, scaleY: { from: .94, to: 1.08 }, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
+      this.tweens.add({ targets: beam, alpha: { from: .1, to: .48 }, scaleX: { from: .75, to: 1.2 }, duration: 1150, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
+      this.tweens.add({ targets: ring, angle: 360, duration: 9000, repeat: -1 })
+      const magicColors = [0x75eaff, 0xc78aff, 0xffe58c]
+      for (let index = 0; index < 18; index++) {
+        const angle = index / 18 * Math.PI * 2
+        const radius = 42 + index % 4 * 18
+        const spark = this.add.star(Math.cos(angle) * radius, 8 + Math.sin(angle) * 25, 4, 2, 6, magicColors[index % magicColors.length], 1)
+          .setBlendMode(Phaser.BlendModes.ADD)
+        altar.add(spark)
+        this.tweens.add({ targets: spark, y: spark.y - 95 - index % 3 * 22, x: spark.x + Math.sin(index * 2.1) * 24, alpha: { from: 0, to: 1 }, scale: { from: .35, to: 1.35 }, angle: 180, duration: 1500 + index % 5 * 210, delay: index * 95, repeat: -1, ease: 'Sine.easeOut', onRepeat: () => { spark.y = 8 + Math.sin(angle) * 25; spark.x = Math.cos(angle) * radius; spark.alpha = 0 } })
+      }
+      for (let index = 0; index < 9; index++) {
+        const startX = -72 + index * 18
+        const flame = this.add.triangle(startX, 4, 0, 35, 14, 0, 28, 35, index % 2 ? 0x8b62ff : 0x55e5ff, .72).setBlendMode(Phaser.BlendModes.ADD)
+        altar.add(flame)
+        this.tweens.add({ targets: flame, y: -68 - index % 3 * 14, x: startX + (index % 2 ? 14 : -14), alpha: 0, scaleX: .35, scaleY: 1.7, duration: 900 + index % 4 * 180, delay: index * 105, repeat: -1, ease: 'Quad.easeOut', onRepeat: () => { flame.x = startX; flame.y = 4; flame.alpha = .72; flame.setScale(1) } })
+      }
       this.addAnimatedShopkeeper('selene', 635, 290, 'เซลีน · เวทมนตร์')
       this.addAnimatedShopkeeper('aria', 905, 290, 'อาเรีย · เสื้อผ้า')
     }
@@ -1875,6 +1895,7 @@ class WorldScene extends Phaser.Scene {
 
   private interact(target: Interaction) {
     if (target.kind === 'future') return announce('เส้นทางนี้จะเปิดในอัปเดตถัดไป')
+    if (target.kind === 'warp') return openWorldMap(true)
     if (target.kind === 'shop') return openMerchantDialogue('mira')
     if (target.kind === 'market_shop') return target.id === 'seed-stall' ? openLilyDialogue() : openMarket()
     if (target.kind === 'festival') return openFestival()

@@ -6,7 +6,7 @@ const pbkdf2 = promisify(pbkdf2Callback)
 const COOKIE_AGE_SECONDS = 30 * 24 * 60 * 60
 const HASH_ITERATIONS = 600_000
 const SAVE_LIMIT = 64 * 1024
-const MAPS = new Set(['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'mine', 'mine2', 'mine3'])
+const MAPS = new Set(['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'city', 'mine', 'mine2', 'mine3'])
 
 export function validEmail(value) {
   return typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)

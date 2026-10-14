@@ -159,7 +159,7 @@ wss.on('connection', ws => {
       const room = rooms.get(ws.roomKey)
       const player = room?.get(ws.playerId)
       if (!player) return
-      if (!Number.isFinite(data.x) || !Number.isFinite(data.y) || !['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'mine', 'mine2', 'mine3'].includes(data.mapId)) return
+      if (!Number.isFinite(data.x) || !Number.isFinite(data.y) || !['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'city', 'mine', 'mine2', 'mine3'].includes(data.mapId)) return
       const previousMap = player.mapId
       if (Date.now() - (ws.lastMove ?? 0) < 150 && previousMap === data.mapId) return
       ws.lastMove = Date.now()
