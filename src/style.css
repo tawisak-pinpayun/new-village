@@ -48,6 +48,9 @@ button { font: inherit; cursor: pointer; }
 .wardrobe-choice b { white-space: nowrap; color: #f8d687; font-size: 11px; }
 .wardrobe-choice.equipped { border-color: #d8a258; background: #536947; }
 .wardrobe-choice:disabled { opacity: .65; cursor: default; }
+.wardrobe-gear-art { display: inline-block; flex: none; width: 38px; height: 38px; border: 1px solid #b98f55; border-radius: 5px; background-image: var(--asset-url); background-size: 400% 400%; background-position: calc(var(--asset-x) * 100% / 3) calc(var(--asset-y) * 100% / 3); background-repeat: no-repeat; }
+.wardrobe-slot-icon .wardrobe-gear-art { width: 100%; height: 100%; border: 0; }
+.wardrobe-gear-choice > span:nth-child(2) { flex: 1; min-width: 0; }
 .wardrobe-picker p { margin: 9px 0 0; color: #756a56; }
 @media (max-width: 760px) { .wardrobe-layout { grid-template-columns: 1fr 1.2fr; }.wardrobe-stats { grid-column: 1 / -1; grid-template-columns: repeat(2, 1fr); }.wardrobe-stats strong { grid-column: 1 / -1; }.wardrobe-preview { min-height: 350px; }.wardrobe-slot { min-height: 56px; }.wardrobe-slot-icon { width: 40px; height: 40px; font-size: 24px; } }
 @media (max-width: 540px) { .dialog.wardrobe-dialog { padding: 13px; }.wardrobe-layout { grid-template-columns: 1fr; }.wardrobe-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }.wardrobe-slot { grid-template-columns: 37px 1fr; gap: 2px 5px; }.wardrobe-slot-icon { width: 34px; height: 34px; font-size: 20px; }.wardrobe-slot strong { font-size: 11px; }.wardrobe-slot small, .wardrobe-slot b { font-size: 9px; }.wardrobe-preview { min-height: 310px; }.avatar-stage { height: 292px; }.wardrobe-stats { grid-column: 1; }.wardrobe-stats span { font-size: 12px; padding: 7px 1px; } }

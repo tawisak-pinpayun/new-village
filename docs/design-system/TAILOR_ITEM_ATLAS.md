@@ -3,6 +3,7 @@
 `public/assets/ui/tailor-item-atlas.png` is a 4 × 4 fixed-grid, hand-painted catalog atlas. Runtime item keys and accessible names are in `src/ui/item-assets.ts`. Crop each cell with `background-size: 400% 400%` and its zero-based column and row.
 
 The market map uses `public/assets/ui/shops/aria-storefront.png` as Aria's boutique facade. It overlays the former flower stall at `(330, 840)` without changing the market's walkable tiles or merchant interaction point. The image has transparent edges and shows clothing, hats, jewelry, and sewing supplies.
+The same atlas supplies item images in Aria's catalog, the wardrobe's accessory choices, and equipped accessory slots.
 
 Storefront art source: generated with ImageGen using this prompt: "Transparent cutout of one Aria tailor and jewelry boutique market storefront in a cozy fantasy village, slightly elevated game-map view. Compact wooden facade with plum and rose awning, central door, warm windows, folded fabrics, a dress mannequin, hats, jewelry displays, sewing tools and flowers. One complete shopfront, wide 3:2 composition, crisp hand-painted storybook rendering. Transparent alpha outside the building silhouette. No people, text, logo, detached props, or cropped edges."
 
