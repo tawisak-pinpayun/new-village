@@ -1156,6 +1156,7 @@ class WorldScene extends Phaser.Scene {
     for (const character of CHARACTER_IDS) if (!this.textures.exists(`player-${character}`)) this.load.spritesheet(`player-${character}`, `/assets/player-${character}.png`, { frameWidth: 280, frameHeight: 280 })
     if (!this.textures.exists('npcs')) this.load.spritesheet('npcs', '/assets/npcs.png', { frameWidth: 591, frameHeight: 887 })
     if (!this.textures.exists('shopkeeper-models')) this.load.image('shopkeeper-models', '/assets/ui/shopkeeper-npc-model-sheet.png')
+    if (config.id === 'market' && !this.textures.exists('aria-storefront')) this.load.image('aria-storefront', '/assets/ui/shops/aria-storefront.png')
     for (const id of ['mira', 'borin', 'selene', 'ploy', 'rowan', 'aria']) if (!this.textures.exists(`${id}-sheet`)) this.load.image(`${id}-sheet`, `/assets/ui/npcs/${id}-sprite-sheet.png`)
     if (!this.textures.exists('lily-sheet')) this.load.image('lily-sheet', NPCS.lily.spriteSheet)
   }
@@ -1238,10 +1239,10 @@ class WorldScene extends Phaser.Scene {
       this.addNpc(2, 565, 790, 'Village Guide')
     }
     if (config.id === 'market') {
+      this.add.image(330, 840, 'aria-storefront').setOrigin(.5, 1).setDisplaySize(380, 253).setDepth(8)
       const labelStyle = { fontFamily: 'Nunito, sans-serif', fontSize: '18px', color: '#fff9dc', backgroundColor: '#243829', padding: { x: 9, y: 4 } }
       this.add.text(460, 245, 'เมล็ดพันธุ์', labelStyle).setOrigin(.5).setDepth(12)
       this.add.text(1090, 270, 'งานไม้ · เฟอร์นิเจอร์', labelStyle).setOrigin(.5).setDepth(12)
-      this.add.text(330, 655, 'เสื้อผ้า · เครื่องประดับ', labelStyle).setOrigin(.5).setDepth(12)
       this.add.text(1120, 655, 'อาหารสัตว์ · ตะกร้า', labelStyle).setOrigin(.5).setDepth(12)
       this.add.text(770, 875, '⬇ เมืองเวทมนตร์', labelStyle).setOrigin(.5).setDepth(12)
       this.add.text(770, 705, '🎪 เทศกาลเก็บเกี่ยว', labelStyle).setOrigin(.5).setDepth(12)
