@@ -5,7 +5,7 @@ export const PET_SPECIES = {
   cow: { name: 'วัว', price: 130, art: 3, passive: 'ให้นมทุกเช้า และฟื้น Energy เมื่อยืนนิ่ง', active: 'ฟื้น Energy 12 หน่วย', cooldown: 75_000 },
   goat: { name: 'แพะ', price: 120, art: 4, passive: 'ให้นมทุกเช้า และฟื้น Energy เมื่อยืนนิ่ง', active: 'ฟื้น Energy 12 หน่วย', cooldown: 75_000 },
   magic_dog: { name: 'สุนัขเวท', price: 180, art: 5, passive: 'ฟื้น Mana ช้า ๆ และใช้ Mana น้อยลง', active: 'ฟื้น Mana 15 หน่วย', cooldown: 60_000 },
-  bird: { name: 'นก', price: 95, art: 6, passive: 'ติดตามปาร์ตี้และส่งสารได้', active: 'ส่งข้อความสั้นถึงเพื่อนในปาร์ตี้', cooldown: 45_000 }
+  bird: { name: 'นก', price: 95, art: 6, passive: 'แจ้งเมื่อเพื่อนในปาร์ตี้เข้าพื้นที่เดียวกัน', active: 'ส่งข้อความสั้นถึงเพื่อนในปาร์ตี้', cooldown: 45_000 }
 } as const
 
 export type PetSpecies = keyof typeof PET_SPECIES

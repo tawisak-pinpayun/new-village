@@ -1445,12 +1445,14 @@ class WorldScene extends Phaser.Scene {
 
   checkPetAlert() {
     const pet = activePet(state)
-    if (pet?.species !== 'dog' || !petReady(pet)) return
+    if (!petReady(pet) || (pet?.species !== 'dog' && pet?.species !== 'bird')) return
     for (const peer of multiplayer.players.values()) {
-      if (peer.mapId !== state.player.mapId || Math.hypot(peer.x - this.player.x, peer.y - this.player.y) > 150) continue
+      if (peer.mapId !== state.player.mapId) continue
+      if (pet.species === 'dog' && Math.hypot(peer.x - this.player.x, peer.y - this.player.y) > 150) continue
+      if (pet.species === 'bird' && (!multiplayer.partyCode || peer.partyCode !== multiplayer.partyCode)) continue
       if (Date.now() - (this.petAlerts.get(peer.id) ?? 0) < 60_000) continue
       this.petAlerts.set(peer.id, Date.now())
-      announce(`หมาบ้านเตือน: ${peer.name} อยู่ใกล้คุณ`)
+      announce(pet.species === 'dog' ? `หมาบ้านเตือน: ${peer.name} อยู่ใกล้คุณ` : `นกแจ้งข่าว: ${peer.name} อยู่ในพื้นที่เดียวกัน`)
     }
   }
 
