@@ -1,7 +1,8 @@
 import type { CharacterId, GearId, GearSlot, MapId, OutfitId, Plot } from './domain'
 import type { Monster } from './monsters'
+import type { PetSpecies } from './pet-data'
 
-export type RemotePlayer = { id: string; name: string; x: number; y: number; mapId: MapId; character: CharacterId; facing: number; moving: boolean; outfit?: OutfitId; equipped?: Partial<Record<GearSlot, GearId>>; mounted?: boolean; partyCode?: string }
+export type RemotePlayer = { id: string; name: string; x: number; y: number; mapId: MapId; character: CharacterId; facing: number; moving: boolean; outfit?: OutfitId; equipped?: Partial<Record<GearSlot, GearId>>; mounted?: boolean; partyCode?: string; pet?: PetSpecies | null }
 export type SharedWorld = { day: number; serverNow: number; nodeHp: Record<string, number>; plots: Plot[]; monsters: Partial<Record<MapId, (Monster & { remaining: number })[]>>; quest: { stage: number; harvested: number; mined: number; completed: boolean }; festival: { day: number; donated: number; goal: number; completed: boolean }; gardenGateOpen: boolean; campfires: { mapId: MapId; x: number; y: number }[] }
 export type ActionResult = { ok: boolean; action?: string; message?: string; remaining?: number; defeated?: boolean; kind?: string; crop?: string; itemId?: string; monsterKind?: string; xp?: number; monsterHp?: number; maxMonsterHp?: number }
 export class Multiplayer {
@@ -20,6 +21,7 @@ export class Multiplayer {
   onChange: () => void = () => {}
   onJoined: () => void = () => {}
   onStatus: (text: string) => void = () => {}
+  onPetNote: (from: string, text: string) => void = () => {}
   private lastSent = 0
   private lastPosition = ''
   private changeQueued = false
@@ -76,6 +78,8 @@ export class Multiplayer {
         this.notifyChange()
       } else if (data.type === 'party-error') {
         this.onStatus(data.message)
+      } else if (data.type === 'pet-note') {
+        this.onPetNote(String(data.from || 'นก'), String(data.text || '').slice(0, 60))
       } else if (data.type === 'left') {
         this.players.delete(data.id)
         this.onStatus(`อยู่ใน Server ${this.server} · ${this.players.size + 1} คน`)
@@ -93,14 +97,21 @@ export class Multiplayer {
     }
     socket.onerror = () => this.onStatus('เชื่อมต่อไม่ได้ ตรวจว่าเซิร์ฟเวอร์ออนไลน์อยู่')
   }
-  send(x: number, y: number, mapId: MapId, character: CharacterId, facing: number, moving: boolean, force = false, outfit: OutfitId = 'default', mounted = false, equipped: Partial<Record<GearSlot, GearId>> = {}) {
+  send(x: number, y: number, mapId: MapId, character: CharacterId, facing: number, moving: boolean, force = false, outfit: OutfitId = 'default', mounted = false, equipped: Partial<Record<GearSlot, GearId>> = {}, pet: PetSpecies | null = null) {
     if (!this.room || this.socket?.readyState !== WebSocket.OPEN) return
     const now = Date.now()
-    const position = `${Math.round(x)},${Math.round(y)},${mapId},${character},${facing},${moving},${outfit},${mounted},${JSON.stringify(equipped)}`
+    const position = `${Math.round(x)},${Math.round(y)},${mapId},${character},${facing},${moving},${outfit},${mounted},${JSON.stringify(equipped)},${pet}`
     if (!force && (now - this.lastSent < 250 || (position === this.lastPosition && now - this.lastSent < 15000))) return
     this.lastSent = now
     this.lastPosition = position
-    this.socket.send(JSON.stringify({ type: 'move', x, y, mapId, character, facing, moving, outfit, mounted, equipped }))
+    this.socket.send(JSON.stringify({ type: 'move', x, y, mapId, character, facing, moving, outfit, mounted, equipped, pet }))
+  }
+  sendPetNote(text: string): boolean {
+    if (!this.room || !this.partyCode || this.socket?.readyState !== WebSocket.OPEN) return false
+    const message = text.trim().slice(0, 60)
+    if (!message) return false
+    this.socket.send(JSON.stringify({ type: 'pet-note', text: message }))
+    return true
   }
   action(action: string, payload: Record<string, unknown>, callback: (result: ActionResult) => void): boolean {
     if (!this.room || this.socket?.readyState !== WebSocket.OPEN || !this.world) return false

@@ -82,12 +82,12 @@ export function hitMonster(world, player, id, damage) {
   monster.hp = Math.max(0, monster.hp - Math.max(1, Math.min(5, Number(damage) || 1)))
   return { ok: true, monster, defeated: monster.hp === 0 }
 }
-export function actPlot(world, player, index, action, cropId, now = Date.now()) {
+export function actPlot(world, player, index, action, cropId, now = Date.now(), growthMultiplier = 1) {
   const plot = world.plots[index], positions = [[610, 540], [770, 540], [925, 540], [610, 655], [770, 655], [925, 655]]
   if (!plot || player.mapId !== 'farm' || Math.hypot(player.x - positions[index][0], player.y - positions[index][1]) > 145) return { ok: false, message: 'อยู่ไกลจากแปลงเกินไป' }
   if (action === 'till' && ['EMPTY', 'WITHERED'].includes(plot.state)) Object.assign(plot, { state: 'TILLED', cropId: null, readyAt: null })
-  else if (action === 'plant' && plot.state === 'TILLED' && ['radish', 'carrot', 'tomato'].includes(cropId)) Object.assign(plot, { state: rainingOn(world.day) ? 'GROWING' : 'PLANTED', cropId, readyAt: rainingOn(world.day) ? now + 60_000 : null })
-  else if (action === 'water' && plot.state === 'PLANTED') Object.assign(plot, { state: 'GROWING', readyAt: now + 60000 })
+  else if (action === 'plant' && plot.state === 'TILLED' && ['radish', 'carrot', 'tomato'].includes(cropId)) Object.assign(plot, { state: rainingOn(world.day) ? 'GROWING' : 'PLANTED', cropId, readyAt: rainingOn(world.day) ? now + 60_000 * growthMultiplier : null })
+  else if (action === 'water' && plot.state === 'PLANTED') Object.assign(plot, { state: 'GROWING', readyAt: now + 60_000 * growthMultiplier })
   else if (action === 'harvest' && plot.state === 'READY') { const crop = plot.cropId; Object.assign(plot, { state: 'TILLED', cropId: null, readyAt: null }); return { ok: true, plot, crop } }
   else return { ok: false, message: 'แปลงนี้เปลี่ยนไปแล้ว ลองอีกครั้ง' }
   return { ok: true, plot }

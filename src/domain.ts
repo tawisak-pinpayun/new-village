@@ -1,6 +1,8 @@
 export type PlotState = 'EMPTY' | 'TILLED' | 'PLANTED' | 'GROWING' | 'READY' | 'WITHERED'
 export type CropId = 'radish' | 'carrot' | 'tomato'
-export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion' | 'animal_feed' | 'pet_basket' | 'carved_chair' | 'flower_table'
+import { validPets, type PetRecord } from './pet-data.ts'
+
+export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion' | 'animal_feed' | 'pet_basket' | 'egg' | 'milk' | 'carved_chair' | 'flower_table'
 export type MapId = 'village' | 'farm' | 'home' | 'market' | 'magic_city' | 'riverside' | 'city' | 'mine' | 'mine2' | 'mine3'
 export type CharacterId = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h'
 export const CHARACTER_IDS: CharacterId[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -30,7 +32,7 @@ export const GEAR: Record<GearId, { name: string; icon: string; slot: GearSlot; 
   crystal_charm: { name: 'เครื่องรางคริสตัล', icon: '🔮', slot: 'charm', price: 95, mana: 15, speed: 15 }
 }
 export const GEAR_IDS = Object.keys(GEAR) as GearId[]
-export const ITEM_IDS: ItemId[] = ['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber', 'sword', 'bow', 'meat', 'hide', 'copper', 'iron', 'moonstone', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion', 'animal_feed', 'pet_basket', 'carved_chair', 'flower_table']
+export const ITEM_IDS: ItemId[] = ['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber', 'sword', 'bow', 'meat', 'hide', 'copper', 'iron', 'moonstone', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion', 'animal_feed', 'pet_basket', 'egg', 'milk', 'carved_chair', 'flower_table']
 export type Slot = { slot: number; itemId: ItemId; quantity: number }
 export type Plot = { id: string; state: PlotState; cropId: CropId | null; readyAt: number | null; dryDays?: number; wateredDay?: number | null }
 export type Save = {
@@ -58,6 +60,9 @@ export type Save = {
   mounted?: boolean
   gardenGateOpen?: boolean
   campfires?: { mapId: MapId; x: number; y: number }[]
+  pets?: PetRecord[]
+  activePetId?: string | null
+  groundDrops?: { id: string; mapId: MapId; x: number; y: number; itemId: ItemId }[]
 }
 
 export const KEY = 'new-village.save.v2'
@@ -91,7 +96,10 @@ export const initialState = (): Save => ({
   festival: { day: 1, donated: 0, completed: false },
   mounted: false,
   gardenGateOpen: false,
-  campfires: []
+  campfires: [],
+  pets: [],
+  activePetId: null,
+  groundDrops: []
 })
 
 export function equipmentStats(save: Save) {
@@ -255,6 +263,8 @@ export function validate(value: unknown): value is Save {
     (s.mounted !== undefined && typeof s.mounted !== 'boolean') ||
     (s.gardenGateOpen !== undefined && typeof s.gardenGateOpen !== 'boolean') ||
     (s.campfires !== undefined && (!Array.isArray(s.campfires) || s.campfires.length > 20 || s.campfires.some(fire => !fire || !['village', 'farm', 'market', 'magic_city', 'riverside'].includes(fire.mapId) || !Number.isFinite(fire.x) || !Number.isFinite(fire.y) || fire.x < 32 || fire.x > 1504 || fire.y < 32 || fire.y > 992))) ||
+    !validPets(s.pets, s.activePetId) ||
+    (s.groundDrops !== undefined && (!Array.isArray(s.groundDrops) || s.groundDrops.length > 30 || s.groundDrops.some(drop => !drop || typeof drop.id !== 'string' || drop.id.length > 60 || !ITEM_IDS.includes(drop.itemId) || !['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'city', 'mine', 'mine2', 'mine3'].includes(drop.mapId) || !Number.isFinite(drop.x) || !Number.isFinite(drop.y) || drop.x < 0 || drop.x > 1536 || drop.y < 0 || drop.y > 1024))) ||
     (s.festival !== undefined && (!Number.isInteger(s.festival.day) || s.festival.day < 1 || !Number.isInteger(s.festival.donated) || s.festival.donated < 0 || s.festival.donated > 3 || typeof s.festival.completed !== 'boolean')) ||
     (s.character !== undefined && !CHARACTER_IDS.includes(s.character)) ||
     (s.unlockedCharacters !== undefined && (!Array.isArray(s.unlockedCharacters) || s.unlockedCharacters.some(id => !CHARACTER_IDS.includes(id)) || new Set(s.unlockedCharacters).size !== s.unlockedCharacters.length)) ||
@@ -340,6 +350,9 @@ export function load(): { state: Save; error?: string } {
     parsed.mounted ??= false
     parsed.gardenGateOpen ??= false
     parsed.campfires ??= []
+    parsed.pets ??= []
+    parsed.activePetId ??= null
+    parsed.groundDrops ??= []
     for (const plot of parsed.plots) { plot.dryDays ??= 0; plot.wateredDay ??= null; if (plot.state === 'READY') plot.readyAt = null }
     refreshGrowth(parsed)
     return { state: parsed }

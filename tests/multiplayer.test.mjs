@@ -180,3 +180,43 @@ test('servers isolate rooms and world chat presence', async t => {
   extra.send(JSON.stringify({ type: 'chat-join', server: 1, name: 'Extra' }))
   assert.deepEqual((await history).messages, [])
 })
+
+test('other players see the active pet and a bird delivers notes only to its party', async t => {
+  const port = await freePort()
+  const child = spawn(process.execPath, ['server/index.mjs'], { cwd: process.cwd(), env: { ...process.env, PORT: String(port) }, stdio: ['ignore', 'pipe', 'pipe'] })
+  t.after(() => child.kill())
+  await Promise.race([new Promise(resolve => child.stdout.on('data', chunk => { if (chunk.toString().includes('listening')) resolve() })), new Promise((_, reject) => setTimeout(() => reject(new Error('Server did not start')), 5000))])
+  const clients = []
+  t.after(() => clients.forEach(socket => socket.close()))
+  for (const name of ['BirdOwner', 'Friend', 'Outsider']) {
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/multiplayer`)
+    clients.push(socket)
+    await once(socket, 'open')
+    const joined = nextMessage(socket, 'joined'), world = nextMessage(socket, 'world-state')
+    socket.send(JSON.stringify({ type: 'join', name }))
+    await joined; await world
+  }
+  const [owner, friend, outsider] = clients
+  const visible = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => { friend.off('message', onMessage); reject(new Error('Missing bird owner')) }, 5000)
+    function onMessage(raw) {
+      const value = JSON.parse(raw.toString())
+      if (value.type !== 'player' || value.player?.name !== 'BirdOwner') return
+      clearTimeout(timeout); friend.off('message', onMessage); resolve(value)
+    }
+    friend.on('message', onMessage)
+  })
+  owner.send(JSON.stringify({ type: 'move', x: 700, y: 800, mapId: 'village', character: 'a', pet: 'bird' }))
+  assert.equal((await visible).player.pet, 'bird')
+  const ownerParty = nextMessage(owner, 'party-state'), friendParty = nextMessage(friend, 'party-state')
+  owner.send(JSON.stringify({ type: 'party', code: 'BIRD01' }))
+  friend.send(JSON.stringify({ type: 'party', code: 'BIRD01' }))
+  await ownerParty; await friendParty
+  const heard = nextMessage(friend, 'pet-note')
+  let outsiderHeard = false
+  outsider.on('message', raw => { if (JSON.parse(raw.toString()).type === 'pet-note') outsiderHeard = true })
+  owner.send(JSON.stringify({ type: 'pet-note', text: 'พบกันที่ฟาร์ม' }))
+  assert.equal((await heard).text, 'พบกันที่ฟาร์ม')
+  await new Promise(resolve => setTimeout(resolve, 100))
+  assert.equal(outsiderHeard, false)
+})

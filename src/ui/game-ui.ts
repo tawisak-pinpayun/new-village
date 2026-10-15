@@ -1,4 +1,4 @@
-import { ITEM_ASSETS, SHOP_ITEM_ASSETS, TAILOR_ITEM_ASSETS, itemAssetStyle, shopItemAssetStyle, tailorItemAssetStyle, type ItemAssetKey, type ShopItemAssetKey, type TailorItemAssetKey } from './item-assets'
+import { ITEM_ASSETS, SHOP_ITEM_ASSETS, TAILOR_ITEM_ASSETS, PET_UI_ASSETS, itemAssetStyle, shopItemAssetStyle, tailorItemAssetStyle, petUiAssetStyle, type ItemAssetKey, type ShopItemAssetKey, type TailorItemAssetKey, type PetUiAssetKey } from './item-assets'
 import type { ItemId } from '../domain'
 import { SHOPS, type ShopDefinition } from '../shops'
 
@@ -54,15 +54,16 @@ export type CatalogCard = {
 export function renderCatalogCard(card: CatalogCard): string {
   const tailorArt = card.art in TAILOR_ITEM_ASSETS
   const shopArt = card.art in SHOP_ITEM_ASSETS
-  const art = tailorArt ? TAILOR_ITEM_ASSETS[card.art as TailorItemAssetKey] : shopArt ? SHOP_ITEM_ASSETS[card.art as ShopItemAssetKey] : ITEM_ASSETS[card.art as ItemAssetKey]
-  const style = art ? tailorArt ? tailorItemAssetStyle(card.art as TailorItemAssetKey) : shopArt ? shopItemAssetStyle(card.art as ShopItemAssetKey) : itemAssetStyle(card.art as ItemAssetKey) : ''
+  const petArt = card.art in PET_UI_ASSETS
+  const art = tailorArt ? TAILOR_ITEM_ASSETS[card.art as TailorItemAssetKey] : shopArt ? SHOP_ITEM_ASSETS[card.art as ShopItemAssetKey] : petArt ? PET_UI_ASSETS[card.art as PetUiAssetKey] : ITEM_ASSETS[card.art as ItemAssetKey]
+  const style = art ? tailorArt ? tailorItemAssetStyle(card.art as TailorItemAssetKey) : shopArt ? shopItemAssetStyle(card.art as ShopItemAssetKey) : petArt ? petUiAssetStyle(card.art as PetUiAssetKey) : itemAssetStyle(card.art as ItemAssetKey) : ''
   const buttonData = {
     buy: 'data-special-buy', sell: 'data-special-sell', craft: 'data-craft',
     outfit: 'data-outfit', gear: 'data-gear-buy'
   }[card.action]
   const label = card.actionText ?? { buy: 'ซื้อ', sell: 'ขาย', craft: 'หลอม', outfit: 'เลือก', gear: 'เลือก' }[card.action]
   return `<article class="game-item-card trade ${card.action === 'sell' ? 'sell-card' : ''}" data-special-card data-shop-category="${card.category}" data-price="${card.price}" data-name="${card.name}" data-quantity="1">
-    <span class="game-item-art ${art ? '' : 'game-missing-art'}" role="img" aria-label="${art?.alt ?? 'ยังไม่มีภาพสินค้า'}" style="${style}">${art ? '' : 'ภาพสินค้าอยู่ระหว่างจัดทำ'}</span>
+    <span class="game-item-art ${petArt ? 'pet-art' : ''} ${art ? '' : 'game-missing-art'}" role="img" aria-label="${art?.alt ?? 'ยังไม่มีภาพสินค้า'}" style="${style}">${art ? '' : 'ภาพสินค้าอยู่ระหว่างจัดทำ'}</span>
     <span class="game-item-copy"><b>${card.name}</b><small>${card.description}</small>${card.owned === undefined ? '' : `<small>มีในกระเป๋า ${card.owned} ชิ้น</small>`}<em>${card.price ? `<i class="game-coin-icon" aria-hidden="true"></i>${card.price} Coins` : label}</em></span>
     ${card.quantity && !card.disabled ? `<span class="game-quantity"><button type="button" data-special-qty="-1" aria-label="ลดจำนวน ${card.name}">−</button><output>1</output><button type="button" data-special-qty="1" aria-label="เพิ่มจำนวน ${card.name}">＋</button></span>` : '<span></span>'}
     <button class="game-purchase" type="button" ${buttonData}="${card.id}" ${card.disabled ? 'disabled' : ''} aria-label="${label} ${card.name}">${card.disabled ? 'เร็ว ๆ นี้' : label}</button>
