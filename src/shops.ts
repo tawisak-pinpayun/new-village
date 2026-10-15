@@ -1,5 +1,4 @@
 import type { ItemId } from './domain'
-import { PET_SPECIES_IDS, type PetSpecies } from './pet-data.ts'
 
 export type ShopTheme = { primary: string; accent: string; material: string; mood: string }
 export type ShopDefinition = {
@@ -8,7 +7,6 @@ export type ShopDefinition = {
   theme: ShopTheme; inventory: ItemId[]; buyItems: ItemId[]; acceptedSellCategories: ItemId[]; categories: { id: string; label: string }[]
   openingHours: [number, number]; npcId: string; ambientAnimations: string[]
   stock: ShopStock[]; sellPrices: Partial<Record<ItemId, number>>
-  petSpecies?: readonly PetSpecies[]
 }
 export type ShopStock = { id: ItemId; price: number; category: string; description: string; art: string; available?: boolean }
 export type NpcAnimationState = 'idle' | 'blink' | 'breathe' | 'greet' | 'walk' | 'work' | 'talk' | 'happy' | 'interact' | 'surprised' | 'sad'
@@ -91,14 +89,14 @@ export const SHOPS: Record<string, ShopDefinition> = {
     interiorAsset: '/assets/ui/shops/animal-shop-header.png', signAsset: '/assets/ui/shops/animal-shop-header.png',
     shopId: 'animal_shop', shopName: 'ร้านสัตว์ของพลอย', shopType: 'animal', bannerAsset: '/assets/ui/shops/animal-shop-header.png', bannerPosition: 'center 48%', npcPortrait: '/assets/ui/npcs/ploy-portraits.png',
     theme: { primary: '#678248', accent: '#ebcb83', material: 'farm-wood', mood: 'meadow' },
-    inventory: ['animal_feed', 'pet_basket'], buyItems: ['animal_feed', 'pet_basket'], acceptedSellCategories: ['meat', 'hide', 'egg', 'milk'],
-    categories: [{ id: 'all', label: 'ทั้งหมด' }, { id: 'pets', label: 'สัตว์เลี้ยง' }, { id: 'feed', label: 'อาหารสัตว์' }, { id: 'care', label: 'อุปกรณ์ดูแล' }],
+    inventory: ['animal_feed', 'pet_basket'], buyItems: ['animal_feed', 'pet_basket'], acceptedSellCategories: ['meat', 'hide'],
+    categories: [{ id: 'all', label: 'ทั้งหมด' }, { id: 'feed', label: 'อาหารสัตว์' }, { id: 'care', label: 'อุปกรณ์ดูแล' }],
     openingHours: [7, 20], npcId: 'ploy', ambientAnimations: ['hay-drift'],
     stock: [
       { id: 'animal_feed', price: 18, category: 'feed', description: 'เก็บไว้ใช้ดูแลสัตว์ในฟาร์ม', art: 'animal_feed' },
       { id: 'pet_basket', price: 28, category: 'care', description: 'ตะกร้าสำหรับสัตว์เลี้ยง', art: 'pet_basket' }
     ],
-    sellPrices: { meat: 16, hide: 12, egg: 12, milk: 18 }, petSpecies: PET_SPECIES_IDS
+    sellPrices: { meat: 16, hide: 12 }
   },
   furniture_shop: {
     id: 'furniture_shop', name: 'ร้านเฟอร์นิเจอร์ของโรวัน', type: 'furniture', exteriorAsset: '/assets/market.png',

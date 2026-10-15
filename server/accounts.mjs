@@ -7,8 +7,6 @@ const COOKIE_AGE_SECONDS = 30 * 24 * 60 * 60
 const HASH_ITERATIONS = 600_000
 const SAVE_LIMIT = 64 * 1024
 const MAPS = new Set(['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'city', 'mine', 'mine2', 'mine3'])
-const PET_SPECIES = new Set(['dog', 'cat', 'chicken', 'cow', 'goat', 'magic_dog', 'bird'])
-const GROUND_LOOT = new Set(['wood', 'stone', 'fiber', 'hide', 'meat', 'copper', 'iron', 'moonstone'])
 
 export function validEmail(value) {
   return typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -40,18 +38,6 @@ export function validSave(value) {
   if (![player.x, player.y, player.coins, player.energy, value.savedAt].every(Number.isFinite)) return false
   if (player.x < 0 || player.x > 1536 || player.y < 0 || player.y > 1024 || player.coins < 0 || player.energy < 0 || player.energy > 100) return false
   if (!Array.isArray(value.inventory) || value.inventory.length > 24 || !Array.isArray(value.plots) || value.plots.length !== 6 || typeof value.questDone !== 'boolean') return false
-  if (value.pets === undefined && value.activePetId != null) return false
-  if (value.pets !== undefined) {
-    if (!Array.isArray(value.pets) || value.pets.length > 2) return false
-    const ids = new Set()
-    for (const pet of value.pets) {
-      if (!pet || typeof pet.id !== 'string' || !/^[a-z_]+-\d{10,15}-[0-9a-f]{4}$/.test(pet.id) || ids.has(pet.id) || !PET_SPECIES.has(pet.species)) return false
-      ids.add(pet.id)
-      if (![pet.hunger, pet.happiness].every(n => Number.isInteger(n) && n >= 0 && n <= 100) || !Number.isInteger(pet.bondLevel) || pet.bondLevel < 1 || pet.bondLevel > 20 || !Number.isInteger(pet.bondXp) || pet.bondXp < 0 || pet.bondXp > 400 || !Number.isInteger(pet.lastProducedDay) || pet.lastProducedDay < 0 || ![pet.lastCareAt, pet.skillReadyAt, pet.lastPlayAt].every(n => Number.isFinite(n) && n >= 0)) return false
-    }
-    if (value.activePetId != null && !ids.has(value.activePetId)) return false
-  }
-  if (value.groundDrops !== undefined && (!Array.isArray(value.groundDrops) || value.groundDrops.length > 30 || value.groundDrops.some(drop => !drop || typeof drop.id !== 'string' || drop.id.length > 60 || !GROUND_LOOT.has(drop.itemId) || !MAPS.has(drop.mapId) || !Number.isFinite(drop.x) || !Number.isFinite(drop.y) || drop.x < 0 || drop.x > 1536 || drop.y < 0 || drop.y > 1024))) return false
   return true
 }
 

@@ -85,7 +85,7 @@ wss.on('connection', ws => {
       rooms.set(key, room)
       if (!worlds.has(key)) worlds.set(key, makeWorld())
       ws.roomKey = key
-      const player = { id: ws.playerId, name: String(data.name || 'เพื่อน').trim().slice(0, 20) || 'เพื่อน', x: 768, y: 800, mapId: 'village', character: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].includes(data.character) ? data.character : 'a', facing: 0, moving: false, outfit: 'default', mounted: false, pet: null, partyCode: '', ws }
+      const player = { id: ws.playerId, name: String(data.name || 'เพื่อน').trim().slice(0, 20) || 'เพื่อน', x: 768, y: 800, mapId: 'village', character: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].includes(data.character) ? data.character : 'a', facing: 0, moving: false, outfit: 'default', mounted: false, partyCode: '', ws }
       room.set(ws.playerId, player)
       send(ws, { type: 'joined', id: ws.playerId, server: selectedServer, players: [...room.values()].filter(p => p !== player).map(({ ws: _, ...p }) => p) })
       send(ws, publicWorld(worlds.get(key)))
@@ -98,13 +98,6 @@ wss.on('connection', ws => {
       player.partyCode = partyCode
       send(ws, { type: 'party-state', code: partyCode })
       for (const peer of room.values()) send(peer.ws, { type: 'player', player: { ...player, ws: undefined } })
-    } else if (data.type === 'pet-note' && ws.roomKey) {
-      const room = rooms.get(ws.roomKey), player = room?.get(ws.playerId)
-      if (!player || player.pet !== 'bird' || !player.partyCode || Date.now() - (ws.lastPetNote ?? 0) < 45_000) return
-      const message = String(data.text || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 60)
-      if (!message) return
-      ws.lastPetNote = Date.now()
-      for (const peer of room.values()) if (peer.partyCode === player.partyCode) send(peer.ws, { type: 'pet-note', from: player.name, text: message })
     } else if (data.type === 'world-action' && ws.roomKey) {
       const room = rooms.get(ws.roomKey), world = worlds.get(ws.roomKey), player = room?.get(ws.playerId)
       if (!room || !world || !player) return
@@ -116,13 +109,7 @@ wss.on('connection', ws => {
       let result
       if (data.action === 'node') result = hitResource(world, player, String(data.id || ''), data.damage)
       else if (data.action === 'monster') result = hitMonster(world, player, String(data.id || ''), data.damage)
-      else if (data.action === 'plot') result = actPlot(world, player, Number(data.index), data.plotAction, data.cropId, Date.now(), player.pet === 'chicken' ? .95 : 1)
-      else if (data.action === 'pet-grow') {
-        const index = Number(data.index), plot = world.plots[index], positions = [[610, 540], [770, 540], [925, 540], [610, 655], [770, 655], [925, 655]]
-        const valid = player.pet === 'chicken' && player.mapId === 'farm' && Number.isInteger(index) && index >= 0 && index < 6 && plot?.state === 'GROWING' && Math.hypot(player.x - positions[index][0], player.y - positions[index][1]) < 145 && Date.now() - (ws.lastPetGrow ?? 0) >= 90_000
-        result = valid ? { ok: true } : { ok: false, message: 'ไม่มีแปลงที่เร่งโตได้ใกล้ตัว หรือสกิลยังไม่พร้อม' }
-        if (valid) { plot.readyAt = Math.max(Date.now(), plot.readyAt - 15_000); ws.lastPetGrow = Date.now() }
-      }
+      else if (data.action === 'plot') result = actPlot(world, player, Number(data.index), data.plotAction, data.cropId)
       else if (data.action === 'garden-gate') {
         const doorwayOccupied = [...room.values()].some(peer => peer.mapId === 'farm' && Math.abs(peer.x - 770) < 64 && Math.abs(peer.y - 780) < 43)
         result = player.mapId === 'farm' && Math.hypot(player.x - 770, player.y - 780) < 115 && (!world.gardenGateOpen || !doorwayOccupied)
@@ -186,7 +173,6 @@ wss.on('connection', ws => {
       const allowedGear = { hat: ['flower_hat', 'wizard_hat'], necklace: ['silver_necklace', 'moon_amulet'], bracelet: ['gold_bracelet', 'star_bracelet'], boots: ['leather_boots', 'cloud_boots'], charm: ['lucky_charm', 'crystal_charm'] }
       player.equipped = Object.fromEntries(Object.entries(allowedGear).filter(([slot, ids]) => ids.includes(data.equipped?.[slot])).map(([slot]) => [slot, data.equipped[slot]]))
       player.mounted = !!data.mounted
-      player.pet = ['dog', 'cat', 'chicken', 'cow', 'goat', 'magic_dog', 'bird'].includes(data.pet) ? data.pet : null
       if (previousMap !== player.mapId) send(ws, { type: 'peers', players: [...room.values()].filter(p => p !== player).map(({ ws: _, ...p }) => p) })
       for (const peer of room.values()) if (peer.ws !== ws && (peer.mapId === player.mapId || peer.mapId === previousMap)) send(peer.ws, { type: 'player', player: { ...player, ws: undefined } })
     }

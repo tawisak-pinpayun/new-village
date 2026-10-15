@@ -100,18 +100,3 @@ export function tailorItemAssetStyle(key: TailorItemAssetKey): string {
   const item = TAILOR_ITEM_ASSETS[key]
   return `--asset-url:url('${item.src}');--asset-x:${item.atlasColumn};--asset-y:${item.atlasRow}`
 }
-
-const petAtlas = '/assets/ui/pet-atlas.png'
-const petAsset = (atlasColumn: number, atlasRow: number, alt: string): GameAsset => ({ src: petAtlas, atlasColumn, atlasRow, alt, status: 'production' })
-
-/** Nine equal atlas cells: seven pets followed by egg and milk. */
-export const PET_UI_ASSETS = {
-  dog: petAsset(0, 0, 'หมาบ้าน'), cat: petAsset(1, 0, 'แมว'), chicken: petAsset(2, 0, 'ไก่'),
-  cow: petAsset(0, 1, 'วัว'), goat: petAsset(1, 1, 'แพะ'), magic_dog: petAsset(2, 1, 'สุนัขเวท'),
-  bird: petAsset(0, 2, 'นก'), egg: petAsset(1, 2, 'ไข่'), milk: petAsset(2, 2, 'นม')
-} as const
-export type PetUiAssetKey = keyof typeof PET_UI_ASSETS
-export function petUiAssetStyle(key: PetUiAssetKey): string {
-  const item = PET_UI_ASSETS[key]
-  return `--asset-url:url('${item.src}');--asset-x:${item.atlasColumn};--asset-y:${item.atlasRow}`
-}

@@ -91,7 +91,6 @@
 #special-shop .game-awning { background: repeating-linear-gradient(90deg,var(--shop-primary) 0 66px,var(--game-color-cream) 66px 132px); border-color: var(--shop-primary); }
 #special-shop .game-shop-nav button.active { background: var(--shop-primary); }
 #special-shop .game-shop-nav button[style]::before { background-image: var(--asset-url); background-position: calc(var(--asset-x) * 100% / 3) calc(var(--asset-y) * 100% / 3); }
-#special-shop .game-shop-nav button.pet-category::before { background-size: 300% 300%; background-position: calc(var(--asset-x) * 100% / 2) calc(var(--asset-y) * 100% / 2); }
 #special-shop .game-wardrobe-link { width: 100%; margin: 0 0 12px; padding: 10px 14px; border: var(--game-border-thin); border-radius: var(--game-radius-md); background: #f7e9ce; color: var(--game-color-ink); font: 900 13px var(--game-font-ui); text-align: center; }
 #special-shop .game-wardrobe-link:hover { background: #fff4df; }
 #special-shop .game-wardrobe-link[hidden] { display: none; }
@@ -114,32 +113,5 @@
 .game-atlas-icon { display: inline-block; flex: none; background-image: var(--asset-url); background-size: 400% 400%; background-position: calc(var(--asset-x) * 100% / 3) calc(var(--asset-y) * 100% / 3); background-repeat: no-repeat; }
 .item-icon.game-atlas-icon { width: 34px; height: 34px; }
 .slot-icon.game-atlas-icon { width: 40px; height: 40px; margin-inline: auto; }
-.pet-art, .pet-hud-art { display: inline-block; flex: none; background-image: var(--asset-url); background-size: 300% 300%; background-position: calc(var(--asset-x) * 100% / 2) calc(var(--asset-y) * 100% / 2); background-repeat: no-repeat; }
-.pet-hud-art { width: 37px; height: 37px; }
-.pet-hud { display: flex; align-items: center; gap: var(--game-space-2); min-height: var(--game-control-height); padding: var(--game-space-1) var(--game-space-3); border: var(--game-border-thin); border-radius: var(--game-radius-sm); background: var(--game-color-parchment); color: var(--game-color-ink); font: 800 12px var(--game-font-ui); cursor: pointer; }
-.pet-hud small { display: block; font-size: 10px; }
-.pet-dialog { width: min(760px, calc(100vw - 20px)); max-height: calc(100vh - 20px); overflow-y: auto; padding: var(--game-space-4); border: var(--game-border-frame); border-radius: var(--game-radius-md); background: var(--game-color-parchment); box-shadow: var(--game-shadow-window); color: var(--game-color-ink); }
-.pet-dialog h2 { font: 900 24px var(--game-font-display); margin: var(--game-space-3) 0; }
-.pet-panel-summary { font: 800 13px var(--game-font-ui); }
-.pet-roster { display: grid; gap: var(--game-space-3); }
-.pet-card { display: grid; grid-template-columns: 96px 1fr; gap: var(--game-space-3); padding: var(--game-space-3); border: var(--game-border-thin); border-radius: var(--game-radius-sm); background: var(--game-color-cream); }
-.pet-card-active { border-color: var(--game-color-leaf); }
-.pet-card > .pet-art { width: 96px; height: 96px; }
-.pet-card-copy { display: grid; gap: var(--game-space-1); font: 800 12px var(--game-font-ui); }
-.pet-card-copy strong { font-size: 17px; }
-.pet-card-copy small { color: var(--game-color-ink-muted); }
-.pet-meter { display: flex; align-items: center; gap: var(--game-space-2); }
-.pet-meter > span { width: 28px; }
-.pet-meter-track { flex: 1; height: 9px; border-radius: 6px; background: var(--game-color-parchment-deep); overflow: hidden; }
-.pet-meter-track i { display: block; height: 100%; background: var(--game-color-leaf); }
-.pet-actions { display: flex; flex-wrap: wrap; gap: var(--game-space-2); }
-.pet-actions button, .pet-skill-button, #pet-bird-form button { min-height: var(--game-control-height); padding: var(--game-space-2) var(--game-space-3); border: 0; border-radius: var(--game-radius-sm); background: var(--game-color-leaf); color: white; font: 900 12px var(--game-font-ui); cursor: pointer; }
-.pet-skill-button:disabled { background: var(--game-color-ink-muted); cursor: default; }
-#pet-bird-form { display: flex; gap: var(--game-space-2); margin-top: var(--game-space-4); }
-#pet-bird-form label { flex: 1; font: 800 12px var(--game-font-ui); }
-#pet-bird-form input { display: block; width: 100%; min-height: var(--game-control-height); padding: var(--game-space-2); border: var(--game-border-thin); border-radius: var(--game-radius-sm); }
-#special-shop .game-item-card .game-item-art.pet-art { background-size: 300% 300%; background-position: calc(var(--asset-x) * 100% / 2) calc(var(--asset-y) * 100% / 2); }
-.item-icon.pet-art { width: 34px; height: 34px; }
-@media (max-width: 520px) { .pet-card { grid-template-columns: 64px 1fr; }.pet-card > .pet-art { width: 64px; height: 64px; } #pet-bird-form { flex-direction: column; } }
 @media (max-width: 850px) { #special-shop .game-market .shop-products { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 520px) { #special-shop .game-market .shop-products { grid-template-columns: 1fr; } }
