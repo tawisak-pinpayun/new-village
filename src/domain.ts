@@ -161,6 +161,49 @@ export function unlockCompletedCharacters(save: Save): CharacterId[] {
   return unlocked
 }
 
+// คืนราคาสัตว์ที่ถูกซื้อก่อนยกเลิกระบบสัตว์เลี้ยง โดยลบรายการเดิมเพื่อไม่ให้คืนซ้ำ
+function refundRetiredPets(save: Save): number {
+  const legacy = save as Save & { pets?: unknown; activePetId?: unknown }
+  if (!Array.isArray(legacy.pets) || legacy.pets.length > 2) return 0
+  const prices: Record<string, number> = { dog: 90, cat: 100, chicken: 80, cow: 130, goat: 120, magic_dog: 180, bird: 95 }
+  const ids = new Set<string>()
+  let refund = 0
+  for (const pet of legacy.pets) {
+    if (!pet || typeof pet !== 'object' || typeof pet.id !== 'string' || !/^[a-z_]+-\d{10,15}-[0-9a-f]{4}$/.test(pet.id) || ids.has(pet.id) || !Object.hasOwn(prices, pet.species)) return 0
+    ids.add(pet.id)
+    refund += prices[pet.species]
+  }
+  if (!Number.isSafeInteger(save.player.coins + refund)) return 0
+  save.player.coins += refund
+  delete legacy.pets
+  delete legacy.activePetId
+  return refund
+}
+
+// เซฟช่วงที่มีสัตว์เลี้ยงอาจมีไข่/นม ซึ่งเกมหลังย้อนเวอร์ชันไม่รู้จักแล้ว
+export function migrateRetiredPetSave(value: unknown): { data: unknown; refundedCoins: number; changed: boolean } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return { data: value, refundedCoins: 0, changed: false }
+  const data = structuredClone(value) as Partial<Save>
+  if (!data.player || !Number.isSafeInteger(data.player.coins) || data.player.coins < 0 || !Array.isArray(data.inventory)) return { data: value, refundedCoins: 0, changed: false }
+  const save = data as Save
+  let refundedCoins = refundRetiredPets(save)
+  let changed = refundedCoins > 0
+  const legacy = save as Save & { pets?: unknown }
+  if (Array.isArray(legacy.pets) && legacy.pets.length === 0) { delete legacy.pets; changed = true }
+  const products = { egg: 12, milk: 18 } as const
+  const retained: Slot[] = []
+  for (const slot of save.inventory) {
+    const price = products[(slot as Slot).itemId as keyof typeof products]
+    if (price === undefined) { retained.push(slot); continue }
+    if (!Number.isInteger(slot.quantity) || slot.quantity < 1 || slot.quantity > 99 || !Number.isSafeInteger(save.player.coins + price * slot.quantity)) return { data: value, refundedCoins: 0, changed: false }
+    refundedCoins += price * slot.quantity
+    save.player.coins += price * slot.quantity
+    changed = true
+  }
+  if (changed) save.inventory = retained
+  return { data: save, refundedCoins, changed }
+}
+
 export function count(save: Save, itemId: ItemId): number {
   return save.inventory.find(s => s.itemId === itemId)?.quantity ?? 0
 }
@@ -308,7 +351,8 @@ export function load(): { state: Save; error?: string } {
       refreshGrowth(migrated)
       return { state: migrated }
     }
-    const parsed: unknown = JSON.parse(raw)
+    const migration = migrateRetiredPetSave(JSON.parse(raw))
+    const parsed: unknown = migration.data
     if (!validate(parsed)) throw new Error('invalid save')
     parsed.player.x = Math.max(16, Math.min(1520, parsed.player.x))
     parsed.player.y = Math.max(16, Math.min(1008, parsed.player.y))
@@ -341,6 +385,7 @@ export function load(): { state: Save; error?: string } {
     parsed.gardenGateOpen ??= false
     parsed.campfires ??= []
     for (const plot of parsed.plots) { plot.dryDays ??= 0; plot.wateredDay ??= null; if (plot.state === 'READY') plot.readyAt = null }
+    if (migration.changed) { unlockCompletedCharacters(parsed); persist(parsed) }
     refreshGrowth(parsed)
     return { state: parsed }
   } catch {

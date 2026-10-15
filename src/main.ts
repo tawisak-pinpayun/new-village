@@ -4,7 +4,7 @@ import './style.css'
 import './wardrobe.css'
 import './ui/game-ui.css'
 import './ui/npc-dialogue.css'
-import { add, canAdd, CHARACTER_IDS, CHARACTER_QUESTS, characterQuestProgress, count, craftArcaneSword, DAY_MS, dayNumber, eat, equipmentStats, gainXp, GEAR, GEAR_IDS, GROW_MS, isRaining, load, maxHp, maxMana, MAX_ENERGY, MAX_WATER, OUTFIT_IDS, persist, rareDrop, refreshGrowth, remove, unlockCompletedCharacters, validate, xpNeeded, type CharacterId, type CropId, type GearId, type GearSlot, type ItemId, type OutfitId, type Save } from './domain'
+import { add, canAdd, CHARACTER_IDS, CHARACTER_QUESTS, characterQuestProgress, count, craftArcaneSword, DAY_MS, dayNumber, eat, equipmentStats, gainXp, GEAR, GEAR_IDS, GROW_MS, isRaining, load, maxHp, maxMana, MAX_ENERGY, MAX_WATER, migrateRetiredPetSave, OUTFIT_IDS, persist, rareDrop, refreshGrowth, remove, unlockCompletedCharacters, validate, xpNeeded, type CharacterId, type CropId, type GearId, type GearSlot, type ItemId, type OutfitId, type Save } from './domain'
 import { collisionTiles, FARM_PLOTS, MAPS, TILE, WORLD_HEIGHT, WORLD_WIDTH, type Interaction, type ResourceNode } from './maps'
 import { Multiplayer } from './multiplayer'
 import { WorldChat } from './world-chat'
@@ -161,13 +161,19 @@ async function chooseCloudSave() {
       cloudRevision = 0
       saveChoice.classList.add('hidden')
       queueCloudSave()
-    } else if (validate(remote.data)) {
-      pendingCloudSave = { data: remote.data, revision: remote.revision }
+    } else {
+      const migration = migrateRetiredPetSave(remote.data)
+      if (!validate(migration.data)) { cloudStatus.textContent = 'เซฟออนไลน์ไม่ถูกต้อง เซฟในเครื่องยังปลอดภัย'; return }
+      const recovered = migration.data
+      const unlocked = unlockCompletedCharacters(recovered)
+      pendingCloudSave = { data: recovered, revision: remote.revision }
       cloudRevision = null
       saveChoice.classList.remove('hidden')
-      cloudStatus.textContent = 'พบเซฟในบัญชี เลือกเซฟที่จะใช้ก่อนเล่นต่อ'
+      const names = (save: Save) => CHARACTER_IDS.filter(id => save.unlockedCharacters?.includes(id)).map(id => id.toUpperCase()).join(', ')
+      saveChoice.querySelector('p')!.textContent = `เซฟบัญชี: ${recovered.player.coins} Coins · ตัวละคร ${names(recovered)} | เซฟเครื่องนี้: ${state.player.coins} Coins · ตัวละคร ${names(state)} เลือกเซฟที่จะใช้`
+      cloudStatus.textContent = migration.refundedCoins ? `แปลงข้อมูลสัตว์เลี้ยงเดิมเป็น ${migration.refundedCoins} Coins ในเซฟบัญชีแล้ว${unlocked.length ? ` และคืนตัวละคร ${unlocked.length} ตัว` : ''} · เลือกใช้เซฟบัญชีเพื่อบันทึก` : unlocked.length ? `คืนตัวละคร ${unlocked.length} ตัวจากความคืบหน้าในเซฟบัญชี · เลือกเซฟที่จะใช้` : 'พบเซฟในบัญชี เลือกเซฟที่จะใช้ก่อนเล่นต่อ'
       accountPanel.classList.remove('hidden')
-    } else cloudStatus.textContent = 'เซฟออนไลน์ไม่ถูกต้อง เซฟในเครื่องยังปลอดภัย'
+    }
   } catch (error) { cloudStatus.textContent = (error as Error).message }
 }
 
@@ -206,6 +212,7 @@ document.querySelector('#use-cloud')!.addEventListener('click', () => {
   saveChoice.classList.add('hidden')
   persist(state); hud(); scene?.scene.restart()
   cloudStatus.textContent = 'ใช้เซฟจากบัญชีแล้ว'
+  queueCloudSave()
   accountPanel.classList.add('hidden')
 })
 document.querySelector('#use-local')!.addEventListener('click', () => {

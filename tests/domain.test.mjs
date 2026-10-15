@@ -1,6 +1,30 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { add, canAdd, CHARACTER_IDS, characterQuestProgress, count, craftArcaneSword, DAY_MS, eat, equipmentStats, gainXp, initialState, isRaining, maxHp, maxMana, OUTFIT_IDS, rareDrop, refreshGrowth, remove, unlockCompletedCharacters, validate } from '../src/domain.ts'
+import { validSave } from '../server/accounts.mjs'
+import { add, canAdd, CHARACTER_IDS, characterQuestProgress, count, craftArcaneSword, DAY_MS, eat, equipmentStats, gainXp, initialState, isRaining, maxHp, maxMana, migrateRetiredPetSave, OUTFIT_IDS, rareDrop, refreshGrowth, remove, unlockCompletedCharacters, validate } from '../src/domain.ts'
+
+test('retired pet purchases refund once and can restore coin-based character unlock', () => {
+  const save = initialState()
+  save.player.coins = 14
+  save.inventory.push({ slot: 1, itemId: 'milk', quantity: 1 })
+  save.pets = [
+    { id: 'dog-1700000000000-0abc', species: 'dog' },
+    { id: 'magic_dog-1700000000001-0def', species: 'magic_dog' }
+  ]
+  save.activePetId = save.pets[0].id
+  assert.equal(validate(save), false)
+  const migration = migrateRetiredPetSave(save)
+  assert.equal(migration.refundedCoins, 288)
+  assert.equal(migration.data.player.coins, 302)
+  assert.equal(save.player.coins, 14)
+  assert.equal(migrateRetiredPetSave(migration.data).refundedCoins, 0)
+  assert.equal(migration.data.pets, undefined)
+  assert.equal(migration.data.activePetId, undefined)
+  assert.equal(migration.data.inventory.some(item => item.itemId === 'milk'), false)
+  assert.deepEqual(unlockCompletedCharacters(migration.data), ['d'])
+  assert.equal(validate(migration.data), true)
+  assert.equal(validSave(migration.data), true)
+})
 
 test('characters C through H unlock from their own quests and stay unlocked', () => {
   const save = initialState()

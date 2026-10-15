@@ -49,6 +49,7 @@ export function createAccountStore(connectionString) {
   const accounts = db.collection('accounts')
   const sessions = db.collection('account_sessions')
   const saves = db.collection('game_saves')
+  const backups = db.collection('game_save_backups')
   return {
     async init() {
       await client.connect()
@@ -90,6 +91,14 @@ export function createAccountStore(connectionString) {
         try { await saves.insertOne({ _id: accountId, data, revision: 1, updated_at: new Date() }); return { revision: 1, updated_at: new Date() } }
         catch (error) { if (error.code === 11000) return null; throw error }
       }
+      const previous = await saves.findOne({ _id: accountId, revision })
+      if (!previous) return null
+      const retiredPetData = Array.isArray(previous.data?.pets) || (Array.isArray(previous.data?.inventory) && previous.data.inventory.some(slot => slot.itemId === 'egg' || slot.itemId === 'milk'))
+      if (retiredPetData) await backups.updateOne(
+        { _id: `${accountId}:before-pet-removal` },
+        { $setOnInsert: { account_id: accountId, data: previous.data, revision, saved_at: previous.updated_at, backed_up_at: new Date() } },
+        { upsert: true }
+      )
       const saved = await saves.findOneAndUpdate({ _id: accountId, revision }, { $set: { data, updated_at: new Date() }, $inc: { revision: 1 } }, { returnDocument: 'after' })
       return saved ? { revision: saved.revision, updated_at: saved.updated_at } : null
     },
