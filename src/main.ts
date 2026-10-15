@@ -30,8 +30,8 @@ app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   <button id="mobile-interact" class="mobile-interact hidden" aria-label="คุยกับ NPC">E · คุย</button>
   <div id="npc-dialogue" class="overlay npc-dialogue-overlay hidden"><section class="npc-dialogue-panel" role="dialog" aria-modal="true" aria-labelledby="npc-dialogue-name"><button id="close-npc-dialogue" class="npc-dialogue-close" aria-label="ปิดบทสนทนา">✕</button><div id="npc-portrait" class="npc-portrait expression-happy" role="img" aria-label="ภาพลิลลี่"></div><div class="npc-dialogue-copy"><header><span id="npc-dialogue-role">แม่ค้าเมล็ดพันธุ์</span><h2 id="npc-dialogue-name">ลิลลี่</h2></header><p id="npc-dialogue-text" aria-live="polite"></p><small id="npc-dialogue-hint">คลิกข้อความเพื่อแสดงทันที</small><div id="npc-dialogue-choices" class="npc-dialogue-choices"></div></div></section></div>
   <div class="camera-controls" aria-label="ควบคุมมุมกล้อง"><button id="camera-zoom-out" title="ซูมออก" aria-label="ซูมออก">−</button><button id="camera-zoom-reset" title="คืนค่ามุมกล้อง"><span id="camera-zoom-value">1.0×</span></button><button id="camera-zoom-in" title="ซูมเข้า" aria-label="ซูมเข้า">＋</button></div>
-  <div class="multiplayer"><button id="account-toggle" title="บัญชีและเซฟออนไลน์">☁️ บัญชี / เซฟออนไลน์</button><button id="room-toggle" title="เล่นกับเพื่อน">👥 เล่นกับเพื่อน</button><div id="room-panel" class="room-panel hidden"><strong>เล่นกับเพื่อน · <span id="room-server">Server 1</span></strong><p id="room-status">ยังไม่ได้เข้าเซิร์ฟเวอร์</p><input id="player-name" maxlength="20" placeholder="ชื่อของคุณ" aria-label="ชื่อของคุณ"><button id="join-room">เข้าเซิร์ฟเวอร์</button><input id="party-code" maxlength="6" placeholder="รหัสปาร์ตี้ 6 ตัว" aria-label="รหัสปาร์ตี้ 6 ตัว" class="hidden"><button id="party-toggle" class="hidden">⚔️ เข้าปาร์ตี้</button><button id="party-create" class="hidden">✨ สร้างปาร์ตี้ใหม่</button><button id="leave-room" class="hidden">ออกจากเซิร์ฟเวอร์</button><small>ทุกคนในเซิร์ฟเวอร์เดียวกันจะเห็นกันบนแผนที่ · รหัสใช้เฉพาะปาร์ตี้</small></div></div>
-  <div id="account-panel" class="overlay hidden"><div class="dialog account-dialog"><div class="dialog-top"><span>ONLINE SAVE</span><button id="close-account" aria-label="ปิด">✕</button></div><h2>บัญชีและเซฟออนไลน์</h2><p id="account-status">กำลังตรวจสอบระบบ...</p><label>เลือกเซิร์ฟเวอร์<select id="server-select"><option value="1">Server 1</option><option value="2">Server 2</option><option value="3">Server 3</option></select></label><div id="account-form"><label>อีเมล<input id="account-email-input" type="email" maxlength="254" autocomplete="email"></label><label>รหัสผ่าน<input id="account-password" type="password" minlength="12" maxlength="128" autocomplete="current-password"></label><div class="account-actions"><button id="account-login" type="button">เข้าสู่ระบบ</button><button id="account-register" type="button">สร้างบัญชี</button></div><small>รหัสผ่านอย่างน้อย 12 ตัวอักษร</small></div><div id="account-signed" class="hidden"><strong id="account-email"></strong><p id="cloud-status"></p><div id="save-choice" class="hidden"><p>พบทั้งเซฟในเครื่องนี้และเซฟในบัญชี เลือกข้อมูลที่จะใช้:</p><button id="use-cloud">ใช้เซฟในบัญชี</button><button id="use-local">นำเซฟเครื่องนี้ขึ้นบัญชี</button></div><button id="account-logout">ออกจากระบบ</button></div></div></div>
+  <div class="multiplayer"><button id="account-toggle" title="บัญชีและเซฟออนไลน์">☁️ บัญชี / เซฟออนไลน์</button><button id="room-toggle" title="เล่นกับเพื่อน">👥 เล่นกับเพื่อน</button><div id="room-panel" class="room-panel hidden"><strong>ปาร์ตี้เพื่อน · <span id="room-server">Server 1</span></strong><p id="room-status">กำลังเชื่อมต่อเซิร์ฟเวอร์...</p><input id="party-code" maxlength="6" placeholder="รหัสปาร์ตี้ 6 ตัว" aria-label="รหัสปาร์ตี้ 6 ตัว" class="hidden"><button id="party-toggle" class="hidden">⚔️ เข้าปาร์ตี้</button><button id="party-create" class="hidden">✨ สร้างปาร์ตี้ใหม่</button><small>เลือก Server ในหน้าเซฟออนไลน์เพื่อเล่นร่วมกัน · รหัสใช้สำหรับปาร์ตี้เท่านั้น</small></div></div>
+  <div id="account-panel" class="overlay hidden"><div class="dialog account-dialog"><div class="dialog-top"><span>ONLINE SAVE</span><button id="close-account" aria-label="ปิด">✕</button></div><h2>บัญชีและเซฟออนไลน์</h2><p id="account-status">กำลังตรวจสอบระบบ...</p><label>เลือกเซิร์ฟเวอร์<select id="server-select"><option value="1">Server 1</option><option value="2">Server 2</option><option value="3">Server 3</option></select></label><label>ชื่อในเซิร์ฟเวอร์<input id="player-name" maxlength="20" placeholder="ชื่อของคุณ" aria-label="ชื่อในเซิร์ฟเวอร์"></label><p id="server-status">กำลังเชื่อมต่อเซิร์ฟเวอร์...</p><div id="account-form"><label>อีเมล<input id="account-email-input" type="email" maxlength="254" autocomplete="email"></label><label>รหัสผ่าน<input id="account-password" type="password" minlength="12" maxlength="128" autocomplete="current-password"></label><div class="account-actions"><button id="account-login" type="button">เข้าสู่ระบบ</button><button id="account-register" type="button">สร้างบัญชี</button></div><small>รหัสผ่านอย่างน้อย 12 ตัวอักษร</small></div><div id="account-signed" class="hidden"><strong id="account-email"></strong><p id="cloud-status"></p><div id="save-choice" class="hidden"><p>พบทั้งเซฟในเครื่องนี้และเซฟในบัญชี เลือกข้อมูลที่จะใช้:</p><button id="use-cloud">ใช้เซฟในบัญชี</button><button id="use-local">นำเซฟเครื่องนี้ขึ้นบัญชี</button></div><button id="account-logout">ออกจากระบบ</button></div></div></div>
   <div id="party-members" class="party-members hidden"><strong>⚔️ สมาชิกปาร์ตี้ <span id="party-count"></span></strong><small id="party-server"></small><ol id="party-list"></ol></div>
   <div id="community-panel" class="community-panel hidden"><strong>🤝 เควสต์ร่วมในเซิร์ฟเวอร์</strong><span id="community-quest"></span><small id="community-festival"></small></div>
   <div class="world-chat"><button id="chat-toggle">🌍 แชทโลก</button><div id="chat-panel" class="chat-panel hidden"><strong>แชทโลก · <span id="chat-server">Server 1</span></strong><small id="chat-status">กำลังเชื่อมต่อ...</small><div id="chat-log" role="log" aria-live="polite"></div><details class="online-list" open><summary>ออนไลน์ <span id="online-count">0</span> คน</summary><ul id="online-players"></ul></details><form id="chat-form"><input id="chat-input" maxlength="200" placeholder="พิมพ์ข้อความ..." aria-label="ข้อความแชท"><button type="submit">ส่ง</button></form></div></div>
@@ -203,7 +203,7 @@ document.querySelector('#account-login')!.addEventListener('click', () => { void
 document.querySelector('#account-register')!.addEventListener('click', () => { void authenticate('register') })
 document.querySelector('#use-cloud')!.addEventListener('click', () => {
   if (!pendingCloudSave) return
-  if (multiplayer.room) multiplayer.disconnect()
+  multiplayer.disconnect()
   state = structuredClone(pendingCloudSave.data)
   refreshGrowth(state)
   saveBlocked = false
@@ -214,6 +214,7 @@ document.querySelector('#use-cloud')!.addEventListener('click', () => {
   cloudStatus.textContent = 'ใช้เซฟจากบัญชีแล้ว'
   queueCloudSave()
   accountPanel.classList.add('hidden')
+  connectSelectedServer()
 })
 document.querySelector('#use-local')!.addEventListener('click', () => {
   if (!pendingCloudSave) return
@@ -247,22 +248,23 @@ const worldChat = new WorldChat()
 let lastChatBubbleTime = Date.now()
 const roomPanel = document.querySelector<HTMLElement>('#room-panel')!
 const roomStatus = document.querySelector<HTMLElement>('#room-status')!
+const serverStatus = document.querySelector<HTMLElement>('#server-status')!
 const playerName = document.querySelector<HTMLInputElement>('#player-name')!
-const leaveRoom = document.querySelector<HTMLButtonElement>('#leave-room')!
 const partyToggle = document.querySelector<HTMLButtonElement>('#party-toggle')!
 const partyCreate = document.querySelector<HTMLButtonElement>('#party-create')!
 const partyCode = document.querySelector<HTMLInputElement>('#party-code')!
-playerName.value = localStorage.getItem('new-village.player-name') || ''
+playerName.value = localStorage.getItem('new-village.player-name') || `ชาวสวน${Math.floor(100 + Math.random() * 900)}`
+localStorage.setItem('new-village.player-name', playerName.value)
 document.querySelector('#room-toggle')!.addEventListener('click', () => roomPanel.classList.toggle('hidden'))
-document.querySelector('#join-room')!.addEventListener('click', () => {
+function connectSelectedServer() {
   const name = playerName.value.trim() || `ชาวสวน${Math.floor(100 + Math.random() * 900)}`
   playerName.value = name
   localStorage.setItem('new-village.player-name', name)
   worldChat.setName(name)
   scene?.setPlayerName(name)
   multiplayer.connect(name, state.character ?? 'a', selectedServer)
-})
-leaveRoom.addEventListener('click', () => { multiplayer.disconnect(); roomStatus.textContent = 'ออกจากเซิร์ฟเวอร์แล้ว'; renderCommunity() })
+}
+playerName.addEventListener('change', () => connectSelectedServer())
 partyToggle.addEventListener('click', () => {
   if (multiplayer.partyCode) { multiplayer.setParty(''); return }
   const code = partyCode.value.trim().toUpperCase()
@@ -289,7 +291,7 @@ function renderParty() {
   document.querySelector('#party-server')!.textContent = `Server ${selectedServer} · รหัส ${code}`
   document.querySelector('#party-list')!.replaceChildren(...members.map(member => { const row = document.createElement('li'); row.textContent = member.id === multiplayer.id ? `${member.name} (คุณ)` : member.name; return row }))
 }
-multiplayer.onStatus = text => { roomStatus.textContent = text; leaveRoom.classList.toggle('hidden', !multiplayer.room); partyToggle.classList.toggle('hidden', !multiplayer.room); partyCode.classList.toggle('hidden', !multiplayer.room); renderParty() }
+multiplayer.onStatus = text => { roomStatus.textContent = text; serverStatus.textContent = text; partyToggle.classList.toggle('hidden', !multiplayer.room); partyCode.classList.toggle('hidden', !multiplayer.room); renderParty() }
 multiplayer.onChange = () => { scene?.syncRemotePlayers(); renderParty(); renderTerrainMap() }
 multiplayer.onJoined = () => { soloWorldBackup = { plots: state.plots.map(plot => ({ ...plot })), nodeHp: { ...state.nodeHp }, gardenGateOpen: !!state.gardenGateOpen, campfires: (state.campfires ?? []).map(fire => ({ ...fire })) }; partyCode.value = ''; renderParty(); scene?.sendPresence(true) }
 function renderCommunity() {
@@ -361,18 +363,17 @@ worldChat.onPlayers = players => {
 }
 function showServer() {
   for (const id of ['room-server', 'chat-server']) document.querySelector(`#${id}`)!.textContent = `Server ${selectedServer}`
-  document.querySelector('#join-room')!.textContent = `เข้า Server ${selectedServer}`
 }
 serverSelect.addEventListener('change', () => {
   selectedServer = Number(serverSelect.value)
   localStorage.setItem('new-village.server', String(selectedServer))
-  if (multiplayer.room) multiplayer.disconnect()
-  roomStatus.textContent = `ยังไม่ได้เข้า Server ${selectedServer}`
   showServer()
   worldChat.connect(selectedServer)
+  connectSelectedServer()
 })
 showServer()
 worldChat.connect(selectedServer)
+connectSelectedServer()
 const HOTBAR_FIXED = [
   { icon: '⚒', name: 'จอบ' }, { icon: '💧', name: 'บัวรดน้ำ' },
   { icon: '🪓', name: 'ขวาน' }, { icon: '⛏', name: 'อีเต้อ' },

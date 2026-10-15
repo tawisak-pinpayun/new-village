@@ -23,6 +23,8 @@ export class Multiplayer {
   private lastSent = 0
   private lastPosition = ''
   private changeQueued = false
+  private desiredConnection?: { name: string; character: CharacterId; server: number }
+  private reconnectTimer?: ReturnType<typeof setTimeout>
 
   private notifyChange() {
     if (this.changeQueued) return
@@ -32,14 +34,21 @@ export class Multiplayer {
 
   connect(name: string, character: CharacterId, server = 1) {
     this.disconnect()
+    this.desiredConnection = { name, character, server }
+    this.openConnection()
+  }
+
+  private openConnection() {
+    const { name, character, server } = this.desiredConnection!
     this.server = server
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
     const host = import.meta.env.DEV ? `${location.hostname}:3000` : location.host
     const socket = new WebSocket(`${protocol}//${host}/multiplayer`)
     this.socket = socket
     this.onStatus(`กำลังเชื่อมต่อ Server ${server}...`)
-    socket.onopen = () => socket.send(JSON.stringify({ type: 'join', name, character, server }))
+    socket.onopen = () => { if (this.socket === socket) socket.send(JSON.stringify({ type: 'join', name, character, server })) }
     socket.onmessage = event => {
+      if (this.socket !== socket) return
       let data: any
       try { data = JSON.parse(event.data) } catch { return }
       if (data.type === 'joined') {
@@ -87,9 +96,11 @@ export class Multiplayer {
     }
     socket.onclose = () => {
       if (this.socket !== socket) return
+      this.socket = undefined
       this.id = ''; this.room = ''; this.partyCode = ''; this.players.clear(); this.notifyChange()
       this.world = undefined; this.serverOffsetMs = null; this.pending.clear(); this.onWorld(true)
-      this.onStatus('หลุดจากเซิร์ฟเวอร์ กดเข้าเซิร์ฟเวอร์อีกครั้ง')
+      this.onStatus(`หลุดจาก Server ${server} · กำลังเชื่อมต่อใหม่...`)
+      if (this.desiredConnection) this.reconnectTimer = setTimeout(() => { this.reconnectTimer = undefined; if (this.desiredConnection) this.openConnection() }, 3000)
     }
     socket.onerror = () => this.onStatus('เชื่อมต่อไม่ได้ ตรวจว่าเซิร์ฟเวอร์ออนไลน์อยู่')
   }
@@ -111,6 +122,9 @@ export class Multiplayer {
   }
   setParty(code: string) { if (this.room && this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify({ type: 'party', code })) }
   disconnect() {
+    this.desiredConnection = undefined
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.reconnectTimer = undefined
     this.socket?.close()
     this.socket = undefined; this.id = ''; this.room = ''; this.partyCode = ''; this.players.clear(); this.world = undefined; this.serverOffsetMs = null; this.pending.clear(); this.onWorld(true); this.notifyChange()
   }
