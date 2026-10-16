@@ -1,13 +1,14 @@
 import type { Calendar } from '../calendar'
 import type { Save } from '../domain'
 import { FISH, FISHING_SPOTS, fishingLevel, fishingProgress, selectFish, type Fish, type FishingSpotId } from '../fishing'
+import { FishingSession } from '../fishing-session'
 import { SHOPS } from '../shops'
 import { FISHING_ITEM_ASSETS, fishingItemAssetStyle, type FishingItemAssetKey } from './item-assets'
 import { WEATHER_LABELS, type WeatherType } from '../weather.mjs'
 import './fishing-ui.css'
 
 export function fishingMarkup() {
-  return `<div id="fishing-overlay" class="overlay hidden" tabindex="-1"><section class="dialog game-window fishing-window" role="dialog" aria-modal="true" aria-labelledby="fishing-title"><header class="mini-game-header"><div><small>MOONLIGHT BEACH</small><h2 id="fishing-title">ชายหาดแสงจันทร์</h2></div><button id="fishing-close" aria-label="ปิด">✕</button></header><div id="fishing-content" class="fishing-content"></div></section></div>`
+  return `<aside id="fishing-beach-hud" class="fishing-beach-hud hidden" aria-label="ข้อมูลชายหาด"><strong>ชายหาดแสงจันทร์</strong><div class="fishing-beach-mini"><span id="fishing-player-dot" aria-label="ตำแหน่งผู้เล่น"></span></div><small id="fishing-beach-weather"></small><small id="fishing-beach-quest"></small><small>ใกล้จุดตกปลา กด E เพื่อเริ่ม</small></aside><div id="fishing-overlay" class="overlay hidden" tabindex="-1"><section class="dialog game-window fishing-window" role="dialog" aria-modal="true" aria-labelledby="fishing-title"><header class="mini-game-header"><div><small>MOONLIGHT BEACH</small><h2 id="fishing-title">ชายหาดแสงจันทร์</h2></div><button id="fishing-close" aria-label="ปิด">✕</button></header><div id="fishing-content" class="fishing-content"></div></section></div>`
 }
 
 const shop = SHOPS.fishing_shop
@@ -20,9 +21,11 @@ export class FishingUI {
   private spot: FishingSpotId = 'beginner-pier'
   private view: 'fish' | 'shop' | 'journal' = 'fish'
   private target?: Fish
-  private startedAt = 0
+  private session?: FishingSession
   private interval?: number
-  private misses = 0
+  private held = false
+  private settled = false
+  private newCatch = false
   private message = ''
 
   constructor(private save: () => Save, private environment: () => { calendar: Calendar; weather: WeatherType }, private changed: () => void) {
@@ -31,7 +34,7 @@ export class FishingUI {
     this.content.addEventListener('click', event => {
       const action = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-fishing-action]')?.dataset.fishingAction
       if (action === 'cast') this.cast()
-      if (action === 'hit') this.hit()
+      if (action === 'hook') this.hook()
       if (action === 'bait') this.buyBait()
       if (action === 'rod') this.buyRod()
       if (action === 'sell-shells') this.sellMaterial('shells')
@@ -40,13 +43,22 @@ export class FishingUI {
       if (action === 'shop') { this.view = 'shop'; this.render(); this.content.scrollTop = 0 }
       if (action === 'back') { this.view = 'fish'; this.render(); this.content.scrollTop = 0 }
     })
+    this.content.addEventListener('pointerdown', event => {
+      if ((event.target as HTMLElement).closest('[data-fishing-action="reel"]')) { this.held = true; event.preventDefault() }
+    })
+    for (const type of ['pointerup', 'pointercancel', 'pointerleave']) this.content.addEventListener(type, () => { this.held = false })
     window.addEventListener('keydown', event => {
       if (!this.isOpen) return
       if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); this.close(); return }
       if ((event.code === 'Space' || event.code === 'KeyE') && this.view === 'fish' && !event.repeat) {
-        event.preventDefault(); event.stopImmediatePropagation(); this.target ? this.hit() : this.cast()
+        event.preventDefault(); event.stopImmediatePropagation()
+        if (this.session?.phase === 'bite') this.hook()
+        else if (this.session?.phase === 'reeling') this.held = true
+        else if (!this.session || this.session.phase === 'failed' || this.session.phase === 'success') this.cast()
       }
     }, { capture: true })
+    window.addEventListener('keyup', event => { if (event.code === 'Space' || event.code === 'KeyE') this.held = false }, { capture: true })
+    window.addEventListener('blur', () => { this.held = false })
   }
 
   get isOpen() { return !this.overlay.classList.contains('hidden') }
@@ -55,52 +67,69 @@ export class FishingUI {
   openJournal() { this.view = 'journal'; this.open() }
   private open() { this.message = ''; this.overlay.classList.remove('hidden'); this.render(); this.overlay.focus(); this.content.scrollTop = 0 }
   close() { this.stop(); this.overlay.classList.add('hidden') }
-  private stop() { if (this.interval) clearInterval(this.interval); this.interval = undefined; this.target = undefined }
+  private stop() { if (this.interval) clearInterval(this.interval); this.interval = undefined; this.target = undefined; this.session = undefined; this.held = false }
 
   private cast() {
-    if (this.target) return
+    if (this.session && !['failed', 'success'].includes(this.session.phase)) return
+    this.stop()
     const progress = fishingProgress(this.save())
     const spot = FISHING_SPOTS[this.spot]
     if (fishingLevel(progress.xp) < spot.level || progress.rod < spot.rod) { this.message = `ต้องมีทักษะตกปลาเลเวล ${spot.level} และคันเบ็ดระดับ ${spot.rod}`; this.render(); return }
     if (progress.bait <= 0) { this.message = 'เหยื่อหมด ซื้อเพิ่มจากนาวาที่ร้าน'; this.render(); return }
     if (this.save().player.energy < 2) { this.message = 'Energy ไม่พอ'; this.render(); return }
-    progress.bait--; this.save().player.energy -= 2
     const { calendar, weather } = this.environment()
     this.target = selectFish(this.spot, calendar, weather)
-    this.startedAt = performance.now()
-    this.misses = 0
-    this.message = 'กด Space หรือแตะ “ดึงเบ็ด” ตอนตัวชี้อยู่ในแถบสีทอง'
+    this.session = new FishingSession(this.target, progress.rod, fishingLevel(progress.xp))
+    this.session.cast(performance.now())
+    this.settled = false; this.held = false
+    progress.bait--; this.save().player.energy -= 2
+    this.message = 'โยนเบ็ดแล้ว รอปลากินเหยื่อ'
     this.changed()
     this.render()
-    this.interval = window.setInterval(() => this.updateMeter(), 30)
+    this.interval = window.setInterval(() => this.updateSession(), 33)
   }
 
-  private updateMeter() {
-    if (!this.target) return
-    const elapsed = performance.now() - this.startedAt
-    const position = (Math.sin(elapsed / 420) + 1) * 50
-    const pointer = this.content.querySelector<HTMLElement>('.fishing-pointer')
-    if (pointer) pointer.style.left = `${position}%`
-    if (elapsed >= 8500) { this.message = 'ปลาหลุดเบ็ด ลองอีกครั้ง'; this.stop(); this.render() }
+  private hook() {
+    if (!this.session?.hook(performance.now())) return
+    this.message = 'กด Space ค้างหรือกดปุ่มค้างเพื่อยกแถบสีเขียว ปล่อยเพื่อลดความตึง'
+    this.render()
   }
 
-  private hit() {
-    if (!this.target) return
-    const position = (Math.sin((performance.now() - this.startedAt) / 420) + 1) * 50
-    const width = this.target.rarity === 'legendary' ? 9 : this.target.rarity === 'rare' ? 13 : 18
-    if (Math.abs(position - 50) > width) {
-      this.misses++
-      this.message = this.misses >= 3 ? 'ปลาหลุดเบ็ด ลองใหม่อีกครั้ง' : `พลาดจังหวะ ${this.misses}/3 · ลองดึงเมื่อเข้าแถบสีทอง`
-      if (this.misses >= 3) this.stop()
-      this.render(); return
+  private updateSession() {
+    if (!this.session) return
+    const previous = this.session.phase
+    this.session.tick(performance.now(), this.held)
+    if (this.session.phase === 'success' && !this.settled) { this.settled = true; this.completeCatch(); return }
+    if (this.session.phase === 'failed') {
+      this.message = this.session.failure
+      if (this.interval) clearInterval(this.interval)
+      this.interval = undefined; this.held = false; this.render(); return
     }
-    const fish = this.target
+    if (this.session.phase !== previous) { this.render(); return }
+    this.paintSession()
+  }
+
+  private completeCatch() {
+    const fish = this.target!
     const progress = fishingProgress(this.save())
+    this.newCatch = !progress.caught[fish.id]
     progress.caught[fish.id] = (progress.caught[fish.id] ?? 0) + 1
     progress.xp += fish.xp
     this.save().player.coins += fish.value
     this.message = `จับ${fish.name}ได้! +${fish.value} Coins · +${fish.xp} Fishing XP`
-    this.stop(); this.changed(); this.render()
+    if (this.interval) clearInterval(this.interval)
+    this.interval = undefined; this.held = false; this.changed(); this.render()
+  }
+
+  private paintSession() {
+    const session = this.session
+    if (!session || session.phase !== 'reeling') return
+    const fish = this.content.querySelector<HTMLElement>('.fishing-moving-fish')
+    const zone = this.content.querySelector<HTMLElement>('.fishing-catch-zone')
+    if (fish) fish.style.bottom = `${session.fishPosition * 100}%`
+    if (zone) { zone.style.bottom = `${(session.zonePosition - session.zoneSize / 2) * 100}%`; zone.style.height = `${session.zoneSize * 100}%` }
+    this.content.querySelector<HTMLElement>('.fishing-progress-fill')?.style.setProperty('width', `${session.progress * 100}%`)
+    this.content.querySelector<HTMLElement>('.fishing-tension-fill')?.style.setProperty('height', `${session.tension * 100}%`)
   }
 
   private buyBait() {
@@ -140,7 +169,18 @@ export class FishingUI {
       return
     }
     const { calendar, weather } = this.environment()
-    const targetWidth = this.target ? (this.target.rarity === 'legendary' ? 18 : this.target.rarity === 'rare' ? 26 : 36) : 36
-    this.content.innerHTML = `<p class="fishing-location">${FISHING_SPOTS[this.spot].name} · ${calendar.night ? 'กลางคืน' : 'กลางวัน'} · ${WEATHER_LABELS[weather]} · ฤดู${calendar.season.name}</p><p>Fishing Level ${level} (${progress.xp} XP) · คันเบ็ดระดับ ${progress.rod} · เหยื่อ ${progress.bait}</p>${this.target ? `<div class="fishing-meter"><span class="fishing-target" style="left:${(100 - targetWidth) / 2}%;width:${targetWidth}%"></span><i class="fishing-pointer"></i></div><button data-fishing-action="hit" class="mini-game-primary">ดึงเบ็ด · Space</button>` : '<button data-fishing-action="cast" class="mini-game-primary">เหวี่ยงเบ็ด · Space</button>'}<div class="fishing-actions"><button data-fishing-action="journal">สมุดสะสมปลา</button><button data-fishing-action="shop">ร้านอุปกรณ์ตกปลา</button></div>${feedback}`
+    const status = this.session?.phase ?? 'idle'
+    const environment = `<p class="fishing-location">${FISHING_SPOTS[this.spot].name} · ${calendar.night ? 'กลางคืน' : 'กลางวัน'} · ${WEATHER_LABELS[weather]} · ฤดู${calendar.season.name}</p><p>Fishing Level ${level} (${progress.xp} XP) · คันเบ็ดระดับ ${progress.rod} · เหยื่อ ${progress.bait}</p>`
+    if (status === 'success' && this.target) {
+      this.content.innerHTML = `${environment}<div class="fishing-catch-result"><span class="fishing-new">${this.newCatch ? 'NEW' : ''}</span><img src="/assets/ui/fishing-silverbass.png" alt="ภาพประกอบปลา"/><h3>${this.target.name}</h3><strong>${this.target.rarity.toUpperCase()}</strong><p>${this.message}</p><button data-fishing-action="cast" class="mini-game-primary">ตกอีกครั้ง · Space</button><button data-fishing-action="journal">สมุดสะสมปลา</button></div>`
+      return
+    }
+    if (status === 'casting' || status === 'waiting' || status === 'bite' || status === 'reeling') {
+      const label = status === 'casting' ? 'กำลังโยนเบ็ด' : status === 'waiting' ? 'รอปลากินเหยื่อ' : status === 'bite' ? 'ปลากินเหยื่อแล้ว! กด Space' : 'ควบคุมแถบสีเขียวให้ครอบตัวปลา'
+      this.content.innerHTML = `${environment}<div class="fishing-underwater"><h3 class="fishing-phase-label">${label}</h3>${status === 'reeling' ? `<div class="fishing-playfield"><div class="fishing-catch-column"><span class="fishing-catch-zone"></span><img class="fishing-moving-fish" src="/assets/ui/fishing-silverbass.png" alt="ปลาที่กำลังว่าย"/></div><div class="fishing-tension-column"><span class="fishing-tension-fill"></span></div></div><div class="fishing-progress-track"><span class="fishing-progress-fill"></span></div><div class="fishing-meter-labels"><span>ความคืบหน้า</span><span>ความตึงสายเบ็ด</span></div><button data-fishing-action="reel" class="mini-game-primary">กดค้างเพื่อยกแถบ · Space</button>` : `<div class="fishing-bobber" aria-hidden="true"></div>${status === 'bite' ? '<button data-fishing-action="hook" class="mini-game-primary">ติดเบ็ด · Space</button>' : '<p>มองทุ่นและเตรียมกด Space</p>'}`}</div>${feedback}`
+      this.paintSession()
+      return
+    }
+    this.content.innerHTML = `${environment}<div class="fishing-idle-card"><img src="/assets/ui/fishing-silverbass.png" alt="ภาพประกอบปลา"/><p>เดินมาถึงจุดตกปลาแล้ว กด Space หรือปุ่มด้านล่างเพื่อโยนเบ็ด</p><button data-fishing-action="cast" class="mini-game-primary">เหวี่ยงเบ็ด · Space</button></div><div class="fishing-actions"><button data-fishing-action="journal">สมุดสะสมปลา</button><button data-fishing-action="shop">ร้านอุปกรณ์ตกปลา</button></div>${feedback}`
   }
 }

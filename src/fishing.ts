@@ -1,7 +1,7 @@
 import type { Calendar } from './calendar'
 import type { Save } from './domain'
 
-export type FishingSpotId = 'beginner-pier' | 'coral-reef' | 'shipwreck'
+export type FishingSpotId = 'beginner-pier' | 'coral-reef' | 'shipwreck' | 'small-island' | 'lighthouse-pier' | 'cave-pool'
 export type FishRarity = 'common' | 'uncommon' | 'rare' | 'legendary'
 export type Fish = { id: string; name: string; rarity: FishRarity; spots: FishingSpotId[]; value: number; xp: number; night?: boolean; rain?: boolean; storm?: boolean; season?: string }
 
@@ -19,13 +19,21 @@ export const FISH: Fish[] = [
   { id: 'captains_crown', name: 'ปลามงกุฎกัปตัน', rarity: 'legendary', spots: ['shipwreck'], value: 110, xp: 70, season: 'summer' },
   { id: 'spring_koi', name: 'ปลาคาร์ปบุปผา', rarity: 'rare', spots: ['coral-reef'], value: 50, xp: 35, season: 'spring' },
   { id: 'autumn_snapper', name: 'ปลากะพงใบไม้ทอง', rarity: 'rare', spots: ['coral-reef'], value: 50, xp: 35, season: 'autumn' },
-  { id: 'winter_icefish', name: 'ปลาแก้วเหมันต์', rarity: 'rare', spots: ['shipwreck'], value: 55, xp: 40, season: 'winter' }
+  { id: 'winter_icefish', name: 'ปลาแก้วเหมันต์', rarity: 'rare', spots: ['shipwreck'], value: 55, xp: 40, season: 'winter' },
+  { id: 'island_mackerel', name: 'ปลาแมคเคอเรลเกาะเล็ก', rarity: 'uncommon', spots: ['small-island'], value: 28, xp: 23 },
+  { id: 'lighthouse_bream', name: 'ปลาทรายแดงประภาคาร', rarity: 'uncommon', spots: ['lighthouse-pier'], value: 29, xp: 23 },
+  { id: 'moonlight_grouper', name: 'ปลาเก๋าแสงจันทร์', rarity: 'rare', spots: ['lighthouse-pier', 'cave-pool'], value: 59, xp: 43, night: true },
+  { id: 'cave_angler', name: 'ปลาตะเกียงถ้ำ', rarity: 'rare', spots: ['cave-pool'], value: 63, xp: 45 },
+  { id: 'sea_star_legend', name: 'ปลาดาวทะเลในตำนาน', rarity: 'legendary', spots: ['cave-pool'], value: 140, xp: 90, storm: true }
 ]
 
 export const FISHING_SPOTS: Record<FishingSpotId, { name: string; level: number; rod: 1 | 2 | 3 }> = {
   'beginner-pier': { name: 'ท่าเรือเริ่มต้น', level: 1, rod: 1 },
   'coral-reef': { name: 'แนวปะการัง', level: 2, rod: 2 },
-  shipwreck: { name: 'ซากเรือ', level: 3, rod: 3 }
+  shipwreck: { name: 'ซากเรือ', level: 3, rod: 3 },
+  'small-island': { name: 'เกาะเล็ก', level: 2, rod: 2 },
+  'lighthouse-pier': { name: 'เชิงประภาคาร', level: 2, rod: 2 },
+  'cave-pool': { name: 'แอ่งน้ำถ้ำลับ', level: 3, rod: 3 }
 }
 
 export function fishingProgress(save: Save): NonNullable<Save['fishing']> {

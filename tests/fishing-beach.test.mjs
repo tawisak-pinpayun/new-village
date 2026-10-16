@@ -4,6 +4,7 @@ import { MAPS, collisionTiles, TILE } from '../src/maps.ts'
 import { initialState, validate } from '../src/domain.ts'
 import { calendarAt } from '../src/calendar.ts'
 import { FISH, availableFish, fishingLevel, fishingProgress } from '../src/fishing.ts'
+import { FishingSession } from '../src/fishing-session.ts'
 import { activeBeachOccurrence, validFishingHit, validateFishingResult } from '../server/fishing-tournament.mjs'
 import { FISHING_DURATION_MS, scoreTournament, tournamentPoints } from '../src/mini-games/fishing-tournament.mjs'
 import { SHOPS, NPCS } from '../src/shops.ts'
@@ -35,11 +36,12 @@ test('fish availability follows night, rain and season while progress remains sa
   assert.ok(availableFish('shipwreck', summerDay, 'clear').some(fish => fish.id === 'captains_crown'))
   assert.ok(!availableFish('shipwreck', summerDay, 'rain').some(fish => fish.id === 'thunder_marlin'))
   assert.ok(availableFish('shipwreck', summerDay, 'thunderstorm').some(fish => fish.id === 'thunder_marlin'))
-  assert.equal(FISH.length, 14)
+  assert.equal(FISH.length, 19)
+  assert.equal(MAPS.beach.interactions.filter(target => target.kind === 'fishing').length, 6)
   for (const day of [1, 35, 70, 105]) {
     for (const time of [.1, .72]) {
       for (const weather of ['clear', 'rain', 'thunderstorm']) {
-        for (const spot of ['beginner-pier', 'coral-reef', 'shipwreck']) {
+        for (const spot of ['beginner-pier', 'coral-reef', 'shipwreck', 'small-island', 'lighthouse-pier', 'cave-pool']) {
           assert.ok(availableFish(spot, calendarAt(day, time), weather).length > 0, `${spot} day ${day} time ${time} weather ${weather}`)
         }
       }
@@ -49,6 +51,26 @@ test('fish availability follows night, rain and season while progress remains sa
   const progress = fishingProgress(save); progress.xp = 185; progress.rod = 3; progress.caught.coral_fish = 2
   assert.equal(fishingLevel(progress.xp), 3)
   assert.equal(validate(save), true)
+})
+
+test('fishing session casts, waits for bite, hooks once and can fail or reel a catch', () => {
+  const fish = FISH.find(item => item.id === 'silver_sardine')
+  const missed = new FishingSession(fish, 1, 1, () => 0)
+  assert.equal(missed.cast(0), true)
+  assert.equal(missed.cast(0), false)
+  missed.tick(451, false); assert.equal(missed.phase, 'waiting')
+  missed.tick(1302, false); assert.equal(missed.phase, 'bite')
+  missed.tick(2700, false); assert.equal(missed.phase, 'failed')
+  const hooked = new FishingSession(fish, 3, 3, () => 0)
+  hooked.cast(0); hooked.tick(451, false); hooked.tick(1302, false)
+  assert.equal(hooked.hook(1302), true)
+  assert.equal(hooked.hook(1302), false)
+  for (let now = 1335; now < 26000 && hooked.phase === 'reeling'; now += 33) {
+    hooked.tick(now, hooked.fishPosition > hooked.zonePosition)
+  }
+  assert.equal(hooked.phase, 'success')
+  assert.ok(hooked.progress >= 0 && hooked.progress <= 1)
+  assert.ok(hooked.tension >= 0 && hooked.tension <= 1)
 })
 
 test('Nava shop links its NPC, products, beach materials and unique art', () => {

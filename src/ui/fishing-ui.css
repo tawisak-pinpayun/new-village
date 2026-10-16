@@ -13,3 +13,24 @@
 .fishing-item-art{display:block;flex:none;width:68px;height:68px;background-image:var(--fish-asset-url);background-size:300% 200%;background-position:var(--fish-asset-x) var(--fish-asset-y)}
 #fishing-contest-overlay .fishing-target{left:35%;width:30%}
 @media(max-width:600px){.fishing-shop-products{grid-template-columns:1fr}.fishing-shop-banner{height:120px}.fishing-shop-sign{font-size:.85rem;padding:12px 20px}}
+.fishing-underwater{position:relative;min-height:330px;padding:16px;background:linear-gradient(#0a365570,#06305d9c),url('/assets/ui/fishing-underwater.png') center/cover;border:4px solid var(--game-color-wood);border-radius:var(--game-radius-md);color:var(--game-color-cream);text-align:center;overflow:hidden}
+.fishing-phase-label{position:relative;z-index:2;margin:0 0 12px;padding:7px 12px;background:var(--game-color-parchment);color:var(--game-color-ink);border:2px solid var(--game-color-wood);border-radius:var(--game-radius-md);font-family:var(--game-font-display)}
+.fishing-bobber{width:18px;height:28px;margin:92px auto 42px;background:linear-gradient(#c9463b 50%,#fff5dd 50%);border:2px solid var(--game-color-wood-dark);border-radius:50%;box-shadow:0 0 0 7px #9becf477,0 0 0 16px #9becf433;animation:fishing-bob 1.4s ease-in-out infinite alternate}
+.fishing-playfield{display:flex;align-items:stretch;justify-content:center;gap:26px;height:190px;margin:4px auto 12px}
+.fishing-catch-column{position:relative;width:100px;height:100%;border:3px solid var(--game-color-parchment);border-radius:16px;background:#08334caa;overflow:visible}
+.fishing-catch-zone{position:absolute;left:2px;right:2px;background:#58c77599;border:2px solid #b3f9a8;border-radius:8px;box-shadow:0 0 16px #8ff1a5}
+.fishing-moving-fish{position:absolute;z-index:2;left:15px;width:66px;height:43px;object-fit:contain;transform:translateY(50%);filter:drop-shadow(0 2px 4px #03243f)}
+.fishing-tension-column{position:relative;width:22px;border:3px solid var(--game-color-parchment);border-radius:12px;background:linear-gradient(to top,#73ca8b,#e8cf70,#c84c45)}
+.fishing-tension-fill{position:absolute;bottom:0;left:0;right:0;height:0;background:#f5e5a3b0;border-radius:9px}
+.fishing-progress-track{height:19px;margin:0 auto;max-width:350px;border:3px solid var(--game-color-wood-dark);border-radius:12px;background:#17344e;overflow:hidden}
+.fishing-progress-fill{display:block;width:12%;height:100%;background:linear-gradient(90deg,#62bbd3,#a2f4c3);transition:width .08s linear}
+.fishing-meter-labels{display:flex;justify-content:space-between;max-width:350px;margin:3px auto 7px;font-size:.82rem;font-weight:800}
+.fishing-underwater button{position:relative;z-index:3;touch-action:none}
+.fishing-idle-card,.fishing-catch-result{text-align:center;padding:12px;border:2px solid var(--game-color-wood-light);border-radius:var(--game-radius-md);background:var(--game-color-cream)}
+.fishing-idle-card img{width:140px;height:70px;object-fit:contain}.fishing-catch-result img{display:block;width:min(85%,320px);height:120px;object-fit:contain;margin:auto}.fishing-catch-result h3{margin:4px 0;color:var(--game-color-ink)}.fishing-catch-result button{margin:4px}.fishing-new{display:block;min-height:23px;font-weight:900;color:var(--game-color-danger)}
+@keyframes fishing-bob{to{transform:translateY(8px)}}
+@media(max-width:600px){.fishing-underwater{min-height:300px;padding:10px}.fishing-playfield{height:155px}.fishing-catch-result img{height:90px}.fishing-window{padding:14px}}
+.fishing-beach-hud{position:fixed;z-index:15;top:74px;right:12px;width:178px;padding:8px;background:var(--game-color-parchment);color:var(--game-color-ink);border:3px solid var(--game-color-wood);border-radius:var(--game-radius-md);box-shadow:var(--game-shadow-card);font:700 12px var(--game-font-ui);pointer-events:none}
+.fishing-beach-hud strong,.fishing-beach-hud small{display:block}.fishing-beach-mini{position:relative;width:100%;height:105px;margin:5px 0;background:url('/assets/moonlight-beach.png') center/100% 100%;border:2px solid var(--game-color-wood);border-radius:var(--game-radius-sm);overflow:hidden}
+#fishing-player-dot{position:absolute;width:10px;height:10px;background:var(--game-color-danger);border:2px solid var(--game-color-cream);border-radius:50%;box-shadow:0 0 4px var(--game-color-ink)}
+@media(max-width:700px){.fishing-beach-hud{top:56px;width:124px;font-size:10px}.fishing-beach-mini{height:70px}}

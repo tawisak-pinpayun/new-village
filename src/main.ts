@@ -539,6 +539,18 @@ function clock() {
   calendarUI.update(calendar)
   festivalBoardUI.update(calendar)
   scene?.setAtmosphere(calendar, weather.type)
+  updateFishingHud(time, weather.label)
+}
+function updateFishingHud(time: string, weather: string) {
+  const panel = document.querySelector<HTMLElement>('#fishing-beach-hud')!
+  panel.classList.toggle('hidden', state.player.mapId !== 'beach')
+  if (state.player.mapId !== 'beach') return
+  const dot = document.querySelector<HTMLElement>('#fishing-player-dot')!
+  dot.style.left = `${Math.max(0, Math.min(100, state.player.x / WORLD_WIDTH * 100))}%`
+  dot.style.top = `${Math.max(0, Math.min(100, state.player.y / WORLD_HEIGHT * 100))}%`
+  const caught = Object.values(fishingProgress(state).caught).reduce((sum, amount) => sum + amount, 0)
+  document.querySelector<HTMLElement>('#fishing-beach-weather')!.textContent = `${time} · ${weather}`
+  document.querySelector<HTMLElement>('#fishing-beach-quest')!.textContent = `เป้าหมาย: จับปลา ${Math.min(caught, 3)}/3 · พบปลา ${Object.keys(fishingProgress(state).caught).length} ชนิด`
 }
 function changed() {
   unlockCompletedCharacters(state)
