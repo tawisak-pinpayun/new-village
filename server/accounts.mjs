@@ -99,6 +99,18 @@ export function createAccountStore(connectionString) {
       const progress = await festivalProgress.findOne({ _id: accountId })
       return { tokens: progress?.tokens ?? 0, exp: progress?.exp ?? 0, friendshipExp: progress?.friendship_exp ?? 0, claims: progress?.claims ?? {} }
     },
+    async getFestivalLeaderboard(event, year) {
+      const key = `${event}_${year}`
+      const claimPath = `claims.${key}`
+      const records = await festivalProgress.find({ [claimPath]: { $exists: true } }, { projection: { _id: 1, [claimPath]: 1 } })
+        .sort({ [`${claimPath}.score`]: -1, [`${claimPath}.claimed_at`]: 1, _id: 1 }).limit(10).toArray()
+      return records.map((record, index) => ({
+        place: index + 1,
+        player: `ผู้เล่น ${createHash('sha256').update(String(record._id)).digest('hex').slice(0, 6).toUpperCase()}`,
+        score: record.claims[key].score,
+        grade: record.claims[key].rank
+      }))
+    },
     async createFlowerSession(accountId, occurrence, now) {
       const session = { _id: randomUUID(), account_id: accountId, occurrence, seed: randomBytes(4).readUInt32BE(0), start_at_ms: now + 3_000, deadline_ms: now + 3_000 + 30_000, expires_at: new Date(now + 60_000) }
       await flowerSessions.insertOne(session)
@@ -221,6 +233,15 @@ export function createAccountApi(store, { now = Date.now, worldEpochMs = DEFAULT
       }
       const account = await store.accountForToken(token)
       if (path === '/api/me' && req.method === 'GET') { sendJson(res, 200, { email: account?.email ?? null }); return true }
+      if (path === '/api/festival/leaderboard' && req.method === 'GET') {
+        const query = new URL(req.url, 'http://localhost').searchParams
+        const event = query.get('event')
+        const year = Number(query.get('year'))
+        if (!['flower', 'friendship'].includes(event) || !Number.isSafeInteger(year) || year < 1 || year > 10000) {
+          sendJson(res, 400, { error: 'เทศกาลหรือปีไม่ถูกต้อง' }); return true
+        }
+        sendJson(res, 200, { event, year, entries: await store.getFestivalLeaderboard(event, year) }); return true
+      }
       if (!account) { sendJson(res, 401, { error: 'กรุณาเข้าสู่ระบบ' }); return true }
       if (path === '/api/festival/progress' && req.method === 'GET') {
         sendJson(res, 200, await store.getFestivalProgress(account.id)); return true

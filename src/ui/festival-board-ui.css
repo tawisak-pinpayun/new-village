@@ -1,0 +1,18 @@
+.festival-board { width: min(760px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow-y: auto; color: var(--game-color-ink); background: var(--game-color-parchment); border-color: var(--game-color-wood); }
+.festival-board-layout { display: grid; grid-template-columns: minmax(180px, .9fr) minmax(0, 1.4fr); gap: var(--game-space-3); }
+.festival-board-list { display: grid; align-content: start; gap: var(--game-space-2); max-height: min(56vh, 480px); overflow-y: auto; }
+.festival-board-event { display: grid; gap: var(--game-space-1); width: 100%; padding: var(--game-space-2) var(--game-space-3); text-align: left; color: var(--game-color-ink); background: var(--game-color-cream); border: var(--game-border-thin); border-radius: var(--game-radius-sm); }
+.festival-board-event small { color: var(--game-color-ink-muted); }
+.festival-board-list .festival-board-event.selected, .festival-board-list .festival-board-event:hover { color: var(--game-color-ink); border-color: var(--game-color-leaf); background: var(--game-color-parchment-deep); }
+.festival-board-list .festival-board-event.selected small, .festival-board-list .festival-board-event:hover small { color: var(--game-color-ink-muted); }
+.festival-board-detail { min-height: 300px; padding: var(--game-space-3); background: var(--game-color-cream); border: var(--game-border-thin); border-radius: var(--game-radius-sm); }
+.festival-board-detail h3 { margin: 0; font-family: var(--game-font-display); }
+.festival-board-detail p { line-height: 1.5; }
+.festival-board-detail dl { display: grid; grid-template-columns: 70px 1fr; gap: var(--game-space-2); font-size: 13px; }
+.festival-board-detail dt { color: var(--game-color-ink-muted); font-weight: 900; }
+.festival-board-detail dd { margin: 0; }
+.festival-board-detail h4 { margin: var(--game-space-4) 0 var(--game-space-2); }
+.festival-board-detail .game-calendar-practice { margin: var(--game-space-2) var(--game-space-2) 0 0; }
+.festival-board-results ol { margin: 0; padding-left: 24px; line-height: 1.8; }
+.festival-board-note { color: var(--game-color-ink-muted); font-size: 13px; }
+@media (max-width: 620px) { .festival-board-layout { grid-template-columns: 1fr; }.festival-board-list { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 210px; }.festival-board-detail { min-height: 0; } }

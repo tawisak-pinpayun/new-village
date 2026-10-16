@@ -36,6 +36,10 @@ test('authenticated festival result can be claimed only once per occurrence', as
   const store = {
     async accountForToken(token) { return token === 'a'.repeat(43) ? { id: 'player-1', email: 'player@example.com' } : null },
     async getFestivalProgress(id) { return balances.get(id) ?? { tokens: 0, exp: 0, friendshipExp: 0, claims: {} } },
+    async getFestivalLeaderboard(event, year) {
+      const key = `${event}_${year}`
+      return [...balances.values()].filter(progress => progress.claims[key]).map(progress => ({ place: 1, player: 'ผู้เล่นทดสอบ', score: progress.claims[key].score, grade: progress.claims[key].rank }))
+    },
     async createFlowerSession(id, occurrence, started) {
       const session = { _id: '12345678-1234-1234-1234-123456789abc', account_id: id, occurrence, seed: 42, start_at_ms: started + 3000, deadline_ms: started + 33_000 }
       sessions.set(session._id, session)
@@ -86,6 +90,11 @@ test('authenticated festival result can be claimed only once per occurrence', as
   assert.equal(claim.balance, claim.tokens)
   const progress = await (await request('/api/festival/progress')).json()
   assert.equal(progress.tokens, claim.tokens)
+  const board = await (await request('/api/festival/leaderboard?event=flower&year=1', 'GET', undefined, false)).json()
+  assert.equal(board.entries[0].score, claim.score)
+  assert.equal(board.entries[0].grade, claim.rank)
+  assert.equal((await request('/api/festival/leaderboard?event=unknown&year=1', 'GET', undefined, false)).status, 400)
+  assert.equal((await request('/api/festival/leaderboard?event=flower&year=0', 'GET', undefined, false)).status, 400)
   assert.equal((await request('/api/festival/flower/start', 'POST')).status, 409)
   now = epoch + 13 * WORLD_DAY_MS + 4 * 60_000
   const giftStart = await request('/api/festival/gift/start', 'POST')

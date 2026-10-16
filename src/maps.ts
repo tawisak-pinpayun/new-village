@@ -9,7 +9,7 @@ export type Interaction = {
   x: number
   y: number
   label: string
-  kind: 'door' | 'warp' | 'shop' | 'market_shop' | 'tailor' | 'magic_shop' | 'forge' | 'animal_shop' | 'furniture_shop' | 'quest' | 'festival' | 'rest' | 'cook' | 'storage' | 'future' | 'refill'
+  kind: 'door' | 'warp' | 'shop' | 'market_shop' | 'tailor' | 'magic_shop' | 'forge' | 'animal_shop' | 'furniture_shop' | 'quest' | 'festival' | 'festival_board' | 'rest' | 'cook' | 'storage' | 'future' | 'refill'
   destination?: MapId
   arrival?: { x: number; y: number }
 }
@@ -46,6 +46,7 @@ export const MAPS: Record<MapId, MapConfig> = {
       { id: 'to-farm', x: 770, y: 924, label: 'ไปบ้านและฟาร์ม', kind: 'door', destination: 'farm', arrival: { x: 770, y: 870 } },
       { id: 'shop', x: 530, y: 420, label: 'คุยกับเจ้าของร้าน', kind: 'shop' },
       { id: 'quest', x: 565, y: 790, label: 'คุยกับไกด์หมู่บ้าน', kind: 'quest' },
+      { id: 'festival-board', x: 805, y: 700, label: 'อ่านกระดานประกาศเทศกาล', kind: 'festival_board' },
       { id: 'forest', x: 560, y: 145, label: 'ทางไปป่า', kind: 'future' },
       { id: 'city', x: 965, y: 145, label: 'ไปเมืองหลวง', kind: 'door', destination: 'city', arrival: { x: 768, y: 900 } },
       { id: 'river', x: 1375, y: 520, label: 'ไปริมน้ำ', kind: 'door', destination: 'riverside', arrival: { x: 235, y: 520 } },

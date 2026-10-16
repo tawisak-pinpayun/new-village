@@ -14,6 +14,7 @@ import { makeOutfitSheet } from './outfit-sprites'
 import { calendarAt, type Calendar } from './calendar'
 import { isRainWeather, weatherAt, type WeatherType } from './weather.mjs'
 import { CalendarUI, calendarWindowMarkup } from './ui/calendar-ui'
+import { FestivalBoardUI, festivalBoardMarkup } from './ui/festival-board-ui'
 import { MiniGameUI, miniGameWindowMarkup } from './ui/mini-game-ui'
 import { GiftMatchUI, giftMatchWindowMarkup } from './ui/gift-match-ui'
 import { renderCatalogCard, renderFarmersMarket } from './ui/game-ui'
@@ -32,6 +33,7 @@ app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   <div class="map-guide"><span class="section-label">แผนที่ภูมิประเทศ</span><div id="map-steps"></div><button id="map-expand">เปิดแผนที่โลก</button></div>
   <div id="world-map-overlay" class="overlay hidden"><div class="dialog world-map-dialog"><header class="world-map-header"><div><small>WORLD MAP</small><h2>แผนที่ New Village</h2><p>ตำแหน่งของคุณและเพื่อนใน Server เดียวกัน</p></div><button id="close-world-map" aria-label="ปิดแผนที่">×</button></header><div id="world-map-large"></div></div></div>
   ${calendarWindowMarkup()}
+  ${festivalBoardMarkup()}
   ${miniGameWindowMarkup()}
   ${giftMatchWindowMarkup()}
   <button id="mobile-interact" class="mobile-interact hidden" aria-label="คุยกับ NPC">E · คุย</button>
@@ -75,6 +77,10 @@ const rewardUpdated = (result: { balance: number; totalExp: number; totalFriends
 const miniGameUI = new MiniGameUI(rewardUpdated)
 const giftMatchUI = new GiftMatchUI(rewardUpdated)
 const calendarUI = new CalendarUI((gameId, mode) => {
+  if (gameId === 'flower_arrangement') miniGameUI.open(mode)
+  if (gameId === 'gift_match') giftMatchUI.open(mode)
+}, () => festivalBoardUI.open())
+const festivalBoardUI = new FestivalBoardUI((gameId, mode) => {
   if (gameId === 'flower_arrangement') miniGameUI.open(mode)
   if (gameId === 'gift_match') giftMatchUI.open(mode)
 })
@@ -510,6 +516,7 @@ function clock() {
   const time = `${String(calendar.hour).padStart(2, '0')}:${String(calendar.minute).padStart(2, '0')}`
   ui.day.textContent = `${calendar.season.icon} ฤดู${calendar.season.name} ${calendar.dayInSeason} · ปี ${calendar.year} · ${calendar.weekday} ${time} · ${weather.label}`
   calendarUI.update(calendar)
+  festivalBoardUI.update(calendar)
   scene?.setAtmosphere(calendar, weather.type)
 }
 function changed() {
@@ -583,7 +590,7 @@ function sell() {
 const specialShop = document.querySelector<HTMLElement>('#special-shop')!
 const wardrobe = document.querySelector<HTMLElement>('#wardrobe')!
 const festivalShop = document.querySelector<HTMLElement>('#festival-shop')!
-function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; worldMapOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden'); worldMapOverlay.classList.add('hidden'); calendarUI.close(); miniGameUI.close(); giftMatchUI.close(); accountPanel.classList.add('hidden'); if (dialogueOpen) closeNpcDialogue() }
+function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; worldMapOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden'); worldMapOverlay.classList.add('hidden'); calendarUI.close(); festivalBoardUI.close(); miniGameUI.close(); giftMatchUI.close(); accountPanel.classList.add('hidden'); if (dialogueOpen) closeNpcDialogue() }
 function travelFromWorldMap(location: WorldMapLocation) {
   state.player.mapId = location.destination
   state.player.x = location.arrival.x; state.player.y = location.arrival.y
@@ -1263,6 +1270,12 @@ class WorldScene extends Phaser.Scene {
     if (config.id === 'village') {
       this.addAnimatedShopkeeper('mira', 530, 418, 'มีร่า · ร้านทั่วไป')
       this.addNpc(2, 565, 790, 'Village Guide')
+      const board = this.add.container(805, 700).setDepth(9)
+      board.add([
+        this.add.rectangle(0, 0, 185, 105, 0x704728).setStrokeStyle(6, 0xcda269),
+        this.add.rectangle(0, -8, 156, 72, 0xffefd0).setStrokeStyle(2, 0x967146),
+        this.add.text(0, -13, 'ประกาศเทศกาล\nวัน · สถานที่ · อันดับ', { fontFamily: 'Nunito, sans-serif', fontSize: '15px', color: '#51361f', align: 'center', fontStyle: 'bold' }).setOrigin(.5)
+      ])
     }
     if (config.id === 'market') {
       this.add.image(330, 840, 'aria-storefront').setOrigin(.5, 1).setDisplaySize(380, 253).setDepth(8)
@@ -1831,7 +1844,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   private useSelected() {
-    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || miniGameUI.isOpen || giftMatchUI.isOpen || !accountPanel.classList.contains('hidden') || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || festivalBoardUI.isOpen || miniGameUI.isOpen || giftMatchUI.isOpen || !accountPanel.classList.contains('hidden') || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
     if (state.player.mapId === 'farm' && Math.hypot(this.player.x - 770, this.player.y - 780) < 108) {
       this.interactionCooldown = this.time.now + 350
       this.toggleGardenGate()
@@ -1934,6 +1947,7 @@ class WorldScene extends Phaser.Scene {
     if (target.kind === 'shop') return openMerchantDialogue('mira')
     if (target.kind === 'market_shop') return target.id === 'seed-stall' ? openLilyDialogue() : openMarket()
     if (target.kind === 'festival') return openFestival()
+    if (target.kind === 'festival_board') return festivalBoardUI.open()
     if (target.kind === 'tailor') return openMerchantDialogue('aria')
     if (target.kind === 'magic_shop') return openMerchantDialogue('selene')
     if (target.kind === 'forge') return openMerchantDialogue('borin')
@@ -2059,7 +2073,7 @@ class WorldScene extends Phaser.Scene {
     }
     const focused = document.activeElement
     const typing = focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement || focused instanceof HTMLSelectElement || (focused instanceof HTMLElement && focused.isContentEditable)
-    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || miniGameUI.isOpen || giftMatchUI.isOpen || dialogueOpen || !accountPanel.classList.contains('hidden') || typing) {
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || festivalBoardUI.isOpen || miniGameUI.isOpen || giftMatchUI.isOpen || dialogueOpen || !accountPanel.classList.contains('hidden') || typing) {
       this.player.setVelocity(0)
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.one)) buy()
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.two)) sell()

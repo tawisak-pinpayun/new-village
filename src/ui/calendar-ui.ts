@@ -6,7 +6,7 @@ export function calendarWindowMarkup(): string {
   return `<div id="calendar-overlay" class="overlay hidden"><section class="dialog game-calendar" role="dialog" aria-modal="true" aria-labelledby="calendar-title">
     <header class="game-calendar-header"><div><small>NEW VILLAGE · WORLD CALENDAR</small><h2 id="calendar-title">ปฏิทินหมู่บ้าน</h2></div><button id="calendar-close" aria-label="ปิดปฏิทิน">✕</button></header>
     <div class="game-calendar-navigation"><button id="calendar-prev" aria-label="ฤดูก่อนหน้า">‹</button><strong id="calendar-month"></strong><button id="calendar-next" aria-label="ฤดูถัดไป">›</button></div>
-    <p id="calendar-now" class="game-calendar-now"></p><div id="calendar-grid" class="game-calendar-grid" role="grid" aria-label="วันในฤดูกาล"></div>
+    <p id="calendar-now" class="game-calendar-now"></p><button id="calendar-board" class="game-calendar-practice" type="button">กระดานประกาศและอันดับ</button><div id="calendar-grid" class="game-calendar-grid" role="grid" aria-label="วันในฤดูกาล"></div>
     <section id="calendar-detail" class="game-calendar-detail" aria-live="polite"></section>
   </section></div>`
 }
@@ -18,10 +18,11 @@ export class CalendarUI {
   private today = 1
   private current?: Calendar
 
-  constructor(private onPlay?: (gameId: string, mode: 'practice' | 'festival') => void) {
+  constructor(private onPlay?: (gameId: string, mode: 'practice' | 'festival') => void, private onBoard?: () => void) {
     this.overlay = document.querySelector<HTMLElement>('#calendar-overlay')!
     document.querySelector('#day-display')!.addEventListener('click', () => this.open())
     document.querySelector('#calendar-close')!.addEventListener('click', () => this.close())
+    document.querySelector('#calendar-board')!.addEventListener('click', () => { this.close(); this.onBoard?.() })
     this.overlay.addEventListener('click', event => { if (event.target === this.overlay) this.close() })
     document.querySelector('#calendar-prev')!.addEventListener('click', () => this.navigate(-1))
     document.querySelector('#calendar-next')!.addEventListener('click', () => this.navigate(1))
