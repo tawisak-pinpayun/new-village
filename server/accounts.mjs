@@ -3,6 +3,8 @@ import { promisify } from 'node:util'
 import { MongoClient } from 'mongodb'
 import { activeFlowerOccurrence, validateFlowerResult } from './flower-festival.mjs'
 import { activeFriendshipOccurrence, validateGiftResult } from './gift-match.mjs'
+import { activeDanceOccurrence, validDanceHit, validateDanceResult } from './dance-rhythm.mjs'
+import { DANCE_DURATION_MS } from '../src/mini-games/dance.mjs'
 import { DEFAULT_WORLD_EPOCH_MS } from './world-clock.mjs'
 
 const pbkdf2 = promisify(pbkdf2Callback)
@@ -56,6 +58,7 @@ export function createAccountStore(connectionString) {
   const worldClocks = db.collection('world_clocks')
   const flowerSessions = db.collection('flower_sessions')
   const giftSessions = db.collection('gift_sessions')
+  const danceSessions = db.collection('dance_sessions')
   const festivalProgress = db.collection('festival_progress')
   return {
     async init() {
@@ -65,6 +68,7 @@ export function createAccountStore(connectionString) {
       await sessions.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
       await flowerSessions.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
       await giftSessions.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
+      await danceSessions.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
     },
     async register(email, password) {
       const id = randomUUID()
@@ -126,6 +130,23 @@ export function createAccountStore(connectionString) {
     },
     async getGiftSession(accountId, sessionId) {
       return await giftSessions.findOne({ _id: sessionId, account_id: accountId, expires_at: { $gt: new Date() } })
+    },
+    async createDanceSession(accountId, occurrence, now) {
+      const start = now + 3_000
+      const session = { _id: randomUUID(), account_id: accountId, occurrence, seed: randomBytes(4).readUInt32BE(0), start_at_ms: start, deadline_ms: start + DANCE_DURATION_MS, hits: {}, expires_at: new Date(start + DANCE_DURATION_MS + 60_000) }
+      await danceSessions.insertOne(session)
+      return session
+    },
+    async getDanceSession(accountId, sessionId) {
+      return await danceSessions.findOne({ _id: sessionId, account_id: accountId, expires_at: { $gt: new Date() } })
+    },
+    async recordDanceHit(accountId, sessionId, noteIndex, hit) {
+      const key = `hits.${noteIndex}`
+      return !!await danceSessions.findOneAndUpdate(
+        { _id: sessionId, account_id: accountId, [key]: { $exists: false } },
+        { $set: { [key]: hit } },
+        { returnDocument: 'after', projection: { _id: 1 } }
+      )
     },
     async claimFestivalResult(accountId, occurrence, result) {
       const key = occurrence.replace(':', '_')
@@ -237,7 +258,7 @@ export function createAccountApi(store, { now = Date.now, worldEpochMs = DEFAULT
         const query = new URL(req.url, 'http://localhost').searchParams
         const event = query.get('event')
         const year = Number(query.get('year'))
-        if (!['flower', 'friendship'].includes(event) || !Number.isSafeInteger(year) || year < 1 || year > 10000) {
+        if (!['flower', 'friendship', 'spring_dance'].includes(event) || !Number.isSafeInteger(year) || year < 1 || year > 10000) {
           sendJson(res, 400, { error: 'เทศกาลหรือปีไม่ถูกต้อง' }); return true
         }
         sendJson(res, 200, { event, year, entries: await store.getFestivalLeaderboard(event, year) }); return true
@@ -282,6 +303,34 @@ export function createAccountApi(store, { now = Date.now, worldEpochMs = DEFAULT
         if (!result) { sendJson(res, 400, { error: 'ผลมินิเกมไม่ถูกต้องหรือหมดเวลา' }); return true }
         const progress = await store.claimFestivalResult(account.id, game.occurrence, result)
         if (!progress) { sendJson(res, 409, { error: 'รับรางวัลเทศกาลปีนี้แล้ว' }); return true }
+        sendJson(res, 200, { ...result, balance: progress.tokens, totalExp: progress.exp, totalFriendshipExp: progress.friendshipExp }); return true
+      }
+      if (path === '/api/festival/dance/start' && req.method === 'POST') {
+        const startedAt = now()
+        const occurrence = activeDanceOccurrence(startedAt, worldEpochMs)
+        if (!occurrence) { sendJson(res, 403, { error: 'งานเต้นรำยังไม่เปิด' }); return true }
+        const progress = await store.getFestivalProgress(account.id)
+        if (progress.claims[occurrence.replace(':', '_')]) { sendJson(res, 409, { error: 'รับรางวัลงานเต้นรำปีนี้แล้ว' }); return true }
+        const game = await store.createDanceSession(account.id, occurrence, startedAt)
+        sendJson(res, 200, { sessionId: game._id, seed: game.seed, startAt: game.start_at_ms, deadline: game.deadline_ms, serverNow: now() }); return true
+      }
+      if (path === '/api/festival/dance/hit' && req.method === 'POST') {
+        const body = await readJson(req)
+        if (!body || typeof body.sessionId !== 'string' || !/^[a-f0-9-]{36}$/.test(body.sessionId)) { sendJson(res, 400, { error: 'เซสชันไม่ถูกต้อง' }); return true }
+        const game = await store.getDanceSession(account.id, body.sessionId)
+        const hit = validDanceHit(game, body.noteIndex, body.lane, now())
+        if (!hit) { sendJson(res, 400, { error: 'โน้ตหรือเวลาที่กดไม่ถูกต้อง' }); return true }
+        if (!await store.recordDanceHit(account.id, body.sessionId, body.noteIndex, hit)) { sendJson(res, 409, { error: 'กดโน้ตนี้แล้ว' }); return true }
+        sendJson(res, 200, { ok: true }); return true
+      }
+      if (path === '/api/festival/dance/submit' && req.method === 'POST') {
+        const body = await readJson(req)
+        if (!body || typeof body.sessionId !== 'string' || !/^[a-f0-9-]{36}$/.test(body.sessionId)) { sendJson(res, 400, { error: 'เซสชันไม่ถูกต้อง' }); return true }
+        const game = await store.getDanceSession(account.id, body.sessionId)
+        const result = validateDanceResult(game, now())
+        if (!result) { sendJson(res, 400, { error: 'ยังไม่จบเพลงหรือเซสชันหมดเวลา' }); return true }
+        const progress = await store.claimFestivalResult(account.id, game.occurrence, result)
+        if (!progress) { sendJson(res, 409, { error: 'รับรางวัลงานเต้นรำปีนี้แล้ว' }); return true }
         sendJson(res, 200, { ...result, balance: progress.tokens, totalExp: progress.exp, totalFriendshipExp: progress.friendshipExp }); return true
       }
       if (path === '/api/save' && req.method === 'GET') {

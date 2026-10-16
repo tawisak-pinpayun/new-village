@@ -2,7 +2,7 @@ import type { Calendar } from '../calendar'
 import { FESTIVALS, festivalStatus, MINI_GAME_NAMES, type FestivalDefinition } from '../festivals'
 import './festival-board-ui.css'
 
-const playable = new Set(['flower', 'friendship'])
+const playable = new Set(['flower', 'friendship', 'spring_dance'])
 const seasonNames: Record<string, string> = { spring: 'ใบไม้ผลิ', summer: 'ร้อน', autumn: 'ใบไม้ร่วง', winter: 'หนาว' }
 
 export function festivalBoardMarkup(): string {

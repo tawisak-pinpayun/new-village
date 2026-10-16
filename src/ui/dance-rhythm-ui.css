@@ -1,0 +1,14 @@
+.dance-calibration { display: grid; grid-template-columns: 1fr auto; gap: var(--game-space-1) var(--game-space-2); margin: var(--game-space-3) 0; font-size: 12px; font-weight: 900; }
+.dance-calibration input { grid-column: 1 / -1; width: 100%; accent-color: var(--game-color-leaf); }
+.dance-calibration output { grid-column: 2; grid-row: 1; }
+.dance-tracks, .dance-controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--game-space-2); }
+.dance-tracks { height: min(40vh, 285px); margin-top: var(--game-space-3); }
+.dance-track { position: relative; overflow: hidden; background: var(--game-color-cream); border: var(--game-border-thin); border-radius: var(--game-radius-sm); }
+.dance-track:nth-child(even) { background: var(--game-color-parchment-deep); }
+.dance-target { position: absolute; left: 4px; right: 4px; top: 82%; height: 7px; background: var(--game-color-leaf); border-radius: var(--game-radius-sm); }
+.dance-note { position: absolute; left: 20%; width: 60%; height: 34px; display: grid; place-content: center; transform: translateY(-50%); color: var(--game-color-cream); background: var(--game-color-wood); border: 2px solid var(--game-color-wood-dark); border-radius: var(--game-radius-sm); font-weight: 900; box-shadow: var(--game-shadow-card); }
+.dance-controls { margin-top: var(--game-space-2); }
+.mini-game-window .dance-controls button { min-height: 55px; color: var(--game-color-cream); background: var(--game-color-leaf); border-color: var(--game-color-leaf); font-size: 21px; touch-action: manipulation; }
+.mini-game-window .dance-controls button:active { transform: translateY(2px); }
+#dance-combo { text-align: center; font-weight: 900; }
+@media (max-width: 540px) { .dance-tracks { height: 32vh; }.dance-tracks, .dance-controls { gap: var(--game-space-1); }.dance-note { left: 10%; width: 80%; height: 29px; }.mini-game-window .dance-controls button { min-height: 50px; } }
