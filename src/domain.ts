@@ -1,7 +1,10 @@
 import { isRainWeather, weatherAt } from './weather.mjs'
 export type PlotState = 'EMPTY' | 'TILLED' | 'PLANTED' | 'GROWING' | 'READY' | 'WITHERED'
 export type CropId = 'radish' | 'carrot' | 'tomato'
-export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion' | 'animal_feed' | 'pet_basket' | 'carved_chair' | 'flower_table'
+export type ToolItemId = 'hoe' | 'watering_can' | 'axe' | 'pickaxe' | 'sickle'
+export type FishingItemId = 'fishing_bait' | 'fishing_rod_1' | 'fishing_rod_2' | 'fishing_rod_3' | 'sea_shell' | 'sea_glass'
+export type FishItemId = 'silver_sardine' | 'sunny_mullet' | 'moon_shrimp' | 'rain_eel' | 'coral_fish' | 'wreck_perch' | 'pearl_ray' | 'storm_tuna' | 'thunder_marlin' | 'ghost_cod' | 'captains_crown' | 'spring_koi' | 'autumn_snapper' | 'winter_icefish' | 'island_mackerel' | 'lighthouse_bream' | 'moonlight_grouper' | 'cave_angler' | 'sea_star_legend'
+export type ItemId = ToolItemId | FishingItemId | FishItemId | 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion' | 'animal_feed' | 'pet_basket' | 'carved_chair' | 'flower_table'
 export type MapId = 'village' | 'farm' | 'home' | 'market' | 'magic_city' | 'riverside' | 'city' | 'mine' | 'mine2' | 'mine3' | 'beach'
 export type CharacterId = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h'
 export const CHARACTER_IDS: CharacterId[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -31,8 +34,14 @@ export const GEAR: Record<GearId, { name: string; icon: string; slot: GearSlot; 
   crystal_charm: { name: 'เครื่องรางคริสตัล', icon: '🔮', slot: 'charm', price: 95, mana: 15, speed: 15 }
 }
 export const GEAR_IDS = Object.keys(GEAR) as GearId[]
-export const ITEM_IDS: ItemId[] = ['radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber', 'sword', 'bow', 'meat', 'hide', 'copper', 'iron', 'moonstone', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion', 'animal_feed', 'pet_basket', 'carved_chair', 'flower_table']
-export type Slot = { slot: number; itemId: ItemId; quantity: number }
+export const TOOL_ITEM_IDS: ToolItemId[] = ['hoe', 'watering_can', 'axe', 'pickaxe', 'sickle']
+export const FISHING_ITEM_IDS: FishingItemId[] = ['fishing_bait', 'fishing_rod_1', 'fishing_rod_2', 'fishing_rod_3', 'sea_shell', 'sea_glass']
+export const FISH_ITEM_IDS: FishItemId[] = ['silver_sardine', 'sunny_mullet', 'moon_shrimp', 'rain_eel', 'coral_fish', 'wreck_perch', 'pearl_ray', 'storm_tuna', 'thunder_marlin', 'ghost_cod', 'captains_crown', 'spring_koi', 'autumn_snapper', 'winter_icefish', 'island_mackerel', 'lighthouse_bream', 'moonlight_grouper', 'cave_angler', 'sea_star_legend']
+export const ITEM_IDS: ItemId[] = [...TOOL_ITEM_IDS, ...FISHING_ITEM_IDS, ...FISH_ITEM_IDS, 'radish_seed', 'radish', 'carrot_seed', 'carrot', 'tomato_seed', 'tomato', 'wood', 'stone', 'fiber', 'sword', 'bow', 'meat', 'hide', 'copper', 'iron', 'moonstone', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion', 'animal_feed', 'pet_basket', 'carved_chair', 'flower_table']
+export const MAX_INVENTORY_SLOTS = 48
+export const DEFAULT_HOTBAR: (ItemId | null)[] = ['hoe', 'watering_can', 'axe', 'pickaxe', 'sickle', 'radish_seed', 'radish', null, null, null]
+export const itemStackLimit = (itemId: ItemId) => TOOL_ITEM_IDS.includes(itemId as ToolItemId) || itemId.startsWith('fishing_rod_') ? 1 : itemId === 'fishing_bait' ? 999 : 99
+export type Slot = { slot: number; itemId: ItemId; quantity: number; favorite?: boolean; locked?: boolean }
 export type Plot = { id: string; state: PlotState; cropId: CropId | null; readyAt: number | null; dryDays?: number; wateredDay?: number | null }
 export type Save = {
   schemaVersion: 2
@@ -49,6 +58,7 @@ export type Save = {
   calendarVersion?: 2 | 3
   lastProcessedDay?: number
   selectedSlot?: number
+  hotbar?: (ItemId | null)[]
   hotbarExtras?: (ItemId | null)[]
   nodeHp?: Record<string, number>
   outfit?: OutfitId
@@ -59,7 +69,7 @@ export type Save = {
   mounted?: boolean
   gardenGateOpen?: boolean
   campfires?: { mapId: MapId; x: number; y: number }[]
-  fishing?: { xp: number; rod: 1 | 2 | 3; bait: number; caught: Record<string, number>; inventory?: Record<string, number>; shells?: number; seaGlass?: number; foraged?: Record<string, number> }
+  fishing?: { xp: number; rod: 1 | 2 | 3; bait?: number; caught: Record<string, number>; inventory?: Record<string, number>; shells?: number; seaGlass?: number; inventoryMigrated?: boolean; foraged?: Record<string, number> }
 }
 
 export const KEY = 'new-village.save.v2'
@@ -73,7 +83,10 @@ export const initialState = (): Save => ({
   schemaVersion: 2,
   savedAt: Date.now(),
   player: { x: 768, y: 800, mapId: 'village', coins: 50, energy: 100, hp: 100, mana: 50, xp: 0, level: 1 },
-  inventory: [{ slot: 0, itemId: 'radish_seed', quantity: 3 }],
+  inventory: [
+    ...TOOL_ITEM_IDS.map((itemId, slot) => ({ slot, itemId, quantity: 1 })),
+    { slot: 5, itemId: 'radish_seed', quantity: 3 }
+  ],
   plots: Array.from({ length: PLOT_COUNT }, (_, i) => ({ id: `plot-${i + 1}`, state: 'EMPTY', cropId: null, readyAt: null, dryDays: 0, wateredDay: null })),
   questDone: false,
   character: 'a',
@@ -84,6 +97,7 @@ export const initialState = (): Save => ({
   calendarVersion: 3,
   lastProcessedDay: 1,
   selectedSlot: 0,
+  hotbar: [...DEFAULT_HOTBAR],
   hotbarExtras: [null, null, null],
   nodeHp: {},
   outfit: 'default',
@@ -207,34 +221,80 @@ export function migrateRetiredPetSave(value: unknown): { data: unknown; refunded
 }
 
 export function count(save: Save, itemId: ItemId): number {
-  return save.inventory.find(s => s.itemId === itemId)?.quantity ?? 0
+  return save.inventory.reduce((total, slot) => total + (slot.itemId === itemId ? slot.quantity : 0), 0)
 }
 
-export function canAdd(save: Save, itemId: ItemId): boolean {
-  const stack = save.inventory.find(s => s.itemId === itemId)
-  return stack ? stack.quantity < 99 : save.inventory.length < 24
+export function canAdd(save: Save, itemId: ItemId, quantity = 1): boolean {
+  if (!Number.isInteger(quantity) || quantity < 1) return false
+  const limit = itemStackLimit(itemId)
+  const room = save.inventory.filter(slot => slot.itemId === itemId).reduce((total, slot) => total + limit - slot.quantity, 0)
+    + (MAX_INVENTORY_SLOTS - save.inventory.length) * limit
+  return room >= quantity
 }
 
-export function add(save: Save, itemId: ItemId): boolean {
-  if (!canAdd(save, itemId)) return false
-  const stack = save.inventory.find(s => s.itemId === itemId)
-  if (stack) stack.quantity++
-  else {
-    const slot = Array.from({ length: 24 }, (_, i) => i).find(i => !save.inventory.some(s => s.slot === i))!
-    save.inventory.push({ slot, itemId, quantity: 1 })
+export function add(save: Save, itemId: ItemId, quantity = 1): boolean {
+  if (!canAdd(save, itemId, quantity)) return false
+  const limit = itemStackLimit(itemId)
+  for (const stack of save.inventory.filter(slot => slot.itemId === itemId && slot.quantity < limit)) {
+    const moved = Math.min(quantity, limit - stack.quantity)
+    stack.quantity += moved; quantity -= moved
+    if (!quantity) break
   }
-  if (['sword', 'bow', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion', 'carrot_seed', 'tomato_seed'].includes(itemId) && save.hotbarExtras && !save.hotbarExtras.includes(itemId)) {
-    const empty = save.hotbarExtras.indexOf(null)
-    if (empty >= 0) save.hotbarExtras[empty] = itemId
+  while (quantity > 0) {
+    const slot = Array.from({ length: MAX_INVENTORY_SLOTS }, (_, i) => i).find(i => !save.inventory.some(s => s.slot === i))!
+    const moved = Math.min(quantity, limit)
+    save.inventory.push({ slot, itemId, quantity: moved }); quantity -= moved
+  }
+  if (['sword', 'bow', 'arcane_sword', 'wand', 'broom', 'rice_meal', 'stew', 'mana_potion', 'carrot_seed', 'tomato_seed', 'fishing_rod_1', 'fishing_rod_2', 'fishing_rod_3'].includes(itemId) && save.hotbar && !save.hotbar.includes(itemId)) {
+    const empty = save.hotbar.indexOf(null)
+    if (empty >= 0) save.hotbar[empty] = itemId
   }
   return true
 }
 
-export function remove(save: Save, itemId: ItemId): boolean {
-  const stack = save.inventory.find(s => s.itemId === itemId)
-  if (!stack) return false
-  if (--stack.quantity === 0) save.inventory = save.inventory.filter(s => s !== stack)
+export function remove(save: Save, itemId: ItemId, quantity = 1): boolean {
+  if (!Number.isInteger(quantity) || quantity < 1 || count(save, itemId) < quantity) return false
+  for (const stack of save.inventory.filter(slot => slot.itemId === itemId).sort((a, b) => Number(a.locked) - Number(b.locked))) {
+    const moved = Math.min(quantity, stack.quantity)
+    stack.quantity -= moved; quantity -= moved
+    if (stack.quantity === 0) save.inventory = save.inventory.filter(slot => slot !== stack)
+    if (!quantity) break
+  }
+  if (!count(save, itemId)) {
+    if (save.hotbar) save.hotbar = save.hotbar.map(id => id === itemId && !TOOL_ITEM_IDS.includes(itemId as ToolItemId) ? null : id)
+  }
   return true
+}
+
+export function moveInventorySlot(save: Save, from: number, to: number): boolean {
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= MAX_INVENTORY_SLOTS || to >= MAX_INVENTORY_SLOTS || from === to) return false
+  const source = save.inventory.find(slot => slot.slot === from)
+  if (!source) return false
+  const target = save.inventory.find(slot => slot.slot === to)
+  if (target?.itemId === source.itemId) {
+    const moved = Math.min(source.quantity, itemStackLimit(source.itemId) - target.quantity)
+    if (!moved) return false
+    target.quantity += moved; source.quantity -= moved
+    if (!source.quantity) save.inventory = save.inventory.filter(slot => slot !== source)
+    return true
+  }
+  source.slot = to
+  if (target) target.slot = from
+  return true
+}
+
+export function splitInventorySlot(save: Save, from: number, to: number): boolean {
+  const source = save.inventory.find(slot => slot.slot === from)
+  if (!source || source.quantity < 2 || save.inventory.some(slot => slot.slot === to) || to < 0 || to >= MAX_INVENTORY_SLOTS) return false
+  const amount = Math.floor(source.quantity / 2)
+  source.quantity -= amount
+  save.inventory.push({ slot: to, itemId: source.itemId, quantity: amount, favorite: source.favorite, locked: source.locked })
+  return true
+}
+
+export function sortInventory(save: Save): void {
+  save.inventory.sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite) || a.itemId.localeCompare(b.itemId))
+  save.inventory.forEach((slot, index) => { slot.slot = index })
 }
 
 export function dayNumber(save: Save, now = Date.now()): number {
@@ -304,7 +364,7 @@ export function validate(value: unknown): value is Save {
     (s.mounted !== undefined && typeof s.mounted !== 'boolean') ||
     (s.gardenGateOpen !== undefined && typeof s.gardenGateOpen !== 'boolean') ||
     (s.campfires !== undefined && (!Array.isArray(s.campfires) || s.campfires.length > 20 || s.campfires.some(fire => !fire || !['village', 'farm', 'market', 'magic_city', 'riverside', 'beach'].includes(fire.mapId) || !Number.isFinite(fire.x) || !Number.isFinite(fire.y) || fire.x < 32 || fire.x > 1504 || fire.y < 32 || fire.y > 992))) ||
-    (s.fishing !== undefined && (!s.fishing || typeof s.fishing !== 'object' || !Number.isInteger(s.fishing.xp) || s.fishing.xp < 0 || s.fishing.xp > 1000000 || ![1, 2, 3].includes(s.fishing.rod) || !Number.isInteger(s.fishing.bait) || s.fishing.bait < 0 || s.fishing.bait > 999 || !s.fishing.caught || typeof s.fishing.caught !== 'object' || Object.entries(s.fishing.caught).length > 30 || Object.values(s.fishing.caught).some(n => !Number.isInteger(n) || n < 0 || n > 100000) || (s.fishing.inventory !== undefined && (typeof s.fishing.inventory !== 'object' || s.fishing.inventory === null || Object.entries(s.fishing.inventory).length > 30 || Object.values(s.fishing.inventory).some(n => !Number.isInteger(n) || n < 0 || n > 999))) || (s.fishing.shells !== undefined && (!Number.isInteger(s.fishing.shells) || s.fishing.shells < 0 || s.fishing.shells > 999)) || (s.fishing.seaGlass !== undefined && (!Number.isInteger(s.fishing.seaGlass) || s.fishing.seaGlass < 0 || s.fishing.seaGlass > 999)) || (s.fishing.foraged !== undefined && (typeof s.fishing.foraged !== 'object' || s.fishing.foraged === null || Object.entries(s.fishing.foraged).length > 8 || Object.values(s.fishing.foraged).some(n => !Number.isInteger(n) || n < 0))))) ||
+    (s.fishing !== undefined && (!s.fishing || typeof s.fishing !== 'object' || !Number.isInteger(s.fishing.xp) || s.fishing.xp < 0 || s.fishing.xp > 1000000 || ![1, 2, 3].includes(s.fishing.rod) || (s.fishing.bait !== undefined && (!Number.isInteger(s.fishing.bait) || s.fishing.bait < 0 || s.fishing.bait > 999)) || !s.fishing.caught || typeof s.fishing.caught !== 'object' || Object.entries(s.fishing.caught).length > 30 || Object.values(s.fishing.caught).some(n => !Number.isInteger(n) || n < 0 || n > 100000) || (s.fishing.inventory !== undefined && (typeof s.fishing.inventory !== 'object' || s.fishing.inventory === null || Object.entries(s.fishing.inventory).length > 30 || Object.values(s.fishing.inventory).some(n => !Number.isInteger(n) || n < 0 || n > 999))) || (s.fishing.shells !== undefined && (!Number.isInteger(s.fishing.shells) || s.fishing.shells < 0 || s.fishing.shells > 999)) || (s.fishing.seaGlass !== undefined && (!Number.isInteger(s.fishing.seaGlass) || s.fishing.seaGlass < 0 || s.fishing.seaGlass > 999)) || (s.fishing.inventoryMigrated !== undefined && typeof s.fishing.inventoryMigrated !== 'boolean') || (s.fishing.foraged !== undefined && (typeof s.fishing.foraged !== 'object' || s.fishing.foraged === null || Object.entries(s.fishing.foraged).length > 8 || Object.values(s.fishing.foraged).some(n => !Number.isInteger(n) || n < 0))))) ||
     (s.festival !== undefined && (!Number.isInteger(s.festival.day) || s.festival.day < 1 || !Number.isInteger(s.festival.donated) || s.festival.donated < 0 || s.festival.donated > 3 || typeof s.festival.completed !== 'boolean')) ||
     (s.character !== undefined && !CHARACTER_IDS.includes(s.character)) ||
     (s.unlockedCharacters !== undefined && (!Array.isArray(s.unlockedCharacters) || s.unlockedCharacters.some(id => !CHARACTER_IDS.includes(id)) || new Set(s.unlockedCharacters).size !== s.unlockedCharacters.length)) ||
@@ -314,16 +374,18 @@ export function validate(value: unknown): value is Save {
     (s.calendarVersion !== undefined && s.calendarVersion !== 2 && s.calendarVersion !== 3) ||
     (s.lastProcessedDay !== undefined && (!Number.isInteger(s.lastProcessedDay) || s.lastProcessedDay < 1)) ||
     (s.selectedSlot !== undefined && (!Number.isInteger(s.selectedSlot) || s.selectedSlot < 0 || s.selectedSlot > 9)) ||
+    (s.hotbar !== undefined && (!Array.isArray(s.hotbar) || s.hotbar.length !== 10 || s.hotbar.some(item => item !== null && !ITEM_IDS.includes(item)))) ||
     (s.hotbarExtras !== undefined && (!Array.isArray(s.hotbarExtras) || s.hotbarExtras.length !== 3 || s.hotbarExtras.some(item => item !== null && !ITEM_IDS.includes(item)))) ||
     (s.nodeHp !== undefined && (typeof s.nodeHp !== 'object' || s.nodeHp === null || Object.values(s.nodeHp).some(hp => !Number.isInteger(hp) || hp < 0 || hp > 9))) ||
     !Number.isInteger(p.coins) || p.coins! < 0 || !Number.isInteger(p.energy) || p.energy! < 0 || p.energy! > 100) return false
-  if (!Array.isArray(s.inventory) || s.inventory.length > 24 || !Array.isArray(s.plots) || s.plots.length !== PLOT_COUNT) return false
-  const slots = new Set<number>(), items = new Set<string>()
+  if (!Array.isArray(s.inventory) || s.inventory.length > MAX_INVENTORY_SLOTS || !Array.isArray(s.plots) || s.plots.length !== PLOT_COUNT) return false
+  const slots = new Set<number>()
   for (const item of s.inventory) {
-    if (!item || !Number.isInteger(item.slot) || item.slot < 0 || item.slot >= 24 || slots.has(item.slot) ||
-      !ITEM_IDS.includes(item.itemId) || items.has(item.itemId) ||
-      !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) return false
-    slots.add(item.slot); items.add(item.itemId)
+    if (!item || !Number.isInteger(item.slot) || item.slot < 0 || item.slot >= MAX_INVENTORY_SLOTS || slots.has(item.slot) ||
+      !ITEM_IDS.includes(item.itemId) ||
+      !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > itemStackLimit(item.itemId) ||
+      (item.favorite !== undefined && typeof item.favorite !== 'boolean') || (item.locked !== undefined && typeof item.locked !== 'boolean')) return false
+    slots.add(item.slot)
   }
   for (let i = 0; i < PLOT_COUNT; i++) {
     const plot = s.plots[i]
@@ -375,6 +437,9 @@ export function load(): { state: Save; error?: string } {
     parsed.lastProcessedDay ??= dayNumber(parsed)
     parsed.selectedSlot ??= 0
     parsed.hotbarExtras ??= [null, null, null]
+    parsed.hotbar ??= [...DEFAULT_HOTBAR.slice(0, 7), ...parsed.hotbarExtras]
+    let inventoryMigrated = false
+    for (const itemId of TOOL_ITEM_IDS) if (!count(parsed, itemId) && add(parsed, itemId)) inventoryMigrated = true
     parsed.nodeHp ??= {}
     parsed.player.level ??= 1
     parsed.player.xp ??= 0
@@ -392,7 +457,7 @@ export function load(): { state: Save; error?: string } {
     parsed.gardenGateOpen ??= false
     parsed.campfires ??= []
     for (const plot of parsed.plots) { plot.dryDays ??= 0; plot.wateredDay ??= null; if (plot.state === 'READY') plot.readyAt = null }
-    if (migration.changed) { unlockCompletedCharacters(parsed); persist(parsed) }
+    if (migration.changed || inventoryMigrated) { unlockCompletedCharacters(parsed); persist(parsed) }
     refreshGrowth(parsed)
     return { state: parsed }
   } catch {

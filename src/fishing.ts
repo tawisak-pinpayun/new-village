@@ -1,5 +1,5 @@
 import type { Calendar } from './calendar'
-import type { Save } from './domain'
+import { add, count, MAX_INVENTORY_SLOTS, type FishItemId, type ItemId, type Save } from './domain'
 
 export type FishingSpotId = 'beginner-pier' | 'coral-reef' | 'shipwreck' | 'small-island' | 'lighthouse-pier' | 'cave-pool'
 export type FishRarity = 'common' | 'uncommon' | 'rare' | 'legendary'
@@ -38,7 +38,22 @@ export const FISHING_SPOTS: Record<FishingSpotId, { name: string; level: number;
 
 export function fishingProgress(save: Save): NonNullable<Save['fishing']> {
   const progress = save.fishing ?? (save.fishing = { xp: 0, rod: 1, bait: 5, caught: {} })
-  progress.inventory ??= {}
+  if (!progress.inventoryMigrated) {
+    const transfers = new Map<ItemId, number>()
+    const transfer = (id: ItemId, amount = 1) => { if (amount > 0) transfers.set(id, (transfers.get(id) ?? 0) + amount) }
+    transfer(`fishing_rod_${progress.rod}` as ItemId)
+    transfer('fishing_bait', progress.bait ?? 0)
+    transfer('sea_shell', progress.shells ?? 0)
+    transfer('sea_glass', progress.seaGlass ?? 0)
+    for (const [id, amount] of Object.entries(progress.inventory ?? {})) if (FISH.some(fish => fish.id === id)) transfer(id as FishItemId, amount)
+    const newSlots = [...transfers.keys()].filter(id => count(save, id) === 0).length
+    const fits = save.inventory.length + newSlots <= MAX_INVENTORY_SLOTS && [...transfers].every(([id, amount]) => count(save, id) + amount <= (id === 'fishing_bait' ? 999 : id.startsWith('fishing_rod_') ? 1 : 99))
+    if (fits) {
+      for (const [id, amount] of transfers) add(save, id, amount)
+      progress.bait = 0; progress.shells = 0; progress.seaGlass = 0; progress.inventory = {}
+      progress.inventoryMigrated = true
+    }
+  }
   return progress
 }
 

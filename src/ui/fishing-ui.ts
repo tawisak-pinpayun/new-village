@@ -1,5 +1,5 @@
 import type { Calendar } from '../calendar'
-import type { Save } from '../domain'
+import { add, canAdd, count, remove, type FishItemId, type ItemId, type Save } from '../domain'
 import { FISH, FISHING_SPOTS, fishingLevel, fishingProgress, selectFish, type Fish, type FishingSpotId } from '../fishing'
 import { FishingSession } from '../fishing-session'
 import { SHOPS } from '../shops'
@@ -91,14 +91,15 @@ export class FishingUI {
     const progress = fishingProgress(this.save())
     const spot = FISHING_SPOTS[this.spot]
     if (fishingLevel(progress.xp) < spot.level || progress.rod < spot.rod) { this.message = `ต้องมีทักษะตกปลาเลเวล ${spot.level} และคันเบ็ดระดับ ${spot.rod}`; this.render(); return }
-    if (progress.bait <= 0) { this.message = 'เหยื่อหมด ซื้อเพิ่มจากนาวาที่ร้าน'; this.render(); return }
+    if (count(this.save(), 'fishing_bait') <= 0) { this.message = 'เหยื่อหมด ซื้อเพิ่มจากนาวาที่ร้าน'; this.render(); return }
     if (this.save().player.energy < 2) { this.message = 'Energy ไม่พอ'; this.render(); return }
     const { calendar, weather } = this.environment()
     this.target = selectFish(this.spot, calendar, weather)
+    if (!canAdd(this.save(), this.target.id as FishItemId)) { this.message = 'กระเป๋าเต็ม จัดกระเป๋าหรือขายของก่อนตกปลา'; this.render(); return }
     this.session = new FishingSession(this.target, progress.rod, fishingLevel(progress.xp))
     this.session.cast(performance.now())
     this.settled = false; this.held = false
-    progress.bait--; this.save().player.energy -= 2
+    remove(this.save(), 'fishing_bait'); this.save().player.energy -= 2
     this.message = 'โยนเบ็ดแล้ว รอปลากินเหยื่อ'
     this.changed()
     this.render()
@@ -130,10 +131,9 @@ export class FishingUI {
     const progress = fishingProgress(this.save())
     this.newCatch = !progress.caught[fish.id]
     progress.caught[fish.id] = (progress.caught[fish.id] ?? 0) + 1
-    progress.inventory![fish.id] = (progress.inventory![fish.id] ?? 0) + 1
+    add(this.save(), fish.id as FishItemId)
     progress.xp += fish.xp
-    this.save().player.coins += fish.value
-    this.message = `จับ${fish.name}ได้! +${fish.value} Coins · +${fish.xp} Fishing XP`
+    this.message = `จับ${fish.name}ได้! เก็บเข้ากระเป๋ากลาง · +${fish.xp} Fishing XP`
     if (this.interval) clearInterval(this.interval)
     this.interval = undefined; this.held = false; this.changed(); this.render()
   }
@@ -152,10 +152,10 @@ export class FishingUI {
   }
 
   private buyBait() {
-    const save = this.save(), progress = fishingProgress(save)
+    const save = this.save()
     if (save.player.coins < price('bait')) this.message = 'Coins ไม่พอซื้อเหยื่อ'
-    else if (progress.bait > 989) this.message = 'เหยื่อเต็มแล้ว'
-    else { save.player.coins -= price('bait'); progress.bait += 10; this.message = 'ซื้อเหยื่อ 10 ชิ้นแล้ว'; this.changed() }
+    else if (!canAdd(save, 'fishing_bait', 10)) this.message = 'เหยื่อเต็มหรือกระเป๋าไม่มีที่ว่าง'
+    else { save.player.coins -= price('bait'); add(save, 'fishing_bait', 10); this.message = 'ซื้อเหยื่อ 10 ชิ้นเข้ากระเป๋าแล้ว'; this.changed() }
     this.render()
   }
   private buyRod() {
@@ -165,22 +165,23 @@ export class FishingUI {
     if (next > 3) this.message = 'คันเบ็ดระดับสูงสุดแล้ว'
     else if (fishingLevel(progress.xp) < next) this.message = `ต้องมีทักษะตกปลาเลเวล ${next}`
     else if (save.player.coins < cost) this.message = 'Coins ไม่พออัปเกรดคันเบ็ด'
-    else { save.player.coins -= cost; progress.rod = next as 2 | 3; this.message = `อัปเกรดคันเบ็ดเป็นระดับ ${next} แล้ว`; this.changed() }
+    else if (!canAdd(save, `fishing_rod_${next}` as ItemId)) this.message = 'กระเป๋าไม่มีที่ว่างสำหรับคันเบ็ดใหม่'
+    else { save.player.coins -= cost; progress.rod = next as 2 | 3; add(save, `fishing_rod_${next}` as ItemId); this.message = `อัปเกรดคันเบ็ดเป็นระดับ ${next} และเก็บเข้ากระเป๋าแล้ว`; this.changed() }
     this.render()
   }
   private sellMaterial(kind: 'shells' | 'seaGlass') {
-    const save = this.save(), progress = fishingProgress(save), count = progress[kind] ?? 0
-    if (!count) this.message = 'ยังไม่มีของทะเลชนิดนี้'
-    else { const value = shop.materialSellPrices![kind]; progress[kind] = 0; save.player.coins += count * value; this.message = `ขาย${kind === 'shells' ? 'เปลือกหอย' : 'แก้วทะเล'} ${count} ชิ้น ได้ ${count * value} Coins`; this.changed() }
+    const save = this.save(), itemId = kind === 'shells' ? 'sea_shell' : 'sea_glass', amount = count(save, itemId)
+    if (!amount) this.message = 'ยังไม่มีของทะเลชนิดนี้'
+    else { const value = shop.materialSellPrices![kind]; remove(save, itemId, amount); save.player.coins += amount * value; this.message = `ขาย${kind === 'shells' ? 'เปลือกหอย' : 'แก้วทะเล'} ${amount} ชิ้น ได้ ${amount * value} Coins`; this.changed() }
     this.render()
   }
 
   private sellFish(id: string) {
     const fish = FISH.find(item => item.id === id)
-    const save = this.save(), progress = fishingProgress(save)
-    if (!fish || !progress.inventory?.[id]) this.message = 'ไม่มีปลาชนิดนี้ในกระเป๋า'
+    const save = this.save()
+    if (!fish || !count(save, id as FishItemId)) this.message = 'ไม่มีปลาชนิดนี้ในกระเป๋า'
     else {
-      progress.inventory[id]--
+      remove(save, id as FishItemId)
       save.player.coins += fish.value
       this.message = `ขาย${fish.name} 1 ตัว ได้ ${fish.value} Coins`
       this.changed()
@@ -193,9 +194,9 @@ export class FishingUI {
     const level = fishingLevel(progress.xp)
     const feedback = `<p class="fishing-feedback" role="status">${this.message}</p>`
     if (this.view === 'shop') {
-      const caughtFish = FISH.filter(fish => (progress.inventory?.[fish.id] ?? 0) > 0)
+      const caughtFish = FISH.filter(fish => count(save, fish.id as FishItemId) > 0)
       const buyPanel = `<div class="fishing-product-list"><button data-fishing-action="bait" class="fishing-product-row">${art('bait')}<span><strong>เหยื่อทะเล 10 ชิ้น</strong><small>เหมาะสำหรับปลาทั่วไปทุกพื้นที่</small></span><b>${price('bait')} Coins</b></button></div>`
-      const sellPanel = `<div class="fishing-product-list">${caughtFish.map(fish => `<button data-fishing-action="sell-fish" data-fish-id="${fish.id}" class="fishing-product-row">${fishArtwork(fish)}<span><strong>${fish.name} ×${progress.inventory![fish.id]}</strong><small>${rarityLabel(fish)} · ขายครั้งละ 1 ตัว</small></span><b>${fish.value} Coins</b></button>`).join('') || '<p class="fishing-empty">ยังไม่มีปลาในกระเป๋าสำหรับขาย</p>'}<button data-fishing-action="sell-shells" class="fishing-product-row">${art('shells')}<span><strong>เปลือกหอย ×${progress.shells ?? 0}</strong><small>ขายทั้งหมด</small></span><b>${shop.materialSellPrices!.shells} / ชิ้น</b></button><button data-fishing-action="sell-glass" class="fishing-product-row">${art('seaGlass')}<span><strong>แก้วทะเล ×${progress.seaGlass ?? 0}</strong><small>ขายทั้งหมด</small></span><b>${shop.materialSellPrices!.seaGlass} / ชิ้น</b></button></div>`
+      const sellPanel = `<div class="fishing-product-list">${caughtFish.map(fish => `<button data-fishing-action="sell-fish" data-fish-id="${fish.id}" class="fishing-product-row">${fishArtwork(fish)}<span><strong>${fish.name} ×${count(save, fish.id as FishItemId)}</strong><small>${rarityLabel(fish)} · ขายครั้งละ 1 ตัว</small></span><b>${fish.value} Coins</b></button>`).join('') || '<p class="fishing-empty">ยังไม่มีปลาในกระเป๋าสำหรับขาย</p>'}<button data-fishing-action="sell-shells" class="fishing-product-row">${art('shells')}<span><strong>เปลือกหอย ×${count(save, 'sea_shell')}</strong><small>ขายทั้งหมด</small></span><b>${shop.materialSellPrices!.shells} / ชิ้น</b></button><button data-fishing-action="sell-glass" class="fishing-product-row">${art('seaGlass')}<span><strong>แก้วทะเล ×${count(save, 'sea_glass')}</strong><small>ขายทั้งหมด</small></span><b>${shop.materialSellPrices!.seaGlass} / ชิ้น</b></button></div>`
       const nextRod = progress.rod === 1 ? 'rod2' : 'rod3'
       const upgradePanel = `<div class="fishing-upgrade-card">${art(progress.rod < 3 ? nextRod : 'rod3')}<div><h3>คันเบ็ดระดับ ${progress.rod}</h3><p>Catch Zone +${progress.rod * 5}% · ลดความเสี่ยงสายขาด · ปลดล็อกพื้นที่ระดับ ${progress.rod}</p><button data-fishing-action="rod" class="mini-game-primary" ${progress.rod >= 3 ? 'disabled' : ''}>${progress.rod >= 3 ? 'อัปเกรดสูงสุดแล้ว' : `อัปเกรด ${price(nextRod)} Coins`}</button></div></div>`
       const activePanel = this.shopTab === 'buy' ? buyPanel : this.shopTab === 'sell' ? sellPanel : upgradePanel
@@ -212,13 +213,13 @@ export class FishingUI {
     }
     const { calendar, weather } = this.environment()
     const status = this.session?.phase ?? 'idle'
-    const environment = `<div class="fishing-context-bar"><strong>${FISHING_SPOTS[this.spot].name}</strong><span>${calendar.night ? 'กลางคืน' : 'กลางวัน'}</span><span>${WEATHER_LABELS[weather]}</span><span>ฤดู${calendar.season.name}</span><b>Lv.${level} · เหยื่อ ${progress.bait}</b></div>`
+    const environment = `<div class="fishing-context-bar"><strong>${FISHING_SPOTS[this.spot].name}</strong><span>${calendar.night ? 'กลางคืน' : 'กลางวัน'}</span><span>${WEATHER_LABELS[weather]}</span><span>ฤดู${calendar.season.name}</span><b>Lv.${level} · เหยื่อ ${count(save, 'fishing_bait')}</b></div>`
     if (status === 'success' && this.target) {
       const catchNumber = progress.caught[this.target.id] ?? 1
       const hash = [...this.target.id].reduce((sum, char) => sum + char.charCodeAt(0), 0) + catchNumber * 7
       const size = (22 + hash % 420 / 10).toFixed(1), weight = (.4 + hash % 38 / 10).toFixed(1)
-      const bagFish = FISH.filter(fish => progress.inventory?.[fish.id]).slice(0, 8)
-      this.content.innerHTML = `${environment}<div class="fishing-result-layout"><section class="fishing-catch-result rarity-${this.target.rarity}"><div class="fishing-result-ribbon">จับได้แล้ว!</div><span class="fishing-new">${this.newCatch ? 'NEW' : ''}</span>${fishArtwork(this.target, 'fishing-catch-art')}<h3>${this.target.name}</h3><div class="fishing-stars">${rarityStars(this.target)}</div><div class="fishing-measure"><span>ขนาด ${size} cm</span><span>น้ำหนัก ${weight} kg</span></div><p>${rarityLabel(this.target)} · ได้ ${this.target.xp} Fishing EXP · ราคา ${this.target.value} Coins</p><div><button data-fishing-action="cast" class="mini-game-primary">ตกอีกครั้ง</button><button data-fishing-action="journal">ดูรายละเอียด</button></div></section><section class="fishing-bag-panel"><header><h3>กระเป๋าปลา</h3><b>${bagFish.reduce((sum, fish) => sum + (progress.inventory?.[fish.id] ?? 0), 0)}/60</b></header><div class="fishing-bag-grid">${bagFish.map(fish => `<div>${fishArtwork(fish)}<small>${progress.inventory![fish.id]}</small></div>`).join('')}</div><p>${this.message}</p><button data-fishing-action="shop">ไปร้านอุปกรณ์</button></section></div>`
+      const bagFish = FISH.filter(fish => count(save, fish.id as FishItemId)).slice(0, 8)
+      this.content.innerHTML = `${environment}<div class="fishing-result-layout"><section class="fishing-catch-result rarity-${this.target.rarity}"><div class="fishing-result-ribbon">จับได้แล้ว!</div><span class="fishing-new">${this.newCatch ? 'NEW' : ''}</span>${fishArtwork(this.target, 'fishing-catch-art')}<h3>${this.target.name}</h3><div class="fishing-stars">${rarityStars(this.target)}</div><div class="fishing-measure"><span>ขนาด ${size} cm</span><span>น้ำหนัก ${weight} kg</span></div><p>${rarityLabel(this.target)} · ได้ ${this.target.xp} Fishing EXP · ราคาขาย ${this.target.value} Coins</p><div><button data-fishing-action="cast" class="mini-game-primary">ตกอีกครั้ง</button><button data-fishing-action="journal">ดูรายละเอียด</button></div></section><section class="fishing-bag-panel"><header><h3>กระเป๋าปลา</h3><b>${bagFish.reduce((sum, fish) => sum + count(save, fish.id as FishItemId), 0)}/60</b></header><div class="fishing-bag-grid">${bagFish.map(fish => `<div>${fishArtwork(fish)}<small>${count(save, fish.id as FishItemId)}</small></div>`).join('')}</div><p>${this.message}</p><button data-fishing-action="shop">ไปร้านอุปกรณ์</button></section></div>`
       return
     }
     if (status === 'casting' || status === 'waiting' || status === 'bite' || status === 'reeling') {
@@ -228,6 +229,6 @@ export class FishingUI {
       this.paintSession()
       return
     }
-    this.content.innerHTML = `${environment}<div class="fishing-adventure-layout"><section class="fishing-spot-preview"><div class="fishing-preview-copy"><span>จุดตกปลา</span><h3>${FISHING_SPOTS[this.spot].name}</h3><p>ปลาที่พบเปลี่ยนตามเวลา ฤดูกาล และอากาศ</p></div><div class="fishing-control-keys"><span><kbd>E</kbd> ตกปลา</span><span><kbd>R</kbd> เปลี่ยนเหยื่อ</span><span><kbd>Tab</kbd> เปิดสมุด</span></div><button data-fishing-action="cast" class="mini-game-primary fishing-cast-button">เริ่มตกปลา · Space</button></section><aside class="fishing-info-panel"><h3>ข้อมูลจุดตกปลา</h3><p><b>คันเบ็ด</b> ระดับ ${progress.rod}/3</p><p><b>เหยื่อ</b> ${progress.bait} ชิ้น</p><p><b>ช่วงเวลา</b> ${calendar.night ? 'กลางคืน' : 'กลางวัน'}</p><p><b>อากาศ</b> ${WEATHER_LABELS[weather]}</p><div class="fishing-actions"><button data-fishing-action="journal">สมุดสะสมปลา</button><button data-fishing-action="shop">ร้านอุปกรณ์</button></div>${feedback}</aside></div><div class="fishing-spot-strip">${spotCards(this.spot)}</div>`
+    this.content.innerHTML = `${environment}<div class="fishing-adventure-layout"><section class="fishing-spot-preview"><div class="fishing-preview-copy"><span>จุดตกปลา</span><h3>${FISHING_SPOTS[this.spot].name}</h3><p>ปลาที่พบเปลี่ยนตามเวลา ฤดูกาล และอากาศ</p></div><div class="fishing-control-keys"><span><kbd>E</kbd> ตกปลา</span><span><kbd>R</kbd> เปลี่ยนเหยื่อ</span><span><kbd>Tab</kbd> เปิดสมุด</span></div><button data-fishing-action="cast" class="mini-game-primary fishing-cast-button">เริ่มตกปลา · Space</button></section><aside class="fishing-info-panel"><h3>ข้อมูลจุดตกปลา</h3><p><b>คันเบ็ด</b> ระดับ ${progress.rod}/3</p><p><b>เหยื่อ</b> ${count(save, 'fishing_bait')} ชิ้น</p><p><b>ช่วงเวลา</b> ${calendar.night ? 'กลางคืน' : 'กลางวัน'}</p><p><b>อากาศ</b> ${WEATHER_LABELS[weather]}</p><div class="fishing-actions"><button data-fishing-action="journal">สมุดสะสมปลา</button><button data-fishing-action="shop">ร้านอุปกรณ์</button></div>${feedback}</aside></div><div class="fishing-spot-strip">${spotCards(this.spot)}</div>`
   }
 }

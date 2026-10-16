@@ -26,12 +26,14 @@ import { SHOP_ITEM_ASSETS, TAILOR_ITEM_ASSETS, TAILOR_OUTFIT_ART, TAILOR_GEAR_AR
 import { NPCS, SHOPS, lilyGreeting, type DialogueExpression } from './shops'
 import { NPCAnimationController } from './npc-system'
 import { renderWorldMap, WorldMapController, type WorldMapLocation } from './world-map'
+import { ITEM_DEFINITIONS } from './inventory'
+import { InventoryUI, inventoryMarkup, renderItemIcon } from './ui/inventory-components'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   <div class="topbar"><div class="brand"><span class="flower">✿</span><span>NEW VILLAGE</span></div><div class="location"><span class="location-label">CURRENT LOCATION</span><strong id="map-name">หมู่บ้าน</strong></div><button id="day-display" class="day-display" title="เปิดปฏิทิน" aria-label="เปิดปฏิทิน">🌸 ใบไม้ผลิ · วันที่ 1 · 06:00</button><button id="dress-toggle" title="แต่งตัวและดูสเตตัส">👗 แต่งตัว</button><button id="switch-character" title="เปลี่ยนตัวละคร">☺ <span id="character-label">Player A</span></button></div>
   <div class="status"><div class="coins"><span>✦</span><strong id="coins">50</strong></div><div class="energy"><span>⚡ ENERGY</span><strong id="energy-value">100 / 100</strong><div class="energy-track"><div id="energy-bar"></div></div></div><div class="vitals"><div><span>❤️ HP</span><b id="hp-value"></b></div><div class="vital-track"><i id="hp-bar"></i></div><div><span>✨ MANA</span><b id="mana-value"></b></div><div class="vital-track"><i id="mana-bar"></i></div><div><span id="level-value">LV 1</span><b id="xp-value"></b></div><div class="vital-track"><i id="xp-bar"></i></div></div></div>
-  <div class="inventory"><div class="section-label">กระเป๋า <small>ลากของไปช่อง 8–10</small></div><div id="inventory-items"></div></div>
+  <button id="inventory-toggle" class="inventory" aria-label="เปิดกระเป๋า"><div class="section-label">กระเป๋า <small>กด I เพื่อเปิด</small></div><div id="inventory-items"></div></button>
   <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span><span><kbd>F</kbd> ก่อกองไฟ (ไม้ 2 หิน 1)</span></div></div>
   <div id="hotbar" class="hotbar" aria-label="แถบเครื่องมือ"></div>
   <div class="map-guide"><span class="section-label">แผนที่ภูมิประเทศ</span><div id="map-steps"></div><button id="map-expand">เปิดแผนที่โลก</button></div>
@@ -43,6 +45,7 @@ app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   ${danceRhythmMarkup()}
   ${fishingMarkup()}
   ${fishingTournamentMarkup()}
+  ${inventoryMarkup()}
   <button id="mobile-interact" class="mobile-interact hidden" aria-label="คุยกับ NPC">E · คุย</button>
   <div id="npc-dialogue" class="overlay npc-dialogue-overlay hidden"><section class="npc-dialogue-panel" role="dialog" aria-modal="true" aria-labelledby="npc-dialogue-name"><button id="close-npc-dialogue" class="npc-dialogue-close" aria-label="ปิดบทสนทนา">✕</button><div id="npc-portrait" class="npc-portrait expression-happy" role="img" aria-label="ภาพลิลลี่"></div><div class="npc-dialogue-copy"><header><span id="npc-dialogue-role">แม่ค้าเมล็ดพันธุ์</span><h2 id="npc-dialogue-name">ลิลลี่</h2></header><p id="npc-dialogue-text" aria-live="polite"></p><small id="npc-dialogue-hint">คลิกข้อความเพื่อแสดงทันที</small><div id="npc-dialogue-choices" class="npc-dialogue-choices"></div></div></section></div>
   <div class="camera-controls" aria-label="ควบคุมมุมกล้อง"><button id="camera-zoom-out" title="ซูมออก" aria-label="ซูมออก">−</button><button id="camera-zoom-reset" title="คืนค่ามุมกล้อง"><span id="camera-zoom-value">1.0×</span></button><button id="camera-zoom-in" title="ซูมเข้า" aria-label="ซูมเข้า">＋</button></div>
@@ -113,6 +116,8 @@ type SpecialShopKind = 'general' | 'tailor' | 'magic_shop' | 'forge' | 'animal_s
 let specialKind: SpecialShopKind | null = null
 let scene: WorldScene | undefined
 let messageTimer: number | undefined
+const inventoryUI = new InventoryUI(() => state, changed, announce)
+document.querySelector('#inventory-toggle')!.addEventListener('click', () => inventoryUI.open())
 let cameraZoom = Math.min(2.25, Math.max(1, Number(localStorage.getItem('new-village.camera-zoom')) || 1))
 const multiplayer = new Multiplayer()
 function fishingEnvironment() {
@@ -422,37 +427,20 @@ serverSelect.addEventListener('change', () => {
 showServer()
 worldChat.connect(selectedServer)
 connectSelectedServer()
-const HOTBAR_FIXED = [
-  { icon: '⚒', name: 'จอบ' }, { icon: '💧', name: 'บัวรดน้ำ' },
-  { icon: '🪓', name: 'ขวาน' }, { icon: '⛏', name: 'อีเต้อ' },
-  { icon: '🌾', name: 'เคียว' }, { icon: '✿', name: 'เมล็ด Radish' },
-  { icon: '❀', name: 'Radish' }
-]
-const ITEMS: Record<ItemId, { icon: string; name: string }> = {
-  radish_seed: { icon: '✿', name: 'เมล็ด Radish' }, radish: { icon: '❀', name: 'Radish' },
-  carrot_seed: { icon: '🥕', name: 'เมล็ดแครอท' }, carrot: { icon: '🥕', name: 'แครอท' },
-  tomato_seed: { icon: '🍅', name: 'เมล็ดมะเขือเทศ' }, tomato: { icon: '🍅', name: 'มะเขือเทศ' },
-  wood: { icon: '🪵', name: 'ไม้' }, stone: { icon: '🪨', name: 'หิน' }, fiber: { icon: '🌿', name: 'เส้นใย' },
-  sword: { icon: '⚔️', name: 'ดาบ' }, bow: { icon: '🏹', name: 'ธนู' }, meat: { icon: '🍖', name: 'เนื้อ' }, hide: { icon: '🟤', name: 'หนังสัตว์' }, copper: { icon: '🟠', name: 'แร่ทองแดง' }, iron: { icon: '⚪', name: 'แร่เหล็ก' },
-  moonstone: { icon: '💎', name: 'จันทราศิลา' }, arcane_sword: { icon: '🗡️', name: 'ดาบจันทรา' }, wand: { icon: '🪄', name: 'คทาเวท' }, broom: { icon: '🧹', name: 'ไม้กวาดขี่' }, rice_meal: { icon: '🍚', name: 'ข้าวกล่อง' }, stew: { icon: '🍲', name: 'สตูว์' }, mana_potion: { icon: '🧪', name: 'ยามานา' },
-  animal_feed: { icon: '', name: 'อาหารสัตว์' }, pet_basket: { icon: '', name: 'ตะกร้าสัตว์เลี้ยง' }, carved_chair: { icon: '', name: 'เก้าอี้ไม้แกะสลัก' }, flower_table: { icon: '', name: 'โต๊ะลายดอกไม้' }
-}
+const ITEMS: Record<ItemId, { icon: string; name: string }> = Object.fromEntries(Object.entries(ITEM_DEFINITIONS).map(([id, item]) => [id, { icon: '', name: item.name }])) as Record<ItemId, { icon: string; name: string }>
 function itemIconMarkup(id: ItemId, className: string): string {
-  if (id in SHOP_ITEM_ASSETS) return `<span class="${className} game-atlas-icon" role="img" aria-label="${SHOP_ITEM_ASSETS[id as ShopItemAssetKey].alt}" style="${shopItemAssetStyle(id as ShopItemAssetKey)}"></span>`
-  return `<span class="${className}">${ITEMS[id].icon}</span>`
+  return renderItemIcon(id, className)
 }
 type SeedId = 'radish_seed' | 'carrot_seed' | 'tomato_seed'
 function selectedSeedId(): SeedId | null {
   const slot = state.selectedSlot ?? 0
-  if (slot === 5) return 'radish_seed'
-  const item = slot >= 7 ? state.hotbarExtras?.[slot - 7] : null
+  const item = state.hotbar?.[slot]
   return item === 'carrot_seed' || item === 'tomato_seed' || item === 'radish_seed' ? item : null
 }
 function activeActionSlot(): number {
   const slot = state.selectedSlot ?? 0
-  if (slot < 7) return slot
-  const item = state.hotbarExtras?.[slot - 7]
-  return item === 'radish_seed' ? 5 : item === 'radish' ? 6 : slot
+  const item = state.hotbar?.[slot]
+  return ({ hoe: 0, watering_can: 1, axe: 2, pickaxe: 3, sickle: 4, radish_seed: 5, radish: 6 } as Partial<Record<ItemId, number>>)[item ?? 'hoe'] ?? slot
 }
 
 function announce(text: string) {
@@ -2008,9 +1996,11 @@ class WorldScene extends Phaser.Scene {
       const progress = fishingProgress(state)
       progress.foraged ??= {}
       if (progress.foraged[target.id] === day) return announce('จุดนี้เก็บแล้ววันนี้ ลองจุดอื่นหรือกลับมาพรุ่งนี้')
+      const itemId = target.id === 'shells-east' ? 'sea_glass' : 'sea_shell'
+      if (!canAdd(state, itemId)) return announce('กระเป๋าเต็ม จัดกระเป๋าก่อนเก็บของทะเล')
       progress.foraged[target.id] = day
-      if (target.id === 'shells-east') { progress.seaGlass = (progress.seaGlass ?? 0) + 1; announce('พบแก้วทะเล 1 ชิ้น นำไปขายให้นาวาได้') }
-      else { progress.shells = (progress.shells ?? 0) + 1; announce('พบเปลือกหอย 1 ชิ้น นำไปขายให้นาวาได้') }
+      add(state, itemId)
+      announce(target.id === 'shells-east' ? 'พบแก้วทะเล 1 ชิ้น เก็บเข้ากระเป๋าแล้ว' : 'พบเปลือกหอย 1 ชิ้น เก็บเข้ากระเป๋าแล้ว')
       gainXp(state, 4); changed()
       return
     }
@@ -2024,13 +2014,14 @@ class WorldScene extends Phaser.Scene {
       }
       progress.foraged ??= {}
       if (progress.foraged[target.id] === calendar.absoluteDay) return announce('สำรวจจุดนี้แล้ววันนี้ กลับมาพรุ่งนี้ได้')
+      if (target.id !== 'waterfall' && !canAdd(state, 'sea_glass', 2)) return announce('กระเป๋าเต็ม จัดกระเป๋าก่อนสำรวจถ้ำ')
       progress.foraged[target.id] = calendar.absoluteDay
       if (target.id === 'waterfall') {
         state.player.energy = Math.min(MAX_ENERGY, state.player.energy + 12)
         state.water = MAX_WATER
         changed(); return announce('พักชมน้ำตก ฟื้น Energy 12 และเติมบัวรดน้ำเต็ม')
       }
-      progress.seaGlass = (progress.seaGlass ?? 0) + 2
+      add(state, 'sea_glass', 2)
       gainXp(state, 15); changed(); return announce('สำรวจถ้ำลับ พบแก้วทะเล 2 ชิ้น และได้ 15 XP')
     }
     if (target.kind === 'future') return announce('เส้นทางนี้จะเปิดในอัปเดตถัดไป')

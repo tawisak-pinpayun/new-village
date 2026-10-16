@@ -38,6 +38,20 @@ export function itemAssetStyle(key: ItemAssetKey): string {
   return `--asset-url:url('${item.src}');--asset-x:${item.atlasColumn};--asset-y:${item.atlasRow}`
 }
 
+/** Fixed 4 × 4 atlas for shared inventory tools and materials. */
+const inventoryAtlas = '/assets/ui/inventory-item-atlas.png'
+const inventoryAsset = (atlasColumn: number, atlasRow: number, alt: string): GameAsset => ({ src: inventoryAtlas, atlasColumn, atlasRow, alt, status: 'production' })
+export const INVENTORY_ITEM_ASSETS = {
+  hoe: inventoryAsset(0, 0, 'จอบทำสวน'), watering_can: inventoryAsset(1, 0, 'บัวรดน้ำ'), axe: inventoryAsset(2, 0, 'ขวาน'), pickaxe: inventoryAsset(3, 0, 'อีเต้อ'),
+  sickle: inventoryAsset(0, 1, 'เคียว'), radish: inventoryAsset(1, 1, 'หัวไชเท้า'), wood: inventoryAsset(2, 1, 'ท่อนไม้'), stone: inventoryAsset(3, 1, 'ก้อนหิน'),
+  fiber: inventoryAsset(0, 2, 'มัดเส้นใย'), stew: inventoryAsset(1, 2, 'สตูว์ร้อน')
+} as const
+export type InventoryItemAssetKey = keyof typeof INVENTORY_ITEM_ASSETS
+export function inventoryItemAssetStyle(key: InventoryItemAssetKey): string {
+  const item = INVENTORY_ITEM_ASSETS[key]
+  return `--inventory-art-url:url('${item.src}');--inventory-art-x:${item.atlasColumn * 33.333}%;--inventory-art-y:${item.atlasRow * 33.333}%`
+}
+
 const shopAtlas = '/assets/ui/shop-item-atlas.png'
 const shopAsset = (atlasColumn: number, atlasRow: number, alt: string): GameAsset => ({ src: shopAtlas, atlasColumn, atlasRow, alt, status: 'production' })
 
