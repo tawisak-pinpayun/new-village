@@ -9,7 +9,7 @@ export type Interaction = {
   x: number
   y: number
   label: string
-  kind: 'door' | 'warp' | 'shop' | 'market_shop' | 'tailor' | 'magic_shop' | 'forge' | 'animal_shop' | 'furniture_shop' | 'quest' | 'festival' | 'festival_board' | 'rest' | 'cook' | 'storage' | 'future' | 'refill'
+  kind: 'door' | 'warp' | 'shop' | 'market_shop' | 'tailor' | 'magic_shop' | 'forge' | 'animal_shop' | 'furniture_shop' | 'quest' | 'festival' | 'festival_board' | 'rest' | 'cook' | 'storage' | 'future' | 'refill' | 'fishing' | 'fishing_shop' | 'fish_collection' | 'beach_resource' | 'beach_landmark' | 'beach_contest'
   destination?: MapId
   arrival?: { x: number; y: number }
 }
@@ -50,7 +50,8 @@ export const MAPS: Record<MapId, MapConfig> = {
       { id: 'forest', x: 560, y: 145, label: 'ทางไปป่า', kind: 'future' },
       { id: 'city', x: 965, y: 145, label: 'ไปเมืองหลวง', kind: 'door', destination: 'city', arrival: { x: 768, y: 900 } },
       { id: 'river', x: 1375, y: 520, label: 'ไปริมน้ำ', kind: 'door', destination: 'riverside', arrival: { x: 235, y: 520 } },
-      { id: 'market', x: 175, y: 520, label: 'ไปตลาด', kind: 'door', destination: 'market', arrival: { x: 1280, y: 520 } }
+      { id: 'market', x: 175, y: 520, label: 'ไปตลาด', kind: 'door', destination: 'market', arrival: { x: 1280, y: 520 } },
+      { id: 'to-beach', x: 175, y: 630, label: 'ไปชายหาดแสงจันทร์', kind: 'door', destination: 'beach', arrival: { x: 160, y: 365 } }
     ]
   },
   farm: {
@@ -179,6 +180,30 @@ export const MAPS: Record<MapId, MapConfig> = {
     interactions: [
       { id: 'to-village', x: 768, y: 930, label: 'กลับหมู่บ้าน', kind: 'door', destination: 'village', arrival: { x: 965, y: 245 } },
       { id: 'castle', x: 768, y: 205, label: 'ประตูปราสาท', kind: 'future' }
+    ]
+  },
+  beach: {
+    id: 'beach', name: 'ชายหาดแสงจันทร์', image: '/assets/moonlight-beach.png', spawn: { x: 160, y: 365 },
+    // Collisions and fishing spots are gameplay layers, independent of the illustrated map.
+    blocked: [
+      [0, 0, 1536, 165], [0, 0, 46, 1024], [1490, 0, 46, 1024],
+      [0, 570, 1536, 454], [1020, 165, 470, 120], [1060, 480, 430, 90],
+      [435, 165, 345, 75], [860, 165, 155, 135], [690, 250, 130, 65],
+      [230, 245, 185, 100], [1180, 335, 240, 145]
+    ],
+    interactions: [
+      { id: 'beach-to-village', x: 85, y: 365, label: 'กลับหมู่บ้าน', kind: 'door', destination: 'village', arrival: { x: 270, y: 630 } },
+      { id: 'fishing-shop', x: 365, y: 385, label: 'คุยกับนาวา · ร้านอุปกรณ์ตกปลา', kind: 'fishing_shop' },
+      { id: 'beginner-pier', x: 335, y: 475, label: 'ตกปลา · ท่าเรือเริ่มต้น', kind: 'fishing' },
+      { id: 'coral-reef', x: 850, y: 500, label: 'ตกปลา · แนวปะการัง', kind: 'fishing' },
+      { id: 'shipwreck', x: 1140, y: 445, label: 'ตกปลา · ซากเรือ', kind: 'fishing' },
+      { id: 'waterfall', x: 690, y: 325, label: 'สำรวจน้ำตกชายหาด', kind: 'beach_landmark' },
+      { id: 'secret-cave', x: 980, y: 345, label: 'สำรวจถ้ำลับ', kind: 'beach_landmark' },
+      { id: 'lighthouse', x: 1435, y: 310, label: 'ชมวิวจากประภาคาร', kind: 'beach_landmark' },
+      { id: 'shells-west', x: 570, y: 475, label: 'เก็บเปลือกหอย', kind: 'beach_resource' },
+      { id: 'shells-east', x: 1060, y: 445, label: 'เก็บทรัพยากรทะเล', kind: 'beach_resource' },
+      { id: 'fish-journal', x: 500, y: 385, label: 'เปิดสมุดสะสมปลา', kind: 'fish_collection' },
+      { id: 'beach-contest', x: 735, y: 420, label: 'ลงแข่งตกปลา · เทศกาลชายหาด', kind: 'beach_contest' }
     ]
   },
   home: {

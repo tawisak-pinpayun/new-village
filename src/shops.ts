@@ -7,6 +7,8 @@ export type ShopDefinition = {
   theme: ShopTheme; inventory: ItemId[]; buyItems: ItemId[]; acceptedSellCategories: ItemId[]; categories: { id: string; label: string }[]
   openingHours: [number, number]; npcId: string; ambientAnimations: string[]
   stock: ShopStock[]; sellPrices: Partial<Record<ItemId, number>>
+  serviceStock?: { id: 'bait' | 'rod2' | 'rod3'; price: number; category: string; description: string; art: string }[]
+  materialSellPrices?: { shells: number; seaGlass: number }
 }
 export type ShopStock = { id: ItemId; price: number; category: string; description: string; art: string; available?: boolean }
 export type NpcAnimationState = 'idle' | 'blink' | 'breathe' | 'greet' | 'walk' | 'work' | 'talk' | 'happy' | 'interact' | 'surprised' | 'sad'
@@ -113,6 +115,20 @@ export const SHOPS: Record<string, ShopDefinition> = {
     ],
     sellPrices: { wood: 6, stone: 5 }
   },
+  fishing_shop: {
+    id: 'fishing_shop', name: 'ร้านอุปกรณ์ตกปลาของนาวา', type: 'fishing', exteriorAsset: '/assets/moonlight-beach.png',
+    interiorAsset: '/assets/ui/shops/fishing-shop-header.png', signAsset: '/assets/ui/shops/fishing-shop-sign.png',
+    shopId: 'fishing_shop', shopName: 'ร้านอุปกรณ์ตกปลาของนาวา', shopType: 'fishing', bannerAsset: '/assets/ui/shops/fishing-shop-header.png', bannerPosition: 'center 50%', npcPortrait: '/assets/ui/npcs/nava-portraits.png',
+    theme: { primary: '#286a7d', accent: '#ecc77f', material: 'sea-wood', mood: 'moonlit-coast' },
+    inventory: [], buyItems: [], acceptedSellCategories: [], categories: [{ id: 'all', label: 'ทั้งหมด' }, { id: 'bait', label: 'เหยื่อ' }, { id: 'rods', label: 'คันเบ็ด' }, { id: 'trade', label: 'ขายของทะเล' }],
+    openingHours: [6, 23], npcId: 'nava', ambientAnimations: ['water-shimmer', 'lantern-glow'], stock: [], sellPrices: {},
+    serviceStock: [
+      { id: 'bait', price: 10, category: 'bait', description: 'เหยื่อ 10 ชิ้นสำหรับตกปลา', art: 'bait' },
+      { id: 'rod2', price: 80, category: 'rods', description: 'คันเบ็ดปะการัง ปลดล็อกแนวปะการัง', art: 'rod2' },
+      { id: 'rod3', price: 180, category: 'rods', description: 'คันเบ็ดเรือเก่า ปลดล็อกซากเรือ', art: 'rod3' }
+    ],
+    materialSellPrices: { shells: 12, seaGlass: 20 }
+  },
   tailor: {
     id: 'tailor', name: 'ร้านเสื้อผ้าของอาเรีย', type: 'tailor', exteriorAsset: '/assets/market.png',
     interiorAsset: '/assets/ui/shops/tailor-jewelry-header.png', signAsset: '/assets/ui/shops/tailor-jewelry-header.png',
@@ -152,7 +168,8 @@ const merchantProfiles = [
   { id: 'selene', name: 'เซลีน', occupation: 'นักเวทและนักปรุงยา', shopId: 'magic_shop', mapId: 'market', x: 925, y: 690, chat: 'ข้ากำลังอ่านตำราดวงดาวและผสมยามานา', work: 'เซลีนอ่านตำราและกวนขวดยา' },
   { id: 'ploy', name: 'พลอย', occupation: 'ผู้ดูแลสัตว์', shopId: 'animal_shop', mapId: 'market', x: 1210, y: 690, chat: 'อาหารสัตว์ใหม่มาถึงแล้ว เจ้าตัวเล็กคงชอบ', work: 'พลอยจัดถุงอาหารและตรวจตะกร้าสัตว์' },
   { id: 'rowan', name: 'โรวัน', occupation: 'ช่างไม้', shopId: 'furniture_shop', mapId: 'market', x: 1100, y: 390, chat: 'ข้ากำลังขัดไม้ให้เนียนก่อนประกอบโต๊ะ', work: 'โรวันขัดไม้และตรวจรอยต่อของเก้าอี้' },
-  { id: 'aria', name: 'อาเรีย', occupation: 'ช่างตัดเสื้อและเครื่องประดับ', shopId: 'tailor', mapId: 'market', x: 545, y: 690, chat: 'กำลังเลือกผ้าและอัญมณีให้เข้ากันอยู่ค่ะ', work: 'อาเรียตรวจตะเข็บและจัดผ้าบนหุ่น' }
+  { id: 'aria', name: 'อาเรีย', occupation: 'ช่างตัดเสื้อและเครื่องประดับ', shopId: 'tailor', mapId: 'market', x: 545, y: 690, chat: 'กำลังเลือกผ้าและอัญมณีให้เข้ากันอยู่ค่ะ', work: 'อาเรียตรวจตะเข็บและจัดผ้าบนหุ่น' },
+  { id: 'nava', name: 'นาวา', occupation: 'เจ้าของร้านอุปกรณ์ตกปลา', shopId: 'fishing_shop', mapId: 'beach', x: 365, y: 385, chat: 'ทะเลมีปลาต่างกันตามเวลาและอากาศ ลองกลับมาตอนฝนตกหรือกลางคืนสิ', work: 'นาวาผูกเหยื่อและตรวจคันเบ็ดก่อนออกเรือ' }
 ] as const
 for (const merchant of merchantProfiles) {
   NPCS[merchant.id] = {

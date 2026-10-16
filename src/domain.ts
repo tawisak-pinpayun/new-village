@@ -2,7 +2,7 @@ import { isRainWeather, weatherAt } from './weather.mjs'
 export type PlotState = 'EMPTY' | 'TILLED' | 'PLANTED' | 'GROWING' | 'READY' | 'WITHERED'
 export type CropId = 'radish' | 'carrot' | 'tomato'
 export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion' | 'animal_feed' | 'pet_basket' | 'carved_chair' | 'flower_table'
-export type MapId = 'village' | 'farm' | 'home' | 'market' | 'magic_city' | 'riverside' | 'city' | 'mine' | 'mine2' | 'mine3'
+export type MapId = 'village' | 'farm' | 'home' | 'market' | 'magic_city' | 'riverside' | 'city' | 'mine' | 'mine2' | 'mine3' | 'beach'
 export type CharacterId = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h'
 export const CHARACTER_IDS: CharacterId[] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
 export const STARTER_CHARACTERS: CharacterId[] = ['a', 'b']
@@ -59,6 +59,7 @@ export type Save = {
   mounted?: boolean
   gardenGateOpen?: boolean
   campfires?: { mapId: MapId; x: number; y: number }[]
+  fishing?: { xp: number; rod: 1 | 2 | 3; bait: number; caught: Record<string, number>; shells?: number; seaGlass?: number; foraged?: Record<string, number> }
 }
 
 export const KEY = 'new-village.save.v2'
@@ -291,7 +292,7 @@ export function validate(value: unknown): value is Save {
   const p = s.player
   if (s.schemaVersion !== 2 || !p || !Number.isFinite(s.savedAt) ||
     !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x! < 0 || p.x! > 1536 || p.y! < 0 || p.y! > 1024 ||
-    !['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'city', 'mine', 'mine2', 'mine3'].includes(p.mapId) || typeof s.questDone !== 'boolean' ||
+    !['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'city', 'mine', 'mine2', 'mine3', 'beach'].includes(p.mapId) || typeof s.questDone !== 'boolean' ||
     (p.hp !== undefined && (!Number.isInteger(p.hp) || p.hp < 0 || p.hp > maxHp(s as Save))) ||
     (p.mana !== undefined && (!Number.isInteger(p.mana) || p.mana < 0 || p.mana > maxMana(s as Save))) ||
     (p.level !== undefined && (!Number.isInteger(p.level) || p.level < 1 || p.level > 100)) ||
@@ -302,7 +303,8 @@ export function validate(value: unknown): value is Save {
     (s.equipped !== undefined && (typeof s.equipped !== 'object' || s.equipped === null || Object.entries(s.equipped).some(([slot, id]) => !['hat', 'necklace', 'bracelet', 'boots', 'charm'].includes(slot) || !GEAR_IDS.includes(id as GearId) || GEAR[id as GearId].slot !== slot || !s.ownedGear?.includes(id as GearId)))) ||
     (s.mounted !== undefined && typeof s.mounted !== 'boolean') ||
     (s.gardenGateOpen !== undefined && typeof s.gardenGateOpen !== 'boolean') ||
-    (s.campfires !== undefined && (!Array.isArray(s.campfires) || s.campfires.length > 20 || s.campfires.some(fire => !fire || !['village', 'farm', 'market', 'magic_city', 'riverside'].includes(fire.mapId) || !Number.isFinite(fire.x) || !Number.isFinite(fire.y) || fire.x < 32 || fire.x > 1504 || fire.y < 32 || fire.y > 992))) ||
+    (s.campfires !== undefined && (!Array.isArray(s.campfires) || s.campfires.length > 20 || s.campfires.some(fire => !fire || !['village', 'farm', 'market', 'magic_city', 'riverside', 'beach'].includes(fire.mapId) || !Number.isFinite(fire.x) || !Number.isFinite(fire.y) || fire.x < 32 || fire.x > 1504 || fire.y < 32 || fire.y > 992))) ||
+    (s.fishing !== undefined && (!s.fishing || typeof s.fishing !== 'object' || !Number.isInteger(s.fishing.xp) || s.fishing.xp < 0 || s.fishing.xp > 1000000 || ![1, 2, 3].includes(s.fishing.rod) || !Number.isInteger(s.fishing.bait) || s.fishing.bait < 0 || s.fishing.bait > 999 || !s.fishing.caught || typeof s.fishing.caught !== 'object' || Object.entries(s.fishing.caught).length > 30 || Object.values(s.fishing.caught).some(n => !Number.isInteger(n) || n < 0 || n > 100000) || (s.fishing.shells !== undefined && (!Number.isInteger(s.fishing.shells) || s.fishing.shells < 0 || s.fishing.shells > 999)) || (s.fishing.seaGlass !== undefined && (!Number.isInteger(s.fishing.seaGlass) || s.fishing.seaGlass < 0 || s.fishing.seaGlass > 999)) || (s.fishing.foraged !== undefined && (typeof s.fishing.foraged !== 'object' || s.fishing.foraged === null || Object.entries(s.fishing.foraged).length > 8 || Object.values(s.fishing.foraged).some(n => !Number.isInteger(n) || n < 0))))) ||
     (s.festival !== undefined && (!Number.isInteger(s.festival.day) || s.festival.day < 1 || !Number.isInteger(s.festival.donated) || s.festival.donated < 0 || s.festival.donated > 3 || typeof s.festival.completed !== 'boolean')) ||
     (s.character !== undefined && !CHARACTER_IDS.includes(s.character)) ||
     (s.unlockedCharacters !== undefined && (!Array.isArray(s.unlockedCharacters) || s.unlockedCharacters.some(id => !CHARACTER_IDS.includes(id)) || new Set(s.unlockedCharacters).size !== s.unlockedCharacters.length)) ||

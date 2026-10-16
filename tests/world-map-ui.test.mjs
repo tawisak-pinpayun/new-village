@@ -4,9 +4,9 @@ import { WORLD_MAP_LOCATIONS, renderWorldMap } from '../src/world-map.ts'
 import { MAPS } from '../src/maps.ts'
 import { initialState, validate } from '../src/domain.ts'
 
-test('world map exposes eight distinct playable destinations', () => {
-  assert.equal(WORLD_MAP_LOCATIONS.length, 8)
-  assert.equal(new Set(WORLD_MAP_LOCATIONS.map(location => location.id)).size, 8)
+test('world map exposes nine distinct playable destinations', () => {
+  assert.equal(WORLD_MAP_LOCATIONS.length, 9)
+  assert.equal(new Set(WORLD_MAP_LOCATIONS.map(location => location.id)).size, 9)
   for (const location of WORLD_MAP_LOCATIONS) {
     assert.ok(MAPS[location.destination], `${location.destination} is playable`)
     assert.ok(location.x >= 0 && location.x <= 100)
@@ -22,7 +22,7 @@ test('world map exposes eight distinct playable destinations', () => {
 test('map markers remain separate from the illustrated background', () => {
   const html = renderWorldMap('village', [{ name: 'เพื่อน', mapId: 'farm' }], 'ผู้เล่น')
   assert.match(html, /world-map-art/)
-  assert.equal((html.match(/data-world-location=/g) ?? []).length, 8)
+  assert.equal((html.match(/data-world-location=/g) ?? []).length, 9)
   assert.match(html, /world-person-self/)
   assert.match(html, /world-person-friend/)
 })

@@ -20,7 +20,8 @@ export const WORLD_MAP_LOCATIONS: WorldMapLocation[] = [
   { id: 'home', mapIds: ['home'], destination: 'home', name: 'บ้าน', english: 'Home', description: 'บ้านและสวนส่วนตัวสำหรับพักผ่อนและทำอาหาร', x: 72, y: 82, arrival: { x: 770, y: 780 } },
   { id: 'riverside', mapIds: ['riverside'], destination: 'riverside', name: 'ริมน้ำ', english: 'Riverside', description: 'แม่น้ำ ท่าเรือ น้ำตก และสะพานไม้', x: 82, y: 45, arrival: { x: 235, y: 520 } },
   { id: 'city', mapIds: ['city'], destination: 'city', name: 'เมือง', english: 'Capital City', description: 'ปราสาท กำแพงเมือง และย่านการค้าแฟนตาซี', x: 67, y: 18, arrival: { x: 768, y: 900 } },
-  { id: 'mine', mapIds: ['mine', 'mine2', 'mine3'], destination: 'mine', name: 'เหมือง', english: 'Mine', description: 'ภูเขาหิน รางรถเหมือง แร่ และชั้นใต้ดิน', x: 89, y: 16, arrival: { x: 770, y: 810 } }
+  { id: 'mine', mapIds: ['mine', 'mine2', 'mine3'], destination: 'mine', name: 'เหมือง', english: 'Mine', description: 'ภูเขาหิน รางรถเหมือง แร่ และชั้นใต้ดิน', x: 89, y: 16, arrival: { x: 770, y: 810 } },
+  { id: 'beach', mapIds: ['beach'], destination: 'beach', name: 'ชายหาดแสงจันทร์', english: 'Moonlight Beach', description: 'ท่าเรือตกปลา แนวปะการัง ซากเรือ และประภาคาร', x: 7, y: 57, arrival: { x: 150, y: 365 } }
 ]
 
 export type MapPeer = { name: string; mapId: MapId }

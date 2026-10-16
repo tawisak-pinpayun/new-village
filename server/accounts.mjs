@@ -4,14 +4,16 @@ import { MongoClient } from 'mongodb'
 import { activeFlowerOccurrence, validateFlowerResult } from './flower-festival.mjs'
 import { activeFriendshipOccurrence, validateGiftResult } from './gift-match.mjs'
 import { activeDanceOccurrence, validDanceHit, validateDanceResult } from './dance-rhythm.mjs'
+import { activeBeachOccurrence, validFishingHit, validateFishingResult } from './fishing-tournament.mjs'
 import { DANCE_DURATION_MS } from '../src/mini-games/dance.mjs'
+import { FISHING_DURATION_MS, tournamentPoints } from '../src/mini-games/fishing-tournament.mjs'
 import { DEFAULT_WORLD_EPOCH_MS } from './world-clock.mjs'
 
 const pbkdf2 = promisify(pbkdf2Callback)
 const COOKIE_AGE_SECONDS = 30 * 24 * 60 * 60
 const HASH_ITERATIONS = 600_000
 const SAVE_LIMIT = 64 * 1024
-const MAPS = new Set(['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'city', 'mine', 'mine2', 'mine3'])
+const MAPS = new Set(['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'city', 'mine', 'mine2', 'mine3', 'beach'])
 
 export function validEmail(value) {
   return typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -59,6 +61,7 @@ export function createAccountStore(connectionString) {
   const flowerSessions = db.collection('flower_sessions')
   const giftSessions = db.collection('gift_sessions')
   const danceSessions = db.collection('dance_sessions')
+  const fishingSessions = db.collection('fishing_sessions')
   const festivalProgress = db.collection('festival_progress')
   return {
     async init() {
@@ -69,6 +72,7 @@ export function createAccountStore(connectionString) {
       await flowerSessions.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
       await giftSessions.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
       await danceSessions.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
+      await fishingSessions.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
     },
     async register(email, password) {
       const id = randomUUID()
@@ -143,6 +147,23 @@ export function createAccountStore(connectionString) {
     async recordDanceHit(accountId, sessionId, noteIndex, hit) {
       const key = `hits.${noteIndex}`
       return !!await danceSessions.findOneAndUpdate(
+        { _id: sessionId, account_id: accountId, [key]: { $exists: false } },
+        { $set: { [key]: hit } },
+        { returnDocument: 'after', projection: { _id: 1 } }
+      )
+    },
+    async createFishingSession(accountId, occurrence, now) {
+      const start = now + 2_000
+      const session = { _id: randomUUID(), account_id: accountId, occurrence, seed: randomBytes(4).readUInt32BE(0), start_at_ms: start, deadline_ms: start + FISHING_DURATION_MS, hits: {}, expires_at: new Date(start + FISHING_DURATION_MS + 60_000) }
+      await fishingSessions.insertOne(session)
+      return session
+    },
+    async getFishingSession(accountId, sessionId) {
+      return await fishingSessions.findOne({ _id: sessionId, account_id: accountId, expires_at: { $gt: new Date() } })
+    },
+    async recordFishingHit(accountId, sessionId, round, hit) {
+      const key = `hits.${round}`
+      return !!await fishingSessions.findOneAndUpdate(
         { _id: sessionId, account_id: accountId, [key]: { $exists: false } },
         { $set: { [key]: hit } },
         { returnDocument: 'after', projection: { _id: 1 } }
@@ -258,7 +279,7 @@ export function createAccountApi(store, { now = Date.now, worldEpochMs = DEFAULT
         const query = new URL(req.url, 'http://localhost').searchParams
         const event = query.get('event')
         const year = Number(query.get('year'))
-        if (!['flower', 'friendship', 'spring_dance'].includes(event) || !Number.isSafeInteger(year) || year < 1 || year > 10000) {
+        if (!['flower', 'friendship', 'spring_dance', 'beach'].includes(event) || !Number.isSafeInteger(year) || year < 1 || year > 10000) {
           sendJson(res, 400, { error: 'เทศกาลหรือปีไม่ถูกต้อง' }); return true
         }
         sendJson(res, 200, { event, year, entries: await store.getFestivalLeaderboard(event, year) }); return true
@@ -331,6 +352,34 @@ export function createAccountApi(store, { now = Date.now, worldEpochMs = DEFAULT
         if (!result) { sendJson(res, 400, { error: 'ยังไม่จบเพลงหรือเซสชันหมดเวลา' }); return true }
         const progress = await store.claimFestivalResult(account.id, game.occurrence, result)
         if (!progress) { sendJson(res, 409, { error: 'รับรางวัลงานเต้นรำปีนี้แล้ว' }); return true }
+        sendJson(res, 200, { ...result, balance: progress.tokens, totalExp: progress.exp, totalFriendshipExp: progress.friendshipExp }); return true
+      }
+      if (path === '/api/festival/fishing/start' && req.method === 'POST') {
+        const startedAt = now()
+        const occurrence = activeBeachOccurrence(startedAt, worldEpochMs)
+        if (!occurrence) { sendJson(res, 403, { error: 'เทศกาลชายหาดยังไม่เปิด' }); return true }
+        const progress = await store.getFestivalProgress(account.id)
+        if (progress.claims[occurrence.replace(':', '_')]) { sendJson(res, 409, { error: 'รับรางวัลเทศกาลปีนี้แล้ว' }); return true }
+        const game = await store.createFishingSession(account.id, occurrence, startedAt)
+        sendJson(res, 200, { sessionId: game._id, seed: game.seed, startAt: game.start_at_ms, deadline: game.deadline_ms, serverNow: now() }); return true
+      }
+      if (path === '/api/festival/fishing/hit' && req.method === 'POST') {
+        const body = await readJson(req)
+        if (!body || typeof body.sessionId !== 'string' || !/^[a-f0-9-]{36}$/.test(body.sessionId)) { sendJson(res, 400, { error: 'เซสชันไม่ถูกต้อง' }); return true }
+        const game = await store.getFishingSession(account.id, body.sessionId)
+        const hit = validFishingHit(game, body.round, now())
+        if (!hit) { sendJson(res, 400, { error: 'รอบหรือเวลาที่ดึงเบ็ดไม่ถูกต้อง' }); return true }
+        if (!await store.recordFishingHit(account.id, body.sessionId, body.round, hit)) { sendJson(res, 409, { error: 'ดึงเบ็ดรอบนี้แล้ว' }); return true }
+        sendJson(res, 200, { ok: true, points: tournamentPoints(hit.at, body.round) }); return true
+      }
+      if (path === '/api/festival/fishing/submit' && req.method === 'POST') {
+        const body = await readJson(req)
+        if (!body || typeof body.sessionId !== 'string' || !/^[a-f0-9-]{36}$/.test(body.sessionId)) { sendJson(res, 400, { error: 'เซสชันไม่ถูกต้อง' }); return true }
+        const game = await store.getFishingSession(account.id, body.sessionId)
+        const result = validateFishingResult(game, now())
+        if (!result) { sendJson(res, 400, { error: 'ผลการแข่งขันไม่ผ่านเกณฑ์หรือหมดเวลา' }); return true }
+        const progress = await store.claimFestivalResult(account.id, game.occurrence, result)
+        if (!progress) { sendJson(res, 409, { error: 'รับรางวัลเทศกาลปีนี้แล้ว' }); return true }
         sendJson(res, 200, { ...result, balance: progress.tokens, totalExp: progress.exp, totalFriendshipExp: progress.friendshipExp }); return true
       }
       if (path === '/api/save' && req.method === 'GET') {

@@ -18,6 +18,9 @@ import { FestivalBoardUI, festivalBoardMarkup } from './ui/festival-board-ui'
 import { MiniGameUI, miniGameWindowMarkup } from './ui/mini-game-ui'
 import { GiftMatchUI, giftMatchWindowMarkup } from './ui/gift-match-ui'
 import { DanceRhythmUI, danceRhythmMarkup } from './ui/dance-rhythm-ui'
+import { FishingUI, fishingMarkup } from './ui/fishing-ui'
+import { FishingTournamentUI, fishingTournamentMarkup } from './ui/fishing-tournament-ui'
+import { fishingLevel, fishingProgress, type FishingSpotId } from './fishing'
 import { renderCatalogCard, renderFarmersMarket } from './ui/game-ui'
 import { SHOP_ITEM_ASSETS, TAILOR_ITEM_ASSETS, TAILOR_OUTFIT_ART, TAILOR_GEAR_ART, itemAssetStyle, shopItemAssetStyle, tailorItemAssetStyle, type ItemAssetKey, type ShopItemAssetKey, type TailorItemAssetKey } from './ui/item-assets'
 import { NPCS, SHOPS, lilyGreeting, type DialogueExpression } from './shops'
@@ -38,6 +41,8 @@ app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   ${miniGameWindowMarkup()}
   ${giftMatchWindowMarkup()}
   ${danceRhythmMarkup()}
+  ${fishingMarkup()}
+  ${fishingTournamentMarkup()}
   <button id="mobile-interact" class="mobile-interact hidden" aria-label="คุยกับ NPC">E · คุย</button>
   <div id="npc-dialogue" class="overlay npc-dialogue-overlay hidden"><section class="npc-dialogue-panel" role="dialog" aria-modal="true" aria-labelledby="npc-dialogue-name"><button id="close-npc-dialogue" class="npc-dialogue-close" aria-label="ปิดบทสนทนา">✕</button><div id="npc-portrait" class="npc-portrait expression-happy" role="img" aria-label="ภาพลิลลี่"></div><div class="npc-dialogue-copy"><header><span id="npc-dialogue-role">แม่ค้าเมล็ดพันธุ์</span><h2 id="npc-dialogue-name">ลิลลี่</h2></header><p id="npc-dialogue-text" aria-live="polite"></p><small id="npc-dialogue-hint">คลิกข้อความเพื่อแสดงทันที</small><div id="npc-dialogue-choices" class="npc-dialogue-choices"></div></div></section></div>
   <div class="camera-controls" aria-label="ควบคุมมุมกล้อง"><button id="camera-zoom-out" title="ซูมออก" aria-label="ซูมออก">−</button><button id="camera-zoom-reset" title="คืนค่ามุมกล้อง"><span id="camera-zoom-value">1.0×</span></button><button id="camera-zoom-in" title="ซูมเข้า" aria-label="ซูมเข้า">＋</button></div>
@@ -79,15 +84,18 @@ const rewardUpdated = (result: { balance: number; totalExp: number; totalFriends
 const miniGameUI = new MiniGameUI(rewardUpdated)
 const giftMatchUI = new GiftMatchUI(rewardUpdated)
 const danceRhythmUI = new DanceRhythmUI(rewardUpdated)
+const fishingTournamentUI = new FishingTournamentUI(rewardUpdated)
 const calendarUI = new CalendarUI((gameId, mode) => {
   if (gameId === 'flower_arrangement') miniGameUI.open(mode)
   if (gameId === 'gift_match') giftMatchUI.open(mode)
   if (gameId === 'dance_rhythm') danceRhythmUI.open(mode)
+  if (gameId === 'fishing_tournament') fishingTournamentUI.open(mode)
 }, () => festivalBoardUI.open())
 const festivalBoardUI = new FestivalBoardUI((gameId, mode) => {
   if (gameId === 'flower_arrangement') miniGameUI.open(mode)
   if (gameId === 'gift_match') giftMatchUI.open(mode)
   if (gameId === 'dance_rhythm') danceRhythmUI.open(mode)
+  if (gameId === 'fishing_tournament') fishingTournamentUI.open(mode)
 })
 const characterLabel = document.querySelector<HTMLElement>('#character-label')!
 let { state, error } = load()
@@ -107,6 +115,14 @@ let scene: WorldScene | undefined
 let messageTimer: number | undefined
 let cameraZoom = Math.min(2.25, Math.max(1, Number(localStorage.getItem('new-village.camera-zoom')) || 1))
 const multiplayer = new Multiplayer()
+function fishingEnvironment() {
+  const now = Date.now()
+  const shared = multiplayer.world && multiplayer.serverOffsetMs !== null
+  const elapsed = Math.max(0, (shared ? now + multiplayer.serverOffsetMs! - multiplayer.world!.clock.epochMs : now - (state.dayStartedAt ?? now)))
+  const day = Math.floor(elapsed / DAY_MS) + 1, progress = (elapsed % DAY_MS) / DAY_MS
+  return { calendar: calendarAt(day, progress), weather: (shared ? multiplayer.world!.weather : weatherAt(day, Math.floor(progress * 4))).type }
+}
+const fishingUI = new FishingUI(() => state, fishingEnvironment, changed)
 let soloWorldBackup: { plots: typeof state.plots; nodeHp: NonNullable<typeof state.nodeHp>; gardenGateOpen: boolean; campfires: NonNullable<typeof state.campfires> } | null = null
 const accountPanel = document.querySelector<HTMLElement>('#account-panel')!
 const accountStatus = document.querySelector<HTMLElement>('#account-status')!
@@ -595,7 +611,7 @@ function sell() {
 const specialShop = document.querySelector<HTMLElement>('#special-shop')!
 const wardrobe = document.querySelector<HTMLElement>('#wardrobe')!
 const festivalShop = document.querySelector<HTMLElement>('#festival-shop')!
-function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; worldMapOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden'); worldMapOverlay.classList.add('hidden'); calendarUI.close(); festivalBoardUI.close(); miniGameUI.close(); giftMatchUI.close(); danceRhythmUI.close(); accountPanel.classList.add('hidden'); if (dialogueOpen) closeNpcDialogue() }
+function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; worldMapOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden'); worldMapOverlay.classList.add('hidden'); calendarUI.close(); festivalBoardUI.close(); miniGameUI.close(); giftMatchUI.close(); danceRhythmUI.close(); fishingUI.close(); fishingTournamentUI.close(); accountPanel.classList.add('hidden'); if (dialogueOpen) closeNpcDialogue() }
 function travelFromWorldMap(location: WorldMapLocation) {
   state.player.mapId = location.destination
   state.player.x = location.arrival.x; state.player.y = location.arrival.y
@@ -1114,6 +1130,7 @@ class WorldScene extends Phaser.Scene {
   private gardenGateImage?: Phaser.GameObjects.Image
   private gardenGateCollider?: Phaser.Physics.Arcade.Collider
   private campfireMarkers: Phaser.GameObjects.GameObject[] = []
+  private beachLabels: { text: Phaser.GameObjects.Text; x: number; y: number }[] = []
   private campfireGlows: Phaser.GameObjects.Arc[] = []
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private wasd!: Record<string, Phaser.Input.Keyboard.Key>
@@ -1195,7 +1212,7 @@ class WorldScene extends Phaser.Scene {
     if (!this.textures.exists('npcs')) this.load.spritesheet('npcs', '/assets/npcs.png', { frameWidth: 591, frameHeight: 887 })
     if (!this.textures.exists('shopkeeper-models')) this.load.image('shopkeeper-models', '/assets/ui/shopkeeper-npc-model-sheet.png')
     if (config.id === 'market' && !this.textures.exists('aria-storefront')) this.load.image('aria-storefront', '/assets/ui/shops/aria-storefront.png')
-    for (const id of ['mira', 'borin', 'selene', 'ploy', 'rowan', 'aria']) if (!this.textures.exists(`${id}-sheet`)) this.load.image(`${id}-sheet`, `/assets/ui/npcs/${id}-sprite-sheet.png`)
+    for (const id of ['mira', 'borin', 'selene', 'ploy', 'rowan', 'aria', 'nava']) if (!this.textures.exists(`${id}-sheet`)) this.load.image(`${id}-sheet`, `/assets/ui/npcs/${id}-sprite-sheet.png`)
     if (!this.textures.exists('lily-sheet')) this.load.image('lily-sheet', NPCS.lily.spriteSheet)
   }
   create() {
@@ -1205,6 +1222,7 @@ class WorldScene extends Phaser.Scene {
     this.remoteSprites.clear()
     this.plotMarkers = []
     this.resourceMarkers = []
+    this.beachLabels = []
     this.monsterMarkers = []
     this.monsters = []
     this.monsterWander.clear()
@@ -1273,6 +1291,7 @@ class WorldScene extends Phaser.Scene {
       if (config.id === 'mine') this.add.text(865, 280, '⚒ เตาหลอม', labelStyle).setOrigin(.5).setDepth(8)
     }
     if (config.id === 'village') {
+      this.add.text(183, 607, '← ชายหาดแสงจันทร์', { fontFamily: 'Nunito, sans-serif', fontSize: '16px', color: '#fff6ce', backgroundColor: '#395d64dd', padding: { x: 8, y: 4 } }).setOrigin(.5).setDepth(12)
       this.addAnimatedShopkeeper('mira', 530, 418, 'มีร่า · ร้านทั่วไป')
       this.addNpc(2, 565, 790, 'Village Guide')
       const board = this.add.container(805, 700).setDepth(9)
@@ -1281,6 +1300,23 @@ class WorldScene extends Phaser.Scene {
         this.add.rectangle(0, -8, 156, 72, 0xffefd0).setStrokeStyle(2, 0x967146),
         this.add.text(0, -13, 'ประกาศเทศกาล\nวัน · สถานที่ · อันดับ', { fontFamily: 'Nunito, sans-serif', fontSize: '15px', color: '#51361f', align: 'center', fontStyle: 'bold' }).setOrigin(.5)
       ])
+    }
+    if (config.id === 'beach') {
+      this.addAnimatedShopkeeper('nava', 365, 385, 'นาวา · ร้านตกปลา')
+      const sign = { fontFamily: 'Nunito, sans-serif', fontSize: '17px', color: '#fff8da', backgroundColor: '#264859dd', padding: { x: 8, y: 4 } }
+      for (const target of config.interactions) {
+        if (target.kind === 'door') continue
+        const color = target.kind === 'fishing' ? 0x7bd8ea : target.kind === 'beach_resource' ? 0xffd59b : 0xffefad
+        const ring = this.add.ellipse(target.x, target.y + 13, 46, 16, color, .25).setStrokeStyle(2, color, .65).setDepth(7)
+        this.tweens.add({ targets: ring, alpha: { from: .55, to: 1 }, scaleX: { from: .9, to: 1.12 }, duration: 1250, yoyo: true, repeat: -1 })
+        const text = this.add.text(target.x, target.y - 35, target.kind === 'fishing' ? 'ตกปลา' : target.kind === 'fishing_shop' ? 'นาวา · ร้านตกปลา' : target.kind === 'fish_collection' ? 'สมุดปลา' : target.kind === 'beach_contest' ? 'แข่งขันตกปลา' : target.kind === 'beach_resource' ? 'เก็บของทะเล' : target.id === 'secret-cave' ? 'ถ้ำลับ' : target.id === 'waterfall' ? 'น้ำตก' : 'ประภาคาร', sign).setOrigin(.5).setDepth(8)
+        this.beachLabels.push({ text, x: target.x, y: target.y })
+      }
+      // Water shimmer is animated separately, so the map remains an explorable world layer.
+      for (const [x, y] of [[290, 535], [640, 620], [920, 645], [1210, 620], [1420, 560]]) {
+        const shimmer = this.add.ellipse(x, y, 62, 7, 0xc8f9ff, .28).setDepth(2)
+        this.tweens.add({ targets: shimmer, alpha: { from: .12, to: .52 }, scaleX: { from: .75, to: 1.25 }, duration: 1600 + x % 5 * 160, yoyo: true, repeat: -1 })
+      }
     }
     if (config.id === 'market') {
       this.add.image(330, 840, 'aria-storefront').setOrigin(.5, 1).setDisplaySize(380, 253).setDepth(8)
@@ -1849,7 +1885,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   private useSelected() {
-    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || festivalBoardUI.isOpen || miniGameUI.isOpen || giftMatchUI.isOpen || danceRhythmUI.isOpen || !accountPanel.classList.contains('hidden') || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || festivalBoardUI.isOpen || miniGameUI.isOpen || giftMatchUI.isOpen || danceRhythmUI.isOpen || fishingUI.isOpen || fishingTournamentUI.isOpen || !accountPanel.classList.contains('hidden') || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
     if (state.player.mapId === 'farm' && Math.hypot(this.player.x - 770, this.player.y - 780) < 108) {
       this.interactionCooldown = this.time.now + 350
       this.toggleGardenGate()
@@ -1947,6 +1983,44 @@ class WorldScene extends Phaser.Scene {
   }
 
   private interact(target: Interaction) {
+    if (target.kind === 'fishing') return fishingUI.openSpot(target.id as FishingSpotId)
+    if (target.kind === 'fishing_shop') return fishingUI.openShop()
+    if (target.kind === 'fish_collection') return fishingUI.openJournal()
+    if (target.kind === 'beach_contest') {
+      const calendar = fishingEnvironment().calendar
+      fishingTournamentUI.open(calendar.season.id === 'summer' && calendar.dayInSeason === 7 && calendar.hour >= 8 && calendar.hour < 18 ? 'festival' : 'practice')
+      return
+    }
+    if (target.kind === 'beach_resource') {
+      const day = fishingEnvironment().calendar.absoluteDay
+      const progress = fishingProgress(state)
+      progress.foraged ??= {}
+      if (progress.foraged[target.id] === day) return announce('จุดนี้เก็บแล้ววันนี้ ลองจุดอื่นหรือกลับมาพรุ่งนี้')
+      progress.foraged[target.id] = day
+      if (target.id === 'shells-east') { progress.seaGlass = (progress.seaGlass ?? 0) + 1; announce('พบแก้วทะเล 1 ชิ้น นำไปขายให้นาวาได้') }
+      else { progress.shells = (progress.shells ?? 0) + 1; announce('พบเปลือกหอย 1 ชิ้น นำไปขายให้นาวาได้') }
+      gainXp(state, 4); changed()
+      return
+    }
+    if (target.kind === 'beach_landmark') {
+      const progress = fishingProgress(state)
+      const { calendar, weather } = fishingEnvironment()
+      if (target.id === 'secret-cave' && fishingLevel(progress.xp) < 3) return announce('ถ้ำลับต้องมีทักษะตกปลาเลเวล 3 เพื่อสำรวจ')
+      if (target.id === 'lighthouse') {
+        const sea = ['rain', 'heavy_rain', 'thunderstorm'].includes(weather) ? 'มีปลาไหลสายฝนและทูน่าพายุ' : calendar.night ? 'กุ้งแสงจันทร์ กระเบนไข่มุก และปลาค็อดวิญญาณออกหากิน' : 'ทะเลสงบ เหมาะกับการฝึกตกปลา'
+        return announce(`ประภาคาร: ${sea}`)
+      }
+      progress.foraged ??= {}
+      if (progress.foraged[target.id] === calendar.absoluteDay) return announce('สำรวจจุดนี้แล้ววันนี้ กลับมาพรุ่งนี้ได้')
+      progress.foraged[target.id] = calendar.absoluteDay
+      if (target.id === 'waterfall') {
+        state.player.energy = Math.min(MAX_ENERGY, state.player.energy + 12)
+        state.water = MAX_WATER
+        changed(); return announce('พักชมน้ำตก ฟื้น Energy 12 และเติมบัวรดน้ำเต็ม')
+      }
+      progress.seaGlass = (progress.seaGlass ?? 0) + 2
+      gainXp(state, 15); changed(); return announce('สำรวจถ้ำลับ พบแก้วทะเล 2 ชิ้น และได้ 15 XP')
+    }
     if (target.kind === 'future') return announce('เส้นทางนี้จะเปิดในอัปเดตถัดไป')
     if (target.kind === 'warp') return openWorldMap(true)
     if (target.kind === 'shop') return openMerchantDialogue('mira')
@@ -2030,6 +2104,7 @@ class WorldScene extends Phaser.Scene {
     this.updateLily(time)
     this.updateShopkeepers(time)
     this.selfLabel?.setPosition(this.player.x, this.player.y - 49)
+    for (const label of this.beachLabels) label.text.setVisible(Math.hypot(this.player.x - label.x, this.player.y - label.y) < 180)
     for (const [key, bubble] of this.chatBubbles) {
       if (time >= bubble.until) { bubble.text.destroy(); this.chatBubbles.delete(key); continue }
       if (key === 'self') bubble.text.setPosition(this.player.x, this.player.y - 86)
@@ -2078,7 +2153,7 @@ class WorldScene extends Phaser.Scene {
     }
     const focused = document.activeElement
     const typing = focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement || focused instanceof HTMLSelectElement || (focused instanceof HTMLElement && focused.isContentEditable)
-    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || festivalBoardUI.isOpen || miniGameUI.isOpen || giftMatchUI.isOpen || danceRhythmUI.isOpen || dialogueOpen || !accountPanel.classList.contains('hidden') || typing) {
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || festivalBoardUI.isOpen || miniGameUI.isOpen || giftMatchUI.isOpen || danceRhythmUI.isOpen || fishingUI.isOpen || fishingTournamentUI.isOpen || dialogueOpen || !accountPanel.classList.contains('hidden') || typing) {
       this.player.setVelocity(0)
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.one)) buy()
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.two)) sell()

@@ -125,7 +125,7 @@ wss.on('connection', ws => {
           result = index >= 0 ? { ok: true } : { ok: false, message: 'ไม่มีกองไฟอยู่ใกล้' }
           if (result.ok) world.campfires.splice(index, 1)
         } else {
-          const outdoors = ['village', 'farm', 'market', 'magic_city', 'riverside'].includes(player.mapId)
+          const outdoors = ['village', 'farm', 'market', 'magic_city', 'riverside', 'beach'].includes(player.mapId)
           const valid = outdoors && player.x > 60 && player.x < 1476 && player.y > 60 && player.y < 964
             && Math.hypot(player.x - 770, player.y - 780) > (player.mapId === 'farm' ? 110 : 0)
             && world.campfires.filter(fire => fire.mapId === player.mapId).length < 3 && index < 0
@@ -163,7 +163,7 @@ wss.on('connection', ws => {
       const room = rooms.get(ws.roomKey)
       const player = room?.get(ws.playerId)
       if (!player) return
-      if (!Number.isFinite(data.x) || !Number.isFinite(data.y) || !['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'city', 'mine', 'mine2', 'mine3'].includes(data.mapId)) return
+      if (!Number.isFinite(data.x) || !Number.isFinite(data.y) || !['village', 'farm', 'home', 'market', 'magic_city', 'riverside', 'city', 'mine', 'mine2', 'mine3', 'beach'].includes(data.mapId)) return
       const previousMap = player.mapId
       if (Date.now() - (ws.lastMove ?? 0) < 150 && previousMap === data.mapId) return
       ws.lastMove = Date.now()

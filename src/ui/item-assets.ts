@@ -100,3 +100,16 @@ export function tailorItemAssetStyle(key: TailorItemAssetKey): string {
   const item = TAILOR_ITEM_ASSETS[key]
   return `--asset-url:url('${item.src}');--asset-x:${item.atlasColumn};--asset-y:${item.atlasRow}`
 }
+
+/** Fixed 3 × 2 atlas for Nava's rod upgrades, bait, and beach materials. */
+const fishingAtlas = '/assets/ui/fishing-item-atlas.png'
+const fishingAsset = (atlasColumn: number, atlasRow: number, alt: string): GameAsset => ({ src: fishingAtlas, atlasColumn, atlasRow, alt, status: 'production' })
+export const FISHING_ITEM_ASSETS = {
+  rod1: fishingAsset(0, 0, 'คันเบ็ดไม้ไผ่'), rod2: fishingAsset(1, 0, 'คันเบ็ดปะการัง'), rod3: fishingAsset(2, 0, 'คันเบ็ดเรือเก่า'),
+  bait: fishingAsset(0, 1, 'ขวดเหยื่อตกปลา'), shells: fishingAsset(1, 1, 'เปลือกหอย'), seaGlass: fishingAsset(2, 1, 'แก้วทะเล')
+} as const
+export type FishingItemAssetKey = keyof typeof FISHING_ITEM_ASSETS
+export function fishingItemAssetStyle(key: FishingItemAssetKey): string {
+  const item = FISHING_ITEM_ASSETS[key]
+  return `--fish-asset-url:url('${item.src}');--fish-asset-x:${item.atlasColumn * 50}%;--fish-asset-y:${item.atlasRow * 100}%`
+}
