@@ -46,12 +46,15 @@ export class DanceRhythmUI {
       this.calibration = Number(input.value)
       document.querySelector('#dance-calibration-value')!.textContent = `${this.calibration >= 0 ? '+' : ''}${this.calibration} ms`
     })
-    this.overlay.addEventListener('keydown', event => {
-      if (event.key === 'Escape') { event.stopPropagation(); this.close(); return }
-      if (event.repeat || (event.target as HTMLElement).tagName === 'INPUT') return
-      const lane = DANCE_LANES.findIndex(key => key.toLowerCase() === event.key.toLowerCase())
-      if (lane >= 0) { event.preventDefault(); event.stopPropagation(); this.hit(lane) }
-    })
+    // The Start button is replaced when countdown begins, so focus may return to body.
+    // Capture keys at window level while this game is open; use physical key codes for Thai layouts.
+    window.addEventListener('keydown', event => {
+      if (!this.isOpen) return
+      if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); this.close(); return }
+      if (event.repeat || this.session?.state !== 'playing' || (event.target as HTMLElement).tagName === 'INPUT') return
+      const lane = DANCE_LANES.findIndex(key => event.code === `Key${key}`)
+      if (lane >= 0) { event.preventDefault(); event.stopImmediatePropagation(); this.hit(lane) }
+    }, { capture: true })
   }
 
   get isOpen() { return !this.overlay.classList.contains('hidden') }
