@@ -11,6 +11,7 @@ These assets were generated for Project New Village with OpenAI image generation
 | `public/assets/ui/shops/fishing-shop-sign.png` | Transparent sign | Fish-and-shell wooden sign with blank middle for live Thai text |
 | `public/assets/ui/fishing-item-atlas.png` | Transparent 3 × 2 item atlas | Three rod tiers, bait jar, shell, sea glass |
 | `public/assets/ui/fishing-underwater.png` | Fishing mini-game backdrop | Pastel deep-blue underwater reef, open center for interactive meters, no baked UI or text |
-| `public/assets/ui/fishing-silverbass.png` | Transparent single fish sprite | Illustrated silver-blue sea bass for moving fish and catch presentation; species-specific fish art remains to be made |
+| `public/assets/ui/fishing-fish-atlas.png` | Transparent 4 × 4 fish atlas | Sixteen cozy fantasy aquatic illustrations matching the supplied fishing UI concept: sardine, mullet, moon shrimp, rain eel, coral fish, wreck perch, pearl ray, storm tuna, thunder marlin, ghost cod, captain's crown fish, spring koi, autumn snapper, winter icefish, cave angler, and legendary sea star |
+| `public/assets/ui/fishing-silverbass.png` | Transparent single fish sprite | Earlier silver-blue sea bass sprite retained for compatibility; the fishing UI now uses the species atlas above |
 
 Original generation output is preserved in the local Codex image history. Use the committed runtime files as the source of truth for the game. The map reference was supplied by the user; check its reuse rights before redistributing the reference image itself.

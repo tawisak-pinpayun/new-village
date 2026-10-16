@@ -37,7 +37,9 @@ export const FISHING_SPOTS: Record<FishingSpotId, { name: string; level: number;
 }
 
 export function fishingProgress(save: Save): NonNullable<Save['fishing']> {
-  return save.fishing ?? (save.fishing = { xp: 0, rod: 1, bait: 5, caught: {} })
+  const progress = save.fishing ?? (save.fishing = { xp: 0, rod: 1, bait: 5, caught: {} })
+  progress.inventory ??= {}
+  return progress
 }
 
 export function fishingLevel(xp: number) { return xp >= 180 ? 3 : xp >= 60 ? 2 : 1 }

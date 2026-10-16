@@ -113,3 +113,18 @@ export function fishingItemAssetStyle(key: FishingItemAssetKey): string {
   const item = FISHING_ITEM_ASSETS[key]
   return `--fish-asset-url:url('${item.src}');--fish-asset-x:${item.atlasColumn * 50}%;--fish-asset-y:${item.atlasRow * 100}%`
 }
+
+/** Hand-painted 4 × 4 fish atlas used by the journal, minigame, and catch result. */
+const fishAtlas = '/assets/ui/fishing-fish-atlas.png'
+const fishArt = (atlasColumn: number, atlasRow: number, alt: string): GameAsset => ({ src: fishAtlas, atlasColumn, atlasRow, alt, status: 'production' })
+export const FISH_ART_ASSETS: Record<string, GameAsset> = {
+  silver_sardine: fishArt(0, 0, 'ปลาซาร์ดีนเงิน'), sunny_mullet: fishArt(1, 0, 'ปลากระบอกแดดอุ่น'), moon_shrimp: fishArt(2, 0, 'กุ้งแสงจันทร์'), rain_eel: fishArt(3, 0, 'ปลาไหลสายฝน'),
+  coral_fish: fishArt(0, 1, 'ปลาปะการังรุ้ง'), wreck_perch: fishArt(1, 1, 'ปลากะพงซากเรือ'), pearl_ray: fishArt(2, 1, 'กระเบนไข่มุก'), storm_tuna: fishArt(3, 1, 'ทูน่าพายุ'),
+  thunder_marlin: fishArt(0, 2, 'ปลากระโทงสายฟ้า'), ghost_cod: fishArt(1, 2, 'ปลาค็อดวิญญาณ'), captains_crown: fishArt(2, 2, 'ปลามงกุฎกัปตัน'), spring_koi: fishArt(3, 2, 'ปลาคาร์ปบุปผา'),
+  autumn_snapper: fishArt(0, 3, 'ปลากะพงใบไม้ทอง'), winter_icefish: fishArt(1, 3, 'ปลาแก้วเหมันต์'), cave_angler: fishArt(2, 3, 'ปลาตะเกียงถ้ำ'), sea_star_legend: fishArt(3, 3, 'ปลาดาวทะเลในตำนาน'),
+  island_mackerel: fishArt(1, 0, 'ปลาแมคเคอเรลเกาะเล็ก'), lighthouse_bream: fishArt(0, 3, 'ปลาทรายแดงประภาคาร'), moonlight_grouper: fishArt(1, 1, 'ปลาเก๋าแสงจันทร์')
+}
+export function fishArtStyle(id: string): string {
+  const item = FISH_ART_ASSETS[id] ?? FISH_ART_ASSETS.silver_sardine
+  return `--fish-art-url:url('${item.src}');--fish-art-x:${item.atlasColumn * 33.333}%;--fish-art-y:${item.atlasRow * 33.333}%`
+}

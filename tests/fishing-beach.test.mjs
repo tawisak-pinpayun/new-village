@@ -8,7 +8,7 @@ import { FishingSession } from '../src/fishing-session.ts'
 import { activeBeachOccurrence, validFishingHit, validateFishingResult } from '../server/fishing-tournament.mjs'
 import { FISHING_DURATION_MS, scoreTournament, tournamentPoints } from '../src/mini-games/fishing-tournament.mjs'
 import { SHOPS, NPCS } from '../src/shops.ts'
-import { FISHING_ITEM_ASSETS } from '../src/ui/item-assets.ts'
+import { FISHING_ITEM_ASSETS, FISH_ART_ASSETS } from '../src/ui/item-assets.ts'
 
 test('beach landmarks and fishing points are reachable from village entrance', () => {
   const beach = MAPS.beach
@@ -48,9 +48,11 @@ test('fish availability follows night, rain and season while progress remains sa
     }
   }
   const save = initialState(); save.player.mapId = 'beach'; save.player.x = 160; save.player.y = 365
-  const progress = fishingProgress(save); progress.xp = 185; progress.rod = 3; progress.caught.coral_fish = 2
+  const progress = fishingProgress(save); progress.xp = 185; progress.rod = 3; progress.caught.coral_fish = 2; progress.inventory.coral_fish = 1
   assert.equal(fishingLevel(progress.xp), 3)
   assert.equal(validate(save), true)
+  assert.equal(Object.keys(FISH_ART_ASSETS).length, FISH.length)
+  assert.ok(Object.values(FISH_ART_ASSETS).every(asset => asset.status === 'production' && asset.src.endsWith('fishing-fish-atlas.png')))
 })
 
 test('fishing session casts, waits for bite, hooks once and can fail or reel a catch', () => {
