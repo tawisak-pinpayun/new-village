@@ -6,6 +6,7 @@
 .mini-game-window button { min-height: var(--game-control-height); padding: 7px 12px; color: var(--game-color-ink); background: var(--game-color-cream); border: var(--game-border-thin); border-radius: var(--game-radius-sm); font: 800 13px var(--game-font-ui); cursor: pointer; }
 .mini-game-window button:hover, .mini-game-window button:focus-visible { border-color: var(--game-color-leaf); box-shadow: 0 0 0 2px #4f8d3e55; }
 .mini-game-window button.selected { color: var(--game-color-cream); background: var(--game-color-leaf); border-color: var(--game-color-leaf); }
+.mini-game-window button:disabled { opacity: .55; cursor: not-allowed; }
 .mini-game-window .mini-game-primary { color: var(--game-color-cream); background: var(--game-color-leaf); border-color: var(--game-color-leaf); }
 .mini-game-content { padding-top: var(--game-space-3); line-height: 1.5; }
 .mini-game-content p { margin: var(--game-space-2) 0; }

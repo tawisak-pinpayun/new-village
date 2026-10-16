@@ -18,7 +18,7 @@ export class CalendarUI {
   private today = 1
   private current?: Calendar
 
-  constructor(private onPractice?: (gameId: string) => void) {
+  constructor(private onPlay?: (gameId: string, mode: 'practice' | 'festival') => void) {
     this.overlay = document.querySelector<HTMLElement>('#calendar-overlay')!
     document.querySelector('#day-display')!.addEventListener('click', () => this.open())
     document.querySelector('#calendar-close')!.addEventListener('click', () => this.close())
@@ -37,12 +37,13 @@ export class CalendarUI {
 
   update(current: Calendar) {
     const changedDay = this.today !== current.absoluteDay
+    const changedMinute = !this.current || this.current.hour !== current.hour || this.current.minute !== current.minute
     this.current = current
     this.today = current.absoluteDay
     if (this.isOpen) {
       if (changedDay && this.selectedDay === this.today - 1) this.selectedDay = this.today
       if (changedDay) this.render()
-      else { this.renderCurrentTime(); this.renderDetails() }
+      else if (changedMinute) { this.renderCurrentTime(); this.renderDetails() }
     }
   }
 
@@ -108,8 +109,16 @@ export class CalendarUI {
       practice.type = 'button'
       practice.className = 'game-calendar-practice'
       practice.textContent = 'ซ้อมจัดดอกไม้'
-      practice.addEventListener('click', () => { this.close(); this.onPractice?.(festival.miniGameId) })
+      practice.addEventListener('click', () => { this.close(); this.onPlay?.(festival.miniGameId, 'practice') })
       detail.append(practice)
+      if (festivalStatus(festival, selected.year, { year: this.current.year, season: this.current.season.id, day: this.current.dayInSeason, hour: this.current.hour }) === 'กำลังจัดงาน') {
+        const live = document.createElement('button')
+        live.type = 'button'
+        live.className = 'game-calendar-practice'
+        live.textContent = 'ร่วมงานรับเหรียญเทศกาล'
+        live.addEventListener('click', () => { this.close(); this.onPlay?.(festival.miniGameId, 'festival') })
+        detail.append(live)
+      }
     }
   }
 

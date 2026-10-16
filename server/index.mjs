@@ -18,9 +18,9 @@ if (process.env.MONGODB_URI) {
   try {
     const store = createAccountStore(process.env.MONGODB_URI)
     await store.init()
-    accountApi = createAccountApi(store)
     try { worldEpochMs = await store.getOrCreateWorldEpoch('shared', DEFAULT_WORLD_EPOCH_MS) }
     catch (error) { console.error('World clock persistence unavailable:', error?.name ?? 'UnknownError') }
+    accountApi = createAccountApi(store, { worldEpochMs })
   } catch (error) { console.error('Online saves unavailable:', error?.name ?? 'UnknownError') }
 }
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' }
