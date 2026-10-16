@@ -50,6 +50,7 @@ export function createAccountStore(connectionString) {
   const sessions = db.collection('account_sessions')
   const saves = db.collection('game_saves')
   const backups = db.collection('game_save_backups')
+  const worldClocks = db.collection('world_clocks')
   return {
     async init() {
       await client.connect()
@@ -85,6 +86,14 @@ export function createAccountStore(connectionString) {
     },
     async getSave(accountId) {
       return await saves.findOne({ _id: accountId })
+    },
+    async getOrCreateWorldEpoch(serverId, defaultEpochMs) {
+      const clock = await worldClocks.findOneAndUpdate(
+        { _id: String(serverId) },
+        { $setOnInsert: { epoch_ms: defaultEpochMs, day_length_ms: 24 * 60_000, calendar_version: 3, created_at: new Date() } },
+        { upsert: true, returnDocument: 'after' }
+      )
+      return Number.isFinite(clock?.epoch_ms) ? clock.epoch_ms : defaultEpochMs
     },
     async putSave(accountId, data, revision) {
       if (revision === 0) {

@@ -12,6 +12,9 @@ import { mineFloor, monstersFor, type Monster } from './monsters'
 import { characterSignature } from './appearance'
 import { makeOutfitSheet } from './outfit-sprites'
 import { calendarAt, type Calendar } from './calendar'
+import { isRainWeather, weatherAt, type WeatherType } from './weather.mjs'
+import { CalendarUI, calendarWindowMarkup } from './ui/calendar-ui'
+import { MiniGameUI, miniGameWindowMarkup } from './ui/mini-game-ui'
 import { renderCatalogCard, renderFarmersMarket } from './ui/game-ui'
 import { SHOP_ITEM_ASSETS, TAILOR_ITEM_ASSETS, TAILOR_OUTFIT_ART, TAILOR_GEAR_ART, itemAssetStyle, shopItemAssetStyle, tailorItemAssetStyle, type ItemAssetKey, type ShopItemAssetKey, type TailorItemAssetKey } from './ui/item-assets'
 import { NPCS, SHOPS, lilyGreeting, type DialogueExpression } from './shops'
@@ -20,13 +23,15 @@ import { renderWorldMap, WorldMapController, type WorldMapLocation } from './wor
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `<div id="game"></div><div class="vignette"></div>
-  <div class="topbar"><div class="brand"><span class="flower">✿</span><span>NEW VILLAGE</span></div><div class="location"><span class="location-label">CURRENT LOCATION</span><strong id="map-name">หมู่บ้าน</strong></div><div id="day-display" class="day-display">🌸 ใบไม้ผลิ · วันที่ 1 · 06:00</div><button id="dress-toggle" title="แต่งตัวและดูสเตตัส">👗 แต่งตัว</button><button id="switch-character" title="เปลี่ยนตัวละคร">☺ <span id="character-label">Player A</span></button></div>
+  <div class="topbar"><div class="brand"><span class="flower">✿</span><span>NEW VILLAGE</span></div><div class="location"><span class="location-label">CURRENT LOCATION</span><strong id="map-name">หมู่บ้าน</strong></div><button id="day-display" class="day-display" title="เปิดปฏิทิน" aria-label="เปิดปฏิทิน">🌸 ใบไม้ผลิ · วันที่ 1 · 06:00</button><button id="dress-toggle" title="แต่งตัวและดูสเตตัส">👗 แต่งตัว</button><button id="switch-character" title="เปลี่ยนตัวละคร">☺ <span id="character-label">Player A</span></button></div>
   <div class="status"><div class="coins"><span>✦</span><strong id="coins">50</strong></div><div class="energy"><span>⚡ ENERGY</span><strong id="energy-value">100 / 100</strong><div class="energy-track"><div id="energy-bar"></div></div></div><div class="vitals"><div><span>❤️ HP</span><b id="hp-value"></b></div><div class="vital-track"><i id="hp-bar"></i></div><div><span>✨ MANA</span><b id="mana-value"></b></div><div class="vital-track"><i id="mana-bar"></i></div><div><span id="level-value">LV 1</span><b id="xp-value"></b></div><div class="vital-track"><i id="xp-bar"></i></div></div></div>
   <div class="inventory"><div class="section-label">กระเป๋า <small>ลากของไปช่อง 8–10</small></div><div id="inventory-items"></div></div>
   <div class="bottom-center"><div id="prompt" class="prompt hidden"></div><div id="message" class="message" role="status">เลือกจอบด้วยปุ่ม 1 แล้วเดินไปฟาร์มเพื่อขุดแปลง</div><div class="controls"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> เดิน</span><span><kbd>1</kbd>–<kbd>0</kbd> เลือกช่อง</span><span><kbd>E</kbd> / <kbd>Space</kbd> / คลิก ใช้</span><span><kbd>F</kbd> ก่อกองไฟ (ไม้ 2 หิน 1)</span></div></div>
   <div id="hotbar" class="hotbar" aria-label="แถบเครื่องมือ"></div>
   <div class="map-guide"><span class="section-label">แผนที่ภูมิประเทศ</span><div id="map-steps"></div><button id="map-expand">เปิดแผนที่โลก</button></div>
   <div id="world-map-overlay" class="overlay hidden"><div class="dialog world-map-dialog"><header class="world-map-header"><div><small>WORLD MAP</small><h2>แผนที่ New Village</h2><p>ตำแหน่งของคุณและเพื่อนใน Server เดียวกัน</p></div><button id="close-world-map" aria-label="ปิดแผนที่">×</button></header><div id="world-map-large"></div></div></div>
+  ${calendarWindowMarkup()}
+  ${miniGameWindowMarkup()}
   <button id="mobile-interact" class="mobile-interact hidden" aria-label="คุยกับ NPC">E · คุย</button>
   <div id="npc-dialogue" class="overlay npc-dialogue-overlay hidden"><section class="npc-dialogue-panel" role="dialog" aria-modal="true" aria-labelledby="npc-dialogue-name"><button id="close-npc-dialogue" class="npc-dialogue-close" aria-label="ปิดบทสนทนา">✕</button><div id="npc-portrait" class="npc-portrait expression-happy" role="img" aria-label="ภาพลิลลี่"></div><div class="npc-dialogue-copy"><header><span id="npc-dialogue-role">แม่ค้าเมล็ดพันธุ์</span><h2 id="npc-dialogue-name">ลิลลี่</h2></header><p id="npc-dialogue-text" aria-live="polite"></p><small id="npc-dialogue-hint">คลิกข้อความเพื่อแสดงทันที</small><div id="npc-dialogue-choices" class="npc-dialogue-choices"></div></div></section></div>
   <div class="camera-controls" aria-label="ควบคุมมุมกล้อง"><button id="camera-zoom-out" title="ซูมออก" aria-label="ซูมออก">−</button><button id="camera-zoom-reset" title="คืนค่ามุมกล้อง"><span id="camera-zoom-value">1.0×</span></button><button id="camera-zoom-in" title="ซูมเข้า" aria-label="ซูมเข้า">＋</button></div>
@@ -61,6 +66,8 @@ const ui = {
   steps: document.querySelector<HTMLElement>('#map-steps')!,
   shop: document.querySelector<HTMLElement>('#shop')!
 }
+const miniGameUI = new MiniGameUI()
+const calendarUI = new CalendarUI(gameId => { if (gameId === 'flower_arrangement') miniGameUI.open() })
 const characterLabel = document.querySelector<HTMLElement>('#character-label')!
 let { state, error } = load()
 let saveBlocked = !!error
@@ -205,6 +212,7 @@ document.querySelector('#use-cloud')!.addEventListener('click', () => {
   if (!pendingCloudSave) return
   multiplayer.disconnect()
   state = structuredClone(pendingCloudSave.data)
+  state.calendarVersion = 3
   refreshGrowth(state)
   saveBlocked = false
   cloudRevision = pendingCloudSave.revision
@@ -481,12 +489,15 @@ function clock() {
   const now = Date.now()
   const sharedTime = multiplayer.world && multiplayer.serverOffsetMs !== null
     ? now + multiplayer.serverOffsetMs : null
-  const elapsed = sharedTime === null ? Math.max(0, now - (state.dayStartedAt ?? now)) : sharedTime
-  const day = sharedTime === null ? dayNumber(state, now) : Math.floor(elapsed / DAY_MS) + 1
-  const calendar = calendarAt(day, (elapsed % DAY_MS) / DAY_MS)
+  const elapsed = sharedTime === null ? Math.max(0, now - (state.dayStartedAt ?? now)) : Math.max(0, sharedTime - multiplayer.world!.clock.epochMs)
+  const day = Math.floor(elapsed / DAY_MS) + 1
+  const progress = (elapsed % DAY_MS) / DAY_MS
+  const calendar = calendarAt(day, progress)
+  const weather = sharedTime === null ? weatherAt(day, Math.floor(progress * 4)) : multiplayer.world!.weather
   const time = `${String(calendar.hour).padStart(2, '0')}:${String(calendar.minute).padStart(2, '0')}`
-  ui.day.textContent = `${calendar.season.icon} ฤดู${calendar.season.name} · วันที่ ${calendar.dayInSeason} · ${calendar.night ? '🌙' : '☀️'} ${time}${isRaining(day) ? ' · ☂ ฝน' : ''}`
-  scene?.setAtmosphere(calendar, isRaining(day))
+  ui.day.textContent = `${calendar.season.icon} ฤดู${calendar.season.name} ${calendar.dayInSeason} · ปี ${calendar.year} · ${calendar.weekday} ${time} · ${weather.label}`
+  calendarUI.update(calendar)
+  scene?.setAtmosphere(calendar, weather.type)
 }
 function changed() {
   unlockCompletedCharacters(state)
@@ -559,7 +570,7 @@ function sell() {
 const specialShop = document.querySelector<HTMLElement>('#special-shop')!
 const wardrobe = document.querySelector<HTMLElement>('#wardrobe')!
 const festivalShop = document.querySelector<HTMLElement>('#festival-shop')!
-function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; worldMapOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden'); worldMapOverlay.classList.add('hidden'); accountPanel.classList.add('hidden'); if (dialogueOpen) closeNpcDialogue() }
+function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; worldMapOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden'); worldMapOverlay.classList.add('hidden'); calendarUI.close(); miniGameUI.close(); accountPanel.classList.add('hidden'); if (dialogueOpen) closeNpcDialogue() }
 function travelFromWorldMap(location: WorldMapLocation) {
   state.player.mapId = location.destination
   state.player.x = location.arrival.x; state.player.y = location.arrival.y
@@ -1074,6 +1085,7 @@ class WorldScene extends Phaser.Scene {
   private darkness?: Phaser.GameObjects.Rectangle
   private rainGraphics?: Phaser.GameObjects.Graphics
   private raining = false
+  private snowing = false
   private gardenGateImage?: Phaser.GameObjects.Image
   private gardenGateCollider?: Phaser.Physics.Arcade.Collider
   private campfireMarkers: Phaser.GameObjects.GameObject[] = []
@@ -1320,14 +1332,15 @@ class WorldScene extends Phaser.Scene {
     this.chatBubbles.set(key, { text: bubble, until: this.time.now + 5500, remoteId: peer?.id })
   }
 
-  setAtmosphere(calendar: Calendar, raining: boolean) {
+  setAtmosphere(calendar: Calendar, weather: WeatherType) {
     if (!this.seasonWash || !this.darkness) return
     this.background?.setTint(calendar.season.tint)
     this.seasonWash.setFillStyle(calendar.season.wash, calendar.season.washAlpha)
     const cityMap = ['village', 'market', 'magic_city'].includes(state.player.mapId)
     const nightAlpha = cityMap ? Math.min(.3, calendar.darkness * .48) : Math.min(.46, calendar.darkness * .78)
     this.darkness.setAlpha(nightAlpha)
-    this.raining = raining
+    this.raining = isRainWeather(weather)
+    this.snowing = weather === 'snow' || weather === 'blizzard'
     for (const glow of this.campfireGlows) glow.setAlpha(Math.min(1, nightAlpha * 2.35))
   }
 
@@ -1671,7 +1684,8 @@ class WorldScene extends Phaser.Scene {
       remove(state, seedId); state.player.energy -= 2
       plot.state = 'PLANTED'; plot.cropId = seedId.replace('_seed', '') as CropId; plot.dryDays = 0; plot.wateredDay = null
       this.showAction(4)
-      if (isRaining(dayNumber(state))) { refreshGrowth(state); announce('ปลูกแล้ว ฝนรดน้ำให้อัตโนมัติ') }
+      const offlineSlot = Math.floor((Math.max(0, Date.now() - (state.dayStartedAt ?? Date.now())) % DAY_MS) / (DAY_MS / 4))
+      if (isRaining(dayNumber(state), offlineSlot)) { refreshGrowth(state); announce('ปลูกแล้ว ฝนรดน้ำให้อัตโนมัติ') }
       else announce('ปลูกแล้ว เลือกบัวรดน้ำช่อง 2')
     } else if (selected === 1) {
       if (plot.state !== 'PLANTED') return announce(plot.state === 'GROWING' ? `กำลังโต อีก ${Math.max(0, Math.ceil(((plot.readyAt ?? 0) - Date.now()) / 1000))} วินาที` : 'รดน้ำได้หลังปลูกเมล็ด')
@@ -1804,7 +1818,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   private useSelected() {
-    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || !accountPanel.classList.contains('hidden') || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || miniGameUI.isOpen || !accountPanel.classList.contains('hidden') || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
     if (state.player.mapId === 'farm' && Math.hypot(this.player.x - 770, this.player.y - 780) < 108) {
       this.interactionCooldown = this.time.now + 350
       this.toggleGardenGate()
@@ -1956,7 +1970,7 @@ class WorldScene extends Phaser.Scene {
 
   update(time: number, delta: number) {
     if (this.rainGraphics) {
-      this.rainGraphics.clear().setVisible(this.raining)
+      this.rainGraphics.clear().setVisible(this.raining || this.snowing)
       if (this.raining) {
         this.rainGraphics.lineStyle(2, 0xc8eaff, .58)
         const width = this.scale.width + 100, height = this.scale.height + 100
@@ -1964,6 +1978,14 @@ class WorldScene extends Phaser.Scene {
           const x = (i * 157 + time * .13) % width - 50
           const y = (i * 241 + time * .82) % height - 50
           this.rainGraphics.lineBetween(x, y, x - 8, y + 19)
+        }
+      } else if (this.snowing) {
+        this.rainGraphics.fillStyle(0xf4faff, .8)
+        const width = this.scale.width + 100, height = this.scale.height + 100
+        for (let i = 0; i < 55; i++) {
+          const x = (i * 137 + time * .035 + Math.sin(i + time / 600) * 12) % width - 50
+          const y = (i * 191 + time * .08) % height - 50
+          this.rainGraphics.fillCircle(x, y, i % 3 === 0 ? 2 : 1)
         }
       }
     }
@@ -2024,7 +2046,7 @@ class WorldScene extends Phaser.Scene {
     }
     const focused = document.activeElement
     const typing = focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement || focused instanceof HTMLSelectElement || (focused instanceof HTMLElement && focused.isContentEditable)
-    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || dialogueOpen || !accountPanel.classList.contains('hidden') || typing) {
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || miniGameUI.isOpen || dialogueOpen || !accountPanel.classList.contains('hidden') || typing) {
       this.player.setVelocity(0)
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.one)) buy()
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.two)) sell()

@@ -124,11 +124,11 @@ test('inventory never removes missing items or exceeds a full stack', () => {
 test('rain waters a newly planted crop and offline time makes it ready', () => {
   const save = initialState()
   save.dayStartedAt = 1_000
-  save.lastProcessedDay = 5
+  save.lastProcessedDay = 2
   save.plots[0].state = 'PLANTED'
   save.plots[0].cropId = 'radish'
-  const rainTime = 1_000 + 4 * DAY_MS
-  assert.equal(isRaining(5), true)
+  const rainTime = 1_000 + DAY_MS + 18 * 60_000
+  assert.equal(isRaining(2, 3), true)
   assert.equal(refreshGrowth(save, rainTime), true)
   assert.equal(save.plots[0].state, 'GROWING')
   assert.equal(refreshGrowth(save, rainTime + 60_001), true)
@@ -139,10 +139,10 @@ test('rain waters a newly planted crop and offline time makes it ready', () => {
 test('unwatered planted crop withers after three dry days', () => {
   const save = initialState()
   save.dayStartedAt = 1_000
-  save.lastProcessedDay = 1
+  save.lastProcessedDay = 16
   save.plots[0].state = 'PLANTED'
   save.plots[0].cropId = 'radish'
-  refreshGrowth(save, 1_000 + 3 * DAY_MS)
+  refreshGrowth(save, 1_000 + 18 * DAY_MS)
   assert.equal(save.plots[0].state, 'WITHERED')
   assert.equal(save.plots[0].cropId, null)
   assert.equal(validate(save), true)

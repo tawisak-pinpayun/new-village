@@ -1,0 +1,20 @@
+.day-display { pointer-events: auto; cursor: pointer; }
+.day-display:hover, .day-display:focus-visible { border-color: var(--game-color-gold); }
+.game-calendar { width: min(450px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow-y: auto; color: var(--game-color-ink); background: var(--game-color-parchment); border-color: var(--game-color-wood); }
+.game-calendar-header, .game-calendar-navigation { display: flex; align-items: center; justify-content: space-between; gap: var(--game-space-2); }
+.game-calendar-header small { color: var(--game-color-ink-muted); font-size: 10px; font-weight: 900; letter-spacing: .08em; }
+.game-calendar-header h2 { margin: 3px 0 0; font-family: var(--game-font-display); font-size: 23px; }
+.game-calendar-header button, .game-calendar-navigation button { flex: none; min-width: 36px; min-height: 36px; color: var(--game-color-cream); background: var(--game-color-wood); border: 0; border-radius: var(--game-radius-sm); font-weight: 900; }
+.game-calendar-navigation { margin-top: var(--game-space-4); padding: var(--game-space-2); background: var(--game-color-parchment-deep); border-radius: var(--game-radius-sm); }
+.game-calendar-navigation strong { text-align: center; }
+.game-calendar-now { margin: var(--game-space-3) 0; font-size: 12px; font-weight: 900; }
+.game-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.game-calendar-weekday { padding: 4px 0; text-align: center; color: var(--game-color-ink-muted); font-size: 10px; font-weight: 900; }
+.game-calendar-day { min-height: 42px; display: grid; place-content: center; color: var(--game-color-ink); background: var(--game-color-cream); border: var(--game-border-thin); border-radius: 6px; font-weight: 900; line-height: 1; }
+.game-calendar-event-mark { margin-top: 3px; color: var(--game-color-sell); font-size: 9px; }
+.game-calendar-day.selected .game-calendar-event-mark, .game-calendar-day:hover .game-calendar-event-mark { color: var(--game-color-cream); }
+.game-calendar-day.today { border-color: var(--game-color-leaf); box-shadow: inset 0 0 0 1px var(--game-color-leaf); }
+.game-calendar-day.selected, .game-calendar-day:hover { color: white; background: var(--game-color-leaf); }
+.game-calendar-detail { min-height: 50px; margin-top: var(--game-space-3); padding: var(--game-space-3); background: var(--game-color-cream); border: var(--game-border-thin); border-radius: var(--game-radius-sm); font-size: 12px; font-weight: 800; }
+.game-calendar-detail strong { display: block; }.game-calendar-detail p { margin: 8px 0 3px; color: var(--game-color-leaf); }.game-calendar-detail small { display: block; color: var(--game-color-ink-muted); line-height: 1.5; }
+@media (max-width: 540px) { .game-calendar { padding: 12px; }.game-calendar-day { min-height: 36px; }.game-calendar-grid { gap: 2px; } }

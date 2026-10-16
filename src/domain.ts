@@ -1,3 +1,4 @@
+import { isRainWeather, weatherAt } from './weather.mjs'
 export type PlotState = 'EMPTY' | 'TILLED' | 'PLANTED' | 'GROWING' | 'READY' | 'WITHERED'
 export type CropId = 'radish' | 'carrot' | 'tomato'
 export type ItemId = 'radish_seed' | 'radish' | 'carrot_seed' | 'carrot' | 'tomato_seed' | 'tomato' | 'wood' | 'stone' | 'fiber' | 'sword' | 'bow' | 'meat' | 'hide' | 'copper' | 'iron' | 'moonstone' | 'arcane_sword' | 'wand' | 'broom' | 'rice_meal' | 'stew' | 'mana_potion' | 'animal_feed' | 'pet_basket' | 'carved_chair' | 'flower_table'
@@ -45,7 +46,7 @@ export type Save = {
   recipeUnlocked?: boolean
   water?: number
   dayStartedAt?: number
-  calendarVersion?: 2
+  calendarVersion?: 2 | 3
   lastProcessedDay?: number
   selectedSlot?: number
   hotbarExtras?: (ItemId | null)[]
@@ -79,7 +80,7 @@ export const initialState = (): Save => ({
   recipeUnlocked: false,
   water: MAX_WATER,
   dayStartedAt: Date.now(),
-  calendarVersion: 2,
+  calendarVersion: 3,
   lastProcessedDay: 1,
   selectedSlot: 0,
   hotbarExtras: [null, null, null],
@@ -239,22 +240,26 @@ export function dayNumber(save: Save, now = Date.now()): number {
   return Math.max(1, Math.floor((now - (save.dayStartedAt ?? now)) / DAY_MS) + 1)
 }
 
-export function isRaining(day: number): boolean { return Math.floor(((day - 1) % 35) / 7) === 2 || day % 5 === 0 }
+export function isRaining(day: number, slot?: number): boolean {
+  return slot === undefined ? [0, 1, 2, 3].some(index => isRainWeather(weatherAt(day, index).type)) : isRainWeather(weatherAt(day, slot).type)
+}
 
 export function refreshGrowth(save: Save, now = Date.now()): boolean {
   let changed = false
   const day = dayNumber(save, now)
+  const currentSlot = Math.floor((Math.max(0, now - (save.dayStartedAt ?? now)) % DAY_MS) / (DAY_MS / 4))
+  const rainOnDay = (candidate: number) => candidate === day ? isRaining(candidate, currentSlot) : isRaining(candidate)
   const lastDay = save.lastProcessedDay ?? day
   if (day > lastDay) {
     for (const id of Object.keys(save.nodeHp ?? {})) if (id.startsWith('river-') || id.startsWith('mine-') || id.startsWith('monster-')) delete save.nodeHp![id]
     for (const plot of save.plots) {
       if (plot.state !== 'PLANTED') continue
       let firstRain = lastDay + 1
-      while (firstRain <= day && !isRaining(firstRain)) firstRain++
+      while (firstRain <= day && !rainOnDay(firstRain)) firstRain++
       const rainBeforeWither = firstRain <= day && firstRain - lastDay <= 3 - (plot.dryDays ?? 0)
       if (rainBeforeWither) {
         plot.state = 'GROWING'
-        plot.readyAt = (save.dayStartedAt ?? now) + (firstRain - 1) * DAY_MS + GROW_MS
+        plot.readyAt = firstRain === day ? now + GROW_MS : (save.dayStartedAt ?? now) + (firstRain - 1) * DAY_MS + GROW_MS
         plot.wateredDay = firstRain
         plot.dryDays = 0
       } else {
@@ -272,7 +277,7 @@ export function refreshGrowth(save: Save, now = Date.now()): boolean {
       plot.readyAt = null
       changed = true
     }
-    if (isRaining(day) && plot.state === 'PLANTED') {
+    if (rainOnDay(day) && plot.state === 'PLANTED') {
       plot.state = 'GROWING'; plot.readyAt = now + GROW_MS; plot.wateredDay = day; plot.dryDays = 0
       changed = true
     }
@@ -304,7 +309,7 @@ export function validate(value: unknown): value is Save {
     (s.recipeUnlocked !== undefined && typeof s.recipeUnlocked !== 'boolean') ||
     (s.water !== undefined && (!Number.isInteger(s.water) || s.water < 0 || s.water > MAX_WATER)) ||
     (s.dayStartedAt !== undefined && !Number.isFinite(s.dayStartedAt)) ||
-    (s.calendarVersion !== undefined && s.calendarVersion !== 2) ||
+    (s.calendarVersion !== undefined && s.calendarVersion !== 2 && s.calendarVersion !== 3) ||
     (s.lastProcessedDay !== undefined && (!Number.isInteger(s.lastProcessedDay) || s.lastProcessedDay < 1)) ||
     (s.selectedSlot !== undefined && (!Number.isInteger(s.selectedSlot) || s.selectedSlot < 0 || s.selectedSlot > 9)) ||
     (s.hotbarExtras !== undefined && (!Array.isArray(s.hotbarExtras) || s.hotbarExtras.length !== 3 || s.hotbarExtras.some(item => item !== null && !ITEM_IDS.includes(item)))) ||
@@ -358,13 +363,13 @@ export function load(): { state: Save; error?: string } {
     parsed.player.y = Math.max(16, Math.min(1008, parsed.player.y))
     parsed.water ??= MAX_WATER
     parsed.dayStartedAt ??= Date.now()
-    if (parsed.calendarVersion !== 2) {
+    if (parsed.calendarVersion === undefined) {
       const now = Date.now()
       const oldElapsed = Math.max(0, now - parsed.dayStartedAt)
       parsed.dayStartedAt = now - Math.floor(oldElapsed / LEGACY_DAY_MS) * DAY_MS
         - Math.floor((oldElapsed % LEGACY_DAY_MS) / LEGACY_DAY_MS * DAY_MS)
-      parsed.calendarVersion = 2
     }
+    parsed.calendarVersion = 3
     parsed.lastProcessedDay ??= dayNumber(parsed)
     parsed.selectedSlot ??= 0
     parsed.hotbarExtras ??= [null, null, null]

@@ -15,9 +15,8 @@ const RESOURCE_ROWS = [
 export const RESOURCES = new Map(RESOURCE_ROWS.map(([mapId, id, x, y, kind, hp]) => [id, { mapId, id, x, y, kind, hp }]))
 const POINTS = [[700, 300], [950, 350], [760, 565], [1030, 670], [710, 720], [940, 560], [1140, 550]]
 const floors = { mine: 1, mine2: 2, mine3: 3 }
-const DAY_MS = 24 * 60_000
-const dayKey = () => Math.floor(Date.now() / DAY_MS)
-const rainingOn = day => { const dayNumber = day + 1; return dayNumber % 5 === 0 || Math.floor((dayNumber - 1) % 35 / 7) === 2 }
+import { DEFAULT_WORLD_EPOCH_MS, WORLD_CALENDAR_VERSION, WORLD_DAY_MS, worldDay } from './world-clock.mjs'
+import { isRainWeather, weatherAtTime } from '../src/weather.mjs'
 function monstersFor(mapId, day) {
   const floor = floors[mapId]
   let seed = (day * 48271 + floor * 69621) >>> 0
@@ -31,21 +30,26 @@ function monstersFor(mapId, day) {
     return { id: `monster-${floor}-${day}-${i}`, mapId, x, y, homeX: x, homeY: y, targetX: x, targetY: y, nextTurn: 0, kind, hp: kind === 'golem' ? 7 : kind === 'bat' ? 2 : 3, maxHp: kind === 'golem' ? 7 : kind === 'bat' ? 2 : 3, damage: kind === 'golem' ? 13 : kind === 'bat' ? 7 : 5, xp: kind === 'golem' ? 40 : kind === 'bat' ? 12 : 9 }
   })
 }
-export function makeWorld() {
-  const day = dayKey()
-  return { day, nodeHp: {}, plots: Array.from({ length: 6 }, (_, i) => ({ id: `plot-${i + 1}`, state: 'EMPTY', cropId: null, readyAt: null, dryDays: 0, wateredDay: null })), monsters: Object.fromEntries(Object.keys(floors).map(mapId => [mapId, monstersFor(mapId, day)])), quest: { stage: 0, harvested: 0, mined: 0, completed: false }, festival: { day, donated: 0, goal: 3, completed: false }, gardenGateOpen: false, campfires: [], lastTick: Date.now() }
+export function makeWorld(now = Date.now(), epochMs = DEFAULT_WORLD_EPOCH_MS) {
+  const day = worldDay(now, epochMs)
+  return { day, clock: { epochMs, dayLengthMs: WORLD_DAY_MS, calendarVersion: WORLD_CALENDAR_VERSION }, weather: weatherAtTime(now, epochMs), nodeHp: {}, plots: Array.from({ length: 6 }, (_, i) => ({ id: `plot-${i + 1}`, state: 'EMPTY', cropId: null, readyAt: null, dryDays: 0, wateredDay: null })), monsters: Object.fromEntries(Object.keys(floors).map(mapId => [mapId, monstersFor(mapId, day)])), quest: { stage: 0, harvested: 0, mined: 0, completed: false }, festival: { day, donated: 0, goal: 3, completed: false }, gardenGateOpen: false, campfires: [], lastTick: now }
 }
 export function publicWorld(world) {
-  return { type: 'world-state', day: world.day, serverNow: Date.now(), nodeHp: world.nodeHp, plots: world.plots, monsters: Object.fromEntries(Object.entries(world.monsters).map(([id, list]) => [id, list.map(({ homeX, homeY, targetX, targetY, nextTurn, maxHp, ...monster }) => ({ ...monster, hp: maxHp, remaining: monster.hp }))])), quest: world.quest, festival: world.festival, gardenGateOpen: world.gardenGateOpen, campfires: world.campfires }
+  return { type: 'world-state', day: world.day, serverNow: Date.now(), clock: world.clock, weather: world.weather, nodeHp: world.nodeHp, plots: world.plots, monsters: Object.fromEntries(Object.entries(world.monsters).map(([id, list]) => [id, list.map(({ homeX, homeY, targetX, targetY, nextTurn, maxHp, ...monster }) => ({ ...monster, hp: maxHp, remaining: monster.hp }))])), quest: world.quest, festival: world.festival, gardenGateOpen: world.gardenGateOpen, campfires: world.campfires }
 }
 export function advanceWorld(world, now = Date.now()) {
   let changed = false
-  const day = Math.floor(now / DAY_MS)
+  const day = worldDay(now, world.clock.epochMs)
+  const weather = weatherAtTime(now, world.clock.epochMs)
+  if (!world.weather || weather.day !== world.weather.day || weather.slot !== world.weather.slot) {
+    world.weather = weather
+    if (isRainWeather(weather.type)) for (const plot of world.plots) if (plot.state === 'PLANTED') Object.assign(plot, { state: 'GROWING', readyAt: now + 60_000 })
+    changed = true
+  }
   if (day !== world.day) {
     world.day = day; world.nodeHp = {}
     world.monsters = Object.fromEntries(Object.keys(floors).map(mapId => [mapId, monstersFor(mapId, day)]))
     world.festival = { day, donated: 0, goal: 3, completed: false }
-    if (rainingOn(day)) for (const plot of world.plots) if (plot.state === 'PLANTED') Object.assign(plot, { state: 'GROWING', readyAt: now + 60_000 })
     changed = true
   }
   for (const plot of world.plots) if (plot.state === 'GROWING' && plot.readyAt <= now) { plot.state = 'READY'; plot.readyAt = null; changed = true }
@@ -86,7 +90,7 @@ export function actPlot(world, player, index, action, cropId, now = Date.now()) 
   const plot = world.plots[index], positions = [[610, 540], [770, 540], [925, 540], [610, 655], [770, 655], [925, 655]]
   if (!plot || player.mapId !== 'farm' || Math.hypot(player.x - positions[index][0], player.y - positions[index][1]) > 145) return { ok: false, message: 'อยู่ไกลจากแปลงเกินไป' }
   if (action === 'till' && ['EMPTY', 'WITHERED'].includes(plot.state)) Object.assign(plot, { state: 'TILLED', cropId: null, readyAt: null })
-  else if (action === 'plant' && plot.state === 'TILLED' && ['radish', 'carrot', 'tomato'].includes(cropId)) Object.assign(plot, { state: rainingOn(world.day) ? 'GROWING' : 'PLANTED', cropId, readyAt: rainingOn(world.day) ? now + 60_000 : null })
+  else if (action === 'plant' && plot.state === 'TILLED' && ['radish', 'carrot', 'tomato'].includes(cropId)) Object.assign(plot, { state: isRainWeather(world.weather.type) ? 'GROWING' : 'PLANTED', cropId, readyAt: isRainWeather(world.weather.type) ? now + 60_000 : null })
   else if (action === 'water' && plot.state === 'PLANTED') Object.assign(plot, { state: 'GROWING', readyAt: now + 60000 })
   else if (action === 'harvest' && plot.state === 'READY') { const crop = plot.cropId; Object.assign(plot, { state: 'TILLED', cropId: null, readyAt: null }); return { ok: true, plot, crop } }
   else return { ok: false, message: 'แปลงนี้เปลี่ยนไปแล้ว ลองอีกครั้ง' }
