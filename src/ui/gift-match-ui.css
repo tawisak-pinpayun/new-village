@@ -1,0 +1,7 @@
+.gift-game-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--game-space-2); margin: var(--game-space-3) 0; }
+.mini-game-window .gift-game-card { min-height: 78px; padding: 5px; background: var(--game-color-wood); border: 2px solid var(--game-color-wood-dark); box-shadow: var(--game-shadow-card); }
+.gift-game-card .gift-game-face { min-height: 62px; display: grid; place-content: center; color: var(--game-color-cream); border: 2px solid var(--game-color-wood-light); border-radius: 5px; font: 900 20px var(--game-font-display); }
+.mini-game-window .gift-game-card.revealed { background: var(--game-color-cream); border-color: var(--game-color-wood-light); }
+.gift-game-card.revealed .gift-game-face { color: var(--game-color-ink); background: color-mix(in srgb, var(--gift-color) 24%, var(--game-color-cream)); border-color: var(--gift-color); font: 900 12px var(--game-font-ui); }
+.mini-game-window .gift-game-card.matched { border-color: var(--game-color-leaf); box-shadow: inset 0 0 0 2px var(--game-color-leaf); }
+@media (max-width: 540px) { .gift-game-cards { gap: 5px; }.mini-game-window .gift-game-card { min-height: 64px; }.gift-game-card .gift-game-face { min-height: 50px; }.gift-game-card.revealed .gift-game-face { font-size: 10px; } }

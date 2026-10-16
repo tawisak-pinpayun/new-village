@@ -25,7 +25,7 @@ export class MiniGameUI {
   private submitting = false
   private generation = 0
 
-  constructor(private onFestivalReward?: (result: { balance: number; totalExp: number }) => void) {
+  constructor(private onFestivalReward?: (result: { balance: number; totalExp: number; totalFriendshipExp: number }) => void) {
     document.querySelector('#mini-game-close')!.addEventListener('click', () => this.close())
     this.overlay.addEventListener('click', event => { if (event.target === this.overlay) this.close() })
     this.content.addEventListener('click', event => this.handleClick(event))

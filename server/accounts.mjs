@@ -2,6 +2,7 @@ import { createHash, pbkdf2 as pbkdf2Callback, randomBytes, randomUUID, timingSa
 import { promisify } from 'node:util'
 import { MongoClient } from 'mongodb'
 import { activeFlowerOccurrence, validateFlowerResult } from './flower-festival.mjs'
+import { activeFriendshipOccurrence, validateGiftResult } from './gift-match.mjs'
 import { DEFAULT_WORLD_EPOCH_MS } from './world-clock.mjs'
 
 const pbkdf2 = promisify(pbkdf2Callback)
@@ -54,6 +55,7 @@ export function createAccountStore(connectionString) {
   const backups = db.collection('game_save_backups')
   const worldClocks = db.collection('world_clocks')
   const flowerSessions = db.collection('flower_sessions')
+  const giftSessions = db.collection('gift_sessions')
   const festivalProgress = db.collection('festival_progress')
   return {
     async init() {
@@ -62,6 +64,7 @@ export function createAccountStore(connectionString) {
       await accounts.createIndex({ email: 1 }, { unique: true })
       await sessions.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
       await flowerSessions.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
+      await giftSessions.createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
     },
     async register(email, password) {
       const id = randomUUID()
@@ -94,7 +97,7 @@ export function createAccountStore(connectionString) {
     },
     async getFestivalProgress(accountId) {
       const progress = await festivalProgress.findOne({ _id: accountId })
-      return { tokens: progress?.tokens ?? 0, exp: progress?.exp ?? 0, claims: progress?.claims ?? {} }
+      return { tokens: progress?.tokens ?? 0, exp: progress?.exp ?? 0, friendshipExp: progress?.friendship_exp ?? 0, claims: progress?.claims ?? {} }
     },
     async createFlowerSession(accountId, occurrence, now) {
       const session = { _id: randomUUID(), account_id: accountId, occurrence, seed: randomBytes(4).readUInt32BE(0), start_at_ms: now + 3_000, deadline_ms: now + 3_000 + 30_000, expires_at: new Date(now + 60_000) }
@@ -104,16 +107,24 @@ export function createAccountStore(connectionString) {
     async getFlowerSession(accountId, sessionId) {
       return await flowerSessions.findOne({ _id: sessionId, account_id: accountId, expires_at: { $gt: new Date() } })
     },
-    async claimFlowerResult(accountId, occurrence, result) {
+    async createGiftSession(accountId, occurrence, now) {
+      const session = { _id: randomUUID(), account_id: accountId, occurrence, seed: randomBytes(4).readUInt32BE(0), start_at_ms: now + 3_000, deadline_ms: now + 3_000 + 45_000, expires_at: new Date(now + 75_000) }
+      await giftSessions.insertOne(session)
+      return session
+    },
+    async getGiftSession(accountId, sessionId) {
+      return await giftSessions.findOne({ _id: sessionId, account_id: accountId, expires_at: { $gt: new Date() } })
+    },
+    async claimFestivalResult(accountId, occurrence, result) {
       const key = occurrence.replace(':', '_')
-      try { await festivalProgress.updateOne({ _id: accountId }, { $setOnInsert: { tokens: 0, exp: 0, claims: {} } }, { upsert: true }) }
+      try { await festivalProgress.updateOne({ _id: accountId }, { $setOnInsert: { tokens: 0, exp: 0, friendship_exp: 0, claims: {} } }, { upsert: true }) }
       catch (error) { if (error.code !== 11000) throw error }
       const updated = await festivalProgress.findOneAndUpdate(
         { _id: accountId, [`claims.${key}`]: { $exists: false } },
-        { $set: { [`claims.${key}`]: { score: result.score, rank: result.rank, tokens: result.tokens, exp: result.festivalExp, claimed_at: new Date() } }, $inc: { tokens: result.tokens, exp: result.festivalExp } },
+        { $set: { [`claims.${key}`]: { score: result.score, rank: result.rank, tokens: result.tokens, exp: result.festivalExp, friendship_exp: result.friendshipExp ?? 0, claimed_at: new Date() } }, $inc: { tokens: result.tokens, exp: result.festivalExp, friendship_exp: result.friendshipExp ?? 0 } },
         { returnDocument: 'after' }
       )
-      return updated ? { tokens: updated.tokens, exp: updated.exp, claim: updated.claims[key] } : null
+      return updated ? { tokens: updated.tokens, exp: updated.exp, friendshipExp: updated.friendship_exp, claim: updated.claims[key] } : null
     },
     async getOrCreateWorldEpoch(serverId, defaultEpochMs) {
       const clock = await worldClocks.findOneAndUpdate(
@@ -229,9 +240,28 @@ export function createAccountApi(store, { now = Date.now, worldEpochMs = DEFAULT
         const game = await store.getFlowerSession(account.id, body.sessionId)
         const result = validateFlowerResult(game, body.moves, now())
         if (!result) { sendJson(res, 400, { error: 'ผลมินิเกมไม่ถูกต้องหรือหมดเวลา' }); return true }
-        const progress = await store.claimFlowerResult(account.id, game.occurrence, result)
+        const progress = await store.claimFestivalResult(account.id, game.occurrence, result)
         if (!progress) { sendJson(res, 409, { error: 'รับรางวัลเทศกาลปีนี้แล้ว' }); return true }
-        sendJson(res, 200, { ...result, balance: progress.tokens, totalExp: progress.exp }); return true
+        sendJson(res, 200, { ...result, balance: progress.tokens, totalExp: progress.exp, totalFriendshipExp: progress.friendshipExp }); return true
+      }
+      if (path === '/api/festival/gift/start' && req.method === 'POST') {
+        const startedAt = now()
+        const occurrence = activeFriendshipOccurrence(startedAt, worldEpochMs)
+        if (!occurrence) { sendJson(res, 403, { error: 'วันแห่งมิตรภาพยังไม่เปิด' }); return true }
+        const progress = await store.getFestivalProgress(account.id)
+        if (progress.claims[occurrence.replace(':', '_')]) { sendJson(res, 409, { error: 'รับรางวัลเทศกาลปีนี้แล้ว' }); return true }
+        const game = await store.createGiftSession(account.id, occurrence, startedAt)
+        sendJson(res, 200, { sessionId: game._id, seed: game.seed, occurrence, startAt: game.start_at_ms, deadline: game.deadline_ms }); return true
+      }
+      if (path === '/api/festival/gift/submit' && req.method === 'POST') {
+        const body = await readJson(req)
+        if (!body || typeof body.sessionId !== 'string' || !/^[a-f0-9-]{36}$/.test(body.sessionId)) { sendJson(res, 400, { error: 'เซสชันมินิเกมไม่ถูกต้อง' }); return true }
+        const game = await store.getGiftSession(account.id, body.sessionId)
+        const result = validateGiftResult(game, body.moves, now())
+        if (!result) { sendJson(res, 400, { error: 'ผลมินิเกมไม่ถูกต้องหรือหมดเวลา' }); return true }
+        const progress = await store.claimFestivalResult(account.id, game.occurrence, result)
+        if (!progress) { sendJson(res, 409, { error: 'รับรางวัลเทศกาลปีนี้แล้ว' }); return true }
+        sendJson(res, 200, { ...result, balance: progress.tokens, totalExp: progress.exp, totalFriendshipExp: progress.friendshipExp }); return true
       }
       if (path === '/api/save' && req.method === 'GET') {
         const save = await store.getSave(account.id)

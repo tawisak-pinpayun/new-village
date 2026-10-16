@@ -15,6 +15,7 @@ import { calendarAt, type Calendar } from './calendar'
 import { isRainWeather, weatherAt, type WeatherType } from './weather.mjs'
 import { CalendarUI, calendarWindowMarkup } from './ui/calendar-ui'
 import { MiniGameUI, miniGameWindowMarkup } from './ui/mini-game-ui'
+import { GiftMatchUI, giftMatchWindowMarkup } from './ui/gift-match-ui'
 import { renderCatalogCard, renderFarmersMarket } from './ui/game-ui'
 import { SHOP_ITEM_ASSETS, TAILOR_ITEM_ASSETS, TAILOR_OUTFIT_ART, TAILOR_GEAR_ART, itemAssetStyle, shopItemAssetStyle, tailorItemAssetStyle, type ItemAssetKey, type ShopItemAssetKey, type TailorItemAssetKey } from './ui/item-assets'
 import { NPCS, SHOPS, lilyGreeting, type DialogueExpression } from './shops'
@@ -32,6 +33,7 @@ app.innerHTML = `<div id="game"></div><div class="vignette"></div>
   <div id="world-map-overlay" class="overlay hidden"><div class="dialog world-map-dialog"><header class="world-map-header"><div><small>WORLD MAP</small><h2>แผนที่ New Village</h2><p>ตำแหน่งของคุณและเพื่อนใน Server เดียวกัน</p></div><button id="close-world-map" aria-label="ปิดแผนที่">×</button></header><div id="world-map-large"></div></div></div>
   ${calendarWindowMarkup()}
   ${miniGameWindowMarkup()}
+  ${giftMatchWindowMarkup()}
   <button id="mobile-interact" class="mobile-interact hidden" aria-label="คุยกับ NPC">E · คุย</button>
   <div id="npc-dialogue" class="overlay npc-dialogue-overlay hidden"><section class="npc-dialogue-panel" role="dialog" aria-modal="true" aria-labelledby="npc-dialogue-name"><button id="close-npc-dialogue" class="npc-dialogue-close" aria-label="ปิดบทสนทนา">✕</button><div id="npc-portrait" class="npc-portrait expression-happy" role="img" aria-label="ภาพลิลลี่"></div><div class="npc-dialogue-copy"><header><span id="npc-dialogue-role">แม่ค้าเมล็ดพันธุ์</span><h2 id="npc-dialogue-name">ลิลลี่</h2></header><p id="npc-dialogue-text" aria-live="polite"></p><small id="npc-dialogue-hint">คลิกข้อความเพื่อแสดงทันที</small><div id="npc-dialogue-choices" class="npc-dialogue-choices"></div></div></section></div>
   <div class="camera-controls" aria-label="ควบคุมมุมกล้อง"><button id="camera-zoom-out" title="ซูมออก" aria-label="ซูมออก">−</button><button id="camera-zoom-reset" title="คืนค่ามุมกล้อง"><span id="camera-zoom-value">1.0×</span></button><button id="camera-zoom-in" title="ซูมเข้า" aria-label="ซูมเข้า">＋</button></div>
@@ -66,10 +68,16 @@ const ui = {
   steps: document.querySelector<HTMLElement>('#map-steps')!,
   shop: document.querySelector<HTMLElement>('#shop')!
 }
-const miniGameUI = new MiniGameUI(result => {
-  document.querySelector<HTMLElement>('#festival-progress')!.textContent = `เหรียญเทศกาล ${result.balance} · EXP เทศกาล ${result.totalExp}`
+function showFestivalProgress(progress: { tokens: number; exp: number; friendshipExp: number }) {
+  document.querySelector<HTMLElement>('#festival-progress')!.textContent = `เหรียญเทศกาล ${progress.tokens} · EXP เทศกาล ${progress.exp} · ค่ามิตรภาพ ${progress.friendshipExp} EXP`
+}
+const rewardUpdated = (result: { balance: number; totalExp: number; totalFriendshipExp: number }) => showFestivalProgress({ tokens: result.balance, exp: result.totalExp, friendshipExp: result.totalFriendshipExp })
+const miniGameUI = new MiniGameUI(rewardUpdated)
+const giftMatchUI = new GiftMatchUI(rewardUpdated)
+const calendarUI = new CalendarUI((gameId, mode) => {
+  if (gameId === 'flower_arrangement') miniGameUI.open(mode)
+  if (gameId === 'gift_match') giftMatchUI.open(mode)
 })
-const calendarUI = new CalendarUI((gameId, mode) => { if (gameId === 'flower_arrangement') miniGameUI.open(mode) })
 const characterLabel = document.querySelector<HTMLElement>('#character-label')!
 let { state, error } = load()
 let saveBlocked = !!error
@@ -194,8 +202,8 @@ async function signedIn(email: string) {
   document.querySelector<HTMLElement>('#account-email')!.textContent = email
   document.querySelector<HTMLElement>('#account-toggle')!.textContent = '☁️ เซฟออนไลน์'
   accountStatus.textContent = 'เข้าสู่ระบบแล้ว'
-  void accountRequest<{ tokens: number; exp: number }>('/api/festival/progress')
-    .then(progress => { document.querySelector<HTMLElement>('#festival-progress')!.textContent = `เหรียญเทศกาล ${progress.tokens} · EXP เทศกาล ${progress.exp}` })
+  void accountRequest<{ tokens: number; exp: number; friendshipExp: number }>('/api/festival/progress')
+    .then(showFestivalProgress)
     .catch(() => { document.querySelector<HTMLElement>('#festival-progress')!.textContent = 'ยังโหลดเหรียญเทศกาลไม่ได้' })
   await chooseCloudSave()
 }
@@ -575,7 +583,7 @@ function sell() {
 const specialShop = document.querySelector<HTMLElement>('#special-shop')!
 const wardrobe = document.querySelector<HTMLElement>('#wardrobe')!
 const festivalShop = document.querySelector<HTMLElement>('#festival-shop')!
-function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; worldMapOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden'); worldMapOverlay.classList.add('hidden'); calendarUI.close(); miniGameUI.close(); accountPanel.classList.add('hidden'); if (dialogueOpen) closeNpcDialogue() }
+function closeShop() { shopOpen = false; marketOpen = false; specialOpen = false; wardrobeOpen = false; festivalOpen = false; worldMapOpen = false; specialKind = null; ui.shop.classList.add('hidden'); document.querySelector('#market-shop')!.classList.add('hidden'); specialShop.classList.add('hidden'); wardrobe.classList.add('hidden'); festivalShop.classList.add('hidden'); worldMapOverlay.classList.add('hidden'); calendarUI.close(); miniGameUI.close(); giftMatchUI.close(); accountPanel.classList.add('hidden'); if (dialogueOpen) closeNpcDialogue() }
 function travelFromWorldMap(location: WorldMapLocation) {
   state.player.mapId = location.destination
   state.player.x = location.arrival.x; state.player.y = location.arrival.y
@@ -1823,7 +1831,7 @@ class WorldScene extends Phaser.Scene {
   }
 
   private useSelected() {
-    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || miniGameUI.isOpen || !accountPanel.classList.contains('hidden') || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || miniGameUI.isOpen || giftMatchUI.isOpen || !accountPanel.classList.contains('hidden') || this.restingUntil || this.actionUntil > this.time.now || this.time.now < this.interactionCooldown) return
     if (state.player.mapId === 'farm' && Math.hypot(this.player.x - 770, this.player.y - 780) < 108) {
       this.interactionCooldown = this.time.now + 350
       this.toggleGardenGate()
@@ -2051,7 +2059,7 @@ class WorldScene extends Phaser.Scene {
     }
     const focused = document.activeElement
     const typing = focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement || focused instanceof HTMLSelectElement || (focused instanceof HTMLElement && focused.isContentEditable)
-    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || miniGameUI.isOpen || dialogueOpen || !accountPanel.classList.contains('hidden') || typing) {
+    if (shopOpen || marketOpen || specialOpen || wardrobeOpen || festivalOpen || worldMapOpen || calendarUI.isOpen || miniGameUI.isOpen || giftMatchUI.isOpen || dialogueOpen || !accountPanel.classList.contains('hidden') || typing) {
       this.player.setVelocity(0)
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.one)) buy()
       if (shopOpen && Phaser.Input.Keyboard.JustDown(this.two)) sell()

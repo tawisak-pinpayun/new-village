@@ -5,6 +5,7 @@ import { once } from 'node:events'
 import { createAccountApi } from '../server/accounts.mjs'
 import { activeFlowerOccurrence, validateFlowerResult } from '../server/flower-festival.mjs'
 import { flowerTarget } from '../src/mini-games/flower.mjs'
+import { GIFT_TYPES, giftDeck } from '../src/mini-games/gift-match.mjs'
 import { WORLD_DAY_MS } from '../server/world-clock.mjs'
 
 const epoch = Date.UTC(2026, 0, 1)
@@ -34,19 +35,26 @@ test('authenticated festival result can be claimed only once per occurrence', as
   const balances = new Map()
   const store = {
     async accountForToken(token) { return token === 'a'.repeat(43) ? { id: 'player-1', email: 'player@example.com' } : null },
-    async getFestivalProgress(id) { return balances.get(id) ?? { tokens: 0, exp: 0, claims: {} } },
+    async getFestivalProgress(id) { return balances.get(id) ?? { tokens: 0, exp: 0, friendshipExp: 0, claims: {} } },
     async createFlowerSession(id, occurrence, started) {
       const session = { _id: '12345678-1234-1234-1234-123456789abc', account_id: id, occurrence, seed: 42, start_at_ms: started + 3000, deadline_ms: started + 33_000 }
       sessions.set(session._id, session)
       return session
     },
     async getFlowerSession(id, sessionId) { const session = sessions.get(sessionId); return session?.account_id === id ? session : null },
-    async claimFlowerResult(id, occurrence, result) {
-      const progress = balances.get(id) ?? { tokens: 0, exp: 0, claims: {} }
+    async createGiftSession(id, occurrence, started) {
+      const session = { _id: '87654321-1234-1234-1234-123456789abc', account_id: id, occurrence, seed: 123, start_at_ms: started + 3000, deadline_ms: started + 48_000 }
+      sessions.set(session._id, session)
+      return session
+    },
+    async getGiftSession(id, sessionId) { const session = sessions.get(sessionId); return session?.account_id === id ? session : null },
+    async claimFestivalResult(id, occurrence, result) {
+      const progress = balances.get(id) ?? { tokens: 0, exp: 0, friendshipExp: 0, claims: {} }
       const key = occurrence.replace(':', '_')
       if (progress.claims[key]) return null
       progress.tokens += result.tokens
       progress.exp += result.festivalExp
+      progress.friendshipExp += result.friendshipExp ?? 0
       progress.claims[key] = { score: result.score, rank: result.rank }
       balances.set(id, progress)
       return { ...progress, claim: progress.claims[key] }
@@ -79,4 +87,19 @@ test('authenticated festival result can be claimed only once per occurrence', as
   const progress = await (await request('/api/festival/progress')).json()
   assert.equal(progress.tokens, claim.tokens)
   assert.equal((await request('/api/festival/flower/start', 'POST')).status, 409)
+  now = epoch + 13 * WORLD_DAY_MS + 4 * 60_000
+  const giftStart = await request('/api/festival/gift/start', 'POST')
+  assert.equal(giftStart.status, 200)
+  const gift = await giftStart.json()
+  now += 10_000
+  const deck = giftDeck(gift.seed)
+  const giftMoves = GIFT_TYPES.flatMap((type, pair) => deck.map((id, index) => id === type.id ? index : -1).filter(index => index >= 0).map((index, offset) => ({ index, at: pair * 1000 + 100 + offset * 100 })))
+  const giftSubmit = await request('/api/festival/gift/submit', 'POST', { sessionId: gift.sessionId, moves: giftMoves, score: 0 })
+  assert.equal(giftSubmit.status, 200)
+  const giftClaim = await giftSubmit.json()
+  assert.equal(giftClaim.rank, 'S')
+  assert.equal(giftClaim.tokens, 0)
+  assert.equal(giftClaim.balance, claim.tokens)
+  assert.equal(giftClaim.totalFriendshipExp, giftClaim.friendshipExp)
+  assert.equal((await request('/api/festival/gift/submit', 'POST', { sessionId: gift.sessionId, moves: giftMoves })).status, 409)
 })

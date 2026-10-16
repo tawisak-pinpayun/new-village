@@ -102,13 +102,14 @@ export class CalendarUI {
     const event = document.createElement('p')
     event.textContent = `${festival.name} · ${festivalStatus(festival, selected.year, { year: this.current.year, season: this.current.season.id, day: this.current.dayInSeason, hour: this.current.hour })}`
     const information = document.createElement('small')
-    information.textContent = `${festival.description} · ${festival.location} · ${String(festival.startHour).padStart(2, '0')}:00–${String(festival.endHour).padStart(2, '0')}:00 · มินิเกม: ${MINI_GAME_NAMES[festival.miniGameId]} · รางวัลตามกำหนดการ: ${festival.rewards.join(', ')} · ${festival.miniGameId === 'flower_arrangement' ? 'มีโหมดซ้อมให้เล่น' : 'กิจกรรมกำลังอยู่ระหว่างจัดเตรียม'}`
+    const playable = ['flower_arrangement', 'gift_match'].includes(festival.miniGameId)
+    information.textContent = `${festival.description} · ${festival.location} · ${String(festival.startHour).padStart(2, '0')}:00–${String(festival.endHour).padStart(2, '0')}:00 · มินิเกม: ${MINI_GAME_NAMES[festival.miniGameId]} · รางวัลตามกำหนดการ: ${festival.rewards.join(', ')} · ${playable ? 'มีโหมดซ้อมให้เล่น' : 'กิจกรรมกำลังอยู่ระหว่างจัดเตรียม'}`
     detail.append(event, information)
-    if (festival.miniGameId === 'flower_arrangement') {
+    if (playable) {
       const practice = document.createElement('button')
       practice.type = 'button'
       practice.className = 'game-calendar-practice'
-      practice.textContent = 'ซ้อมจัดดอกไม้'
+      practice.textContent = festival.miniGameId === 'flower_arrangement' ? 'ซ้อมจัดดอกไม้' : 'ซ้อมจับคู่ของขวัญ'
       practice.addEventListener('click', () => { this.close(); this.onPlay?.(festival.miniGameId, 'practice') })
       detail.append(practice)
       if (festivalStatus(festival, selected.year, { year: this.current.year, season: this.current.season.id, day: this.current.dayInSeason, hour: this.current.hour }) === 'กำลังจัดงาน') {
